@@ -83,9 +83,9 @@ template <typename T> class NumericVector;
 /**
  * A row of the Dof constraint matrix.
  */
-typedef std::map<dof_id_type, Real,
+typedef std::map<dof_id_type, Number,
                  std::less<dof_id_type>,
-                 Threads::scalable_allocator<std::pair<const dof_id_type, Real> > > DofConstraintRow;
+                 Threads::scalable_allocator<std::pair<const dof_id_type, Number> > > DofConstraintRow;
 
 /**
  * The constraint matrix storage format.
@@ -131,9 +131,9 @@ class AdjointDofConstraintValues :
  * compatibility we also include coefficients, so we could add
  * Lagrange-positioned-node constraints later.
  */
-typedef std::map<const Node *, Real,
+typedef std::map<const Node *, Number,
                  std::less<const Node *>,
-                 Threads::scalable_allocator<std::pair<const Node * const, Real> > > NodeConstraintRow;
+                 Threads::scalable_allocator<std::pair<const Node * const, Number> > > NodeConstraintRow;
 
 /**
  * The Node constraint storage format.
