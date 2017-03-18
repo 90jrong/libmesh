@@ -157,6 +157,14 @@ public:
                               const DenseVector<T2> & arg) const;
 
   /**
+   * Performs the matrix-vector multiplication, 
+   * \p dest := (*this)^H * \p arg
+   */
+  void vector_mult_hermitian_transpose (DenseVector<T> & dest,
+                              const DenseVector<T> & arg) const;
+
+
+  /**
    * Performs the scaled matrix-vector multiplication,
    * \p dest += \p factor * (*this) * \p arg.
    */

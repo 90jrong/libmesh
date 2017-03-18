@@ -503,6 +503,35 @@ void DenseMatrix<T>::vector_mult_transpose (DenseVector<typename CompareTypes<T,
 }
 
 
+template<typename T>
+void DenseMatrix<T>::vector_mult_hermitian_transpose (DenseVector<T> & dest,
+                                            const DenseVector<T> & arg) const
+{
+  // Make sure the input sizes are compatible
+  libmesh_assert_equal_to (this->m(), arg.size());
+
+  // Resize and clear dest.
+  // Note: DenseVector::resize() also zeros the vector.
+  dest.resize(this->n());
+
+  // Short-circuit if the matrix is empty
+  if (this->m() == 0)
+    return;
+
+  // call blas
+#if   defined (LIBMESH_USE_COMPLEX_NUMBERS)
+  // because libmesh use a row major matrix storage, so it is not easy to directly use blas. 
+  // I use Eigen instead. 
+  Eigen::Map<typename Eigen::Matrix<T, Eigen::Dynamic, 1> > arg_v(&(dest.get_values()[0]), dest.size());
+  arg_v.noalias() = 
+  (Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > 
+	  (&(_val[0]),this->m(),this->n()) ).adjoint()*
+	  ( Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, 1> >(&(arg.get_values()[0]), arg.size()) );
+#else
+  this->_matvec_blas(1., 0., dest, arg, /*trans=*/true);
+#endif
+
+}
 
 template<typename T>
 void DenseMatrix<T>::vector_mult_add (DenseVector<T> & dest,

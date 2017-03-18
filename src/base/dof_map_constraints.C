@@ -1694,7 +1694,7 @@ void DofMap::constrain_element_matrix_and_vector (DenseMatrix<Number> & matrix,
       DenseVector<Number> old_rhs(rhs);
 
       // compute matrix/vector product
-      C.vector_mult_transpose(rhs, old_rhs);
+      C.vector_mult_hermitian_transpose(rhs, old_rhs);
     } // end if is constrained...
 }
 
@@ -1746,7 +1746,7 @@ void DofMap::heterogenously_constrain_element_matrix_and_vector (DenseMatrix<Num
       // Compute the matrix-vector product C^T (F - KH)
       DenseVector<Number> F_minus_KH(rhs);
       F_minus_KH -= KH;
-      C.vector_mult_transpose(rhs, F_minus_KH);
+      C.vector_mult_hermitian_transpose(rhs, F_minus_KH);
 
       // Compute the matrix-matrix-matrix product C^T K C
       matrix.left_multiply_transpose  (C);
@@ -1852,7 +1852,7 @@ void DofMap::heterogenously_constrain_element_vector (const DenseMatrix<Number> 
       // Compute the matrix-vector product C^T (F - KH)
       DenseVector<Number> F_minus_KH(rhs);
       F_minus_KH -= KH;
-      C.vector_mult_transpose(rhs, F_minus_KH);
+      C.vector_mult_hermitian_transpose(rhs, F_minus_KH);
 
       for (std::size_t i=0; i<elem_dofs.size(); i++)
         {
@@ -1995,7 +1995,7 @@ void DofMap::constrain_element_vector (DenseVector<Number> & rhs,
     {
       // Compute the matrix-vector product
       DenseVector<Number> old_rhs(rhs);
-      R.vector_mult_transpose(rhs, old_rhs);
+      R.vector_mult_hermitian_transpose(rhs, old_rhs);
 
       libmesh_assert_equal_to (row_dofs.size(), rhs.size());
 
@@ -2040,8 +2040,8 @@ void DofMap::constrain_element_dyad_matrix (DenseVector<Number> & v,
       DenseVector<Number> old_w(w);
 
       // compute matrix/vector product
-      R.vector_mult_transpose(v, old_v);
-      R.vector_mult_transpose(w, old_w);
+      R.vector_mult_hermitian_transpose(v, old_v);
+      R.vector_mult_hermitian_transpose(w, old_w);
 
       libmesh_assert_equal_to (row_dofs.size(), v.size());
       libmesh_assert_equal_to (row_dofs.size(), w.size());
