@@ -1575,7 +1575,7 @@ void DofMap::constrain_element_matrix (DenseMatrix<Number> & matrix,
       (C.n() == elem_dofs.size())) // It the matrix is constrained
     {
       // Compute the matrix-matrix-matrix product C^T K C
-      matrix.left_multiply_transpose  (C);
+      matrix.left_multiply_hermitian_transpose  (C);
       matrix.right_multiply (C);
 
 
@@ -1647,7 +1647,7 @@ void DofMap::constrain_element_matrix_and_vector (DenseMatrix<Number> & matrix,
       (C.n() == elem_dofs.size())) // It the matrix is constrained
     {
       // Compute the matrix-matrix-matrix product C^T K C
-      matrix.left_multiply_transpose  (C);
+      matrix.left_multiply_hermitian_transpose  (C);
       matrix.right_multiply (C);
 
 
@@ -1749,7 +1749,7 @@ void DofMap::heterogenously_constrain_element_matrix_and_vector (DenseMatrix<Num
       C.vector_mult_hermitian_transpose(rhs, F_minus_KH);
 
       // Compute the matrix-matrix-matrix product C^T K C
-      matrix.left_multiply_transpose  (C);
+      matrix.left_multiply_hermitian_transpose  (C);
       matrix.right_multiply (C);
 
       libmesh_assert_equal_to (matrix.m(), matrix.n());
@@ -1919,7 +1919,7 @@ void DofMap::constrain_element_matrix (DenseMatrix<Number> & matrix,
   if ((R.m() == matrix.m()) &&
       (R.n() == row_dofs.size()))
     {
-      matrix.left_multiply_transpose  (R);
+      matrix.left_multiply_hermitian_transpose  (R);
       constraint_found = true;
     }
 

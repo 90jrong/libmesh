@@ -314,6 +314,10 @@ public:
   template <typename T2>
   void left_multiply_transpose (const DenseMatrix<T2> & A);
 
+  /**
+   * Left multiplies by the conjugate transpose of the matrix \p A.
+   */
+  void left_multiply_hermitian_transpose (const DenseMatrix<T> & A);
 
   /**
    * Right multiplies by the transpose of the matrix \p A
