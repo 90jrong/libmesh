@@ -138,7 +138,7 @@ void PointLocatorTree::init (Trees::BuildType build_type)
               // Build the bounding box for the mesh.  If the delta-z bound is
               // negligibly small then we can use a quadtree.
               {
-                BoundingBox bbox = MeshTools::bounding_box(this->_mesh);
+                BoundingBox bbox = MeshTools::create_bounding_box(this->_mesh);
 
                 const Real
                   Dx = bbox.second(0) - bbox.first(0),
@@ -233,11 +233,7 @@ const Elem * PointLocatorTree::operator() (const Point & p,
           // out-of-mesh mode this is sometimes expected, and we can
           // just return NULL without searching further.  Out of
           // out-of-mesh mode, something must have gone wrong.
-
-          // We'll avoid making this assertion just yet, though,
-          // because some users are leaving out_of_mesh_mode disabled
-          // as a workaround for old PointLocatorTree behavior.
-          // libmesh_assert_equal_to (_out_of_mesh_mode, true);
+          libmesh_assert_equal_to (_out_of_mesh_mode, true);
 
           return this->_element;
         }

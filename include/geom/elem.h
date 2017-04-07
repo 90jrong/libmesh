@@ -431,8 +431,17 @@ public:
   /**
    * Resets this element's neighbors' appropriate neighbor pointers
    * and its parent's and children's appropriate pointers
+   * to point to null instead of to this.
+   *
+   * Used by the library before an element is deleted from a mesh.
+   */
+  void remove_links_to_me ();
+
+  /**
+   * Resets this element's neighbors' appropriate neighbor pointers
+   * and its parent's and children's appropriate pointers
    * to point to the global remote_elem instead of this.
-   * Used by the library before a remote element is deleted on the
+   * Used by the library before an element becomes remote on the
    * local processor.
    */
   void make_links_to_me_remote ();
@@ -1135,6 +1144,14 @@ public:
                                 const bool reset=true) const;
 
   /**
+   * Same as the \p family_tree_by_neighbor() member, but also adds
+   * any subactive descendants.
+   */
+  void total_family_tree_by_neighbor (std::vector<const Elem *> & family,
+                                      const Elem * neighbor,
+                                      const bool reset=true) const;
+
+  /**
    * Same as the \p family_tree() member, but only adds elements
    * which are next to \p subneighbor.  Only applicable when
    * \p this->has_neighbor(neighbor) and
@@ -1144,6 +1161,15 @@ public:
                                    const Elem * neighbor,
                                    const Elem * subneighbor,
                                    const bool reset=true) const;
+
+  /**
+   * Same as the \p family_tree_by_subneighbor() member, but also adds
+   * any subactive descendants.
+   */
+  void total_family_tree_by_subneighbor (std::vector<const Elem *> & family,
+                                         const Elem * neighbor,
+                                         const Elem * subneighbor,
+                                         const bool reset=true) const;
 
   /**
    * Same as the \p active_family_tree() member, but only adds elements

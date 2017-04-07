@@ -101,7 +101,7 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
     std::vector<dof_id_type> global_index;
 
     MeshCommunication().find_global_indices (mesh.comm(),
-                                             MeshTools::bounding_box(mesh),
+                                             MeshTools::create_bounding_box(mesh),
                                              beg, end, global_index);
 
     libmesh_assert_equal_to (global_index.size(), n_range_elem);
@@ -228,14 +228,10 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
 
                 if (neighbor != libmesh_nullptr)
                   {
-                    // If the neighbor is not in the range of elements
-                    // being partitioned, treat it as a NULL neighbor.
-                    //
-                    // Note: vectormap::find() is a little weird, it
-                    // returns lower_bound, so checking its return
-                    // value against end() is not useful.  Therefore,
-                    // we vall vectormap::count() instead!
-                    if (!global_index_map.count(neighbor->id()))
+                    // If the neighbor is active, but is not in the
+                    // range of elements being partitioned, treat it
+                    // as a NULL neighbor.
+                    if (neighbor->active() && !global_index_map.count(neighbor->id()))
                       continue;
 
                     // If the neighbor is active treat it
@@ -340,14 +336,10 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
 
                 if (neighbor != libmesh_nullptr)
                   {
-                    // If the neighbor is not in the range of elements
-                    // being partitioned, treat it as a NULL neighbor.
-                    //
-                    // Note: vectormap::find() is a little weird, it
-                    // returns lower_bound, so checking its return
-                    // value against end() is not useful.  Therefore,
-                    // we vall vectormap::count() instead!
-                    if (!global_index_map.count(neighbor->id()))
+                    // If the neighbor is active, but is not in the
+                    // range of elements being partitioned, treat it
+                    // as a NULL neighbor.
+                    if (neighbor->active() && !global_index_map.count(neighbor->id()))
                       continue;
 
                     // If the neighbor is active treat it
