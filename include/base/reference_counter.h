@@ -46,11 +46,20 @@ class ReferenceCounter
 protected:
 
   /**
-   * Constructor. Protected so that you cannont
+   * Constructors. Protected so that you cannot
    * instantiate a \p ReferenceCounter, only derive
    * from it.
    */
   ReferenceCounter ();
+  ReferenceCounter (const ReferenceCounter &);
+
+
+#ifdef LIBMESH_HAVE_CXX11_MOVE_CONSTRUCTORS
+  /**
+   * Move constructor, must be declared noexcept.
+   */
+  ReferenceCounter(ReferenceCounter && other) noexcept;
+#endif
 
 public:
 
@@ -142,6 +151,22 @@ inline ReferenceCounter::ReferenceCounter()
 {
   ++_n_objects;
 }
+
+
+
+inline ReferenceCounter::ReferenceCounter(const ReferenceCounter & /*other*/)
+{
+  ++_n_objects;
+}
+
+
+
+#ifdef LIBMESH_HAVE_CXX11_MOVE_CONSTRUCTORS
+inline ReferenceCounter::ReferenceCounter(ReferenceCounter && /*other*/) noexcept
+{
+  ++_n_objects;
+}
+#endif
 
 
 

@@ -38,18 +38,20 @@ public:
 
 protected:
 
-  Mesh* _mesh;
-  Mesh* _all_boundary_mesh;
-  Mesh* _left_boundary_mesh;
+  UniquePtr<Mesh> _mesh;
+  UniquePtr<Mesh> _all_boundary_mesh;
+  UniquePtr<Mesh> _left_boundary_mesh;
+  UniquePtr<Mesh> _internal_boundary_mesh;
 
   void build_mesh()
   {
-    _mesh = new Mesh(*TestCommWorld);
-    _all_boundary_mesh = new Mesh(*TestCommWorld);
-    _left_boundary_mesh = new Mesh(*TestCommWorld);
+    _mesh.reset(new Mesh(*TestCommWorld));
+    _all_boundary_mesh.reset(new Mesh(*TestCommWorld));
+    _left_boundary_mesh.reset(new Mesh(*TestCommWorld));
+    _internal_boundary_mesh.reset(new Mesh(*TestCommWorld));
 
     MeshTools::Generation::build_square(*_mesh, 3, 5,
-                                        0.1, 0.9, 0.1, 0.9, QUAD9);
+                                        0.2, 0.8, 0.2, 0.7, QUAD9);
 
     // We'll need to skip repartitioning with DistributedMesh for now;
     // otherwise the boundary meshes' interior parents might get
@@ -59,10 +61,47 @@ protected:
         _mesh->skip_partitioning(true);
         _left_boundary_mesh->skip_partitioning(true);
         _all_boundary_mesh->skip_partitioning(true);
+        _internal_boundary_mesh->skip_partitioning(true);
+      }
+
+    // Set subdomain ids for specfic elements. This allows us to later
+    // build an internal sideset with respect to a given
+    // subdomain. The element subdomains look like:
+    // ___________________
+    // |  2  |  2  |  2  |
+    // |_____|_____|_____|
+    // |  2  |  2  |  2  |
+    // |_____|_____|_____|
+    // |  2  |  2  |  2  |
+    // |_____|_____|_____|
+    // |  1  |  1  |  2  |
+    // |_____|_____|_____|
+    // |  1  |  1  |  2  |
+    // |_____|_____|_____|
+    //
+    // and we will create an internal sideset along the border between
+    // subdomains 1 and 2.
+
+    for (MeshBase::element_iterator elem_it =
+           _mesh->active_elements_begin(),
+         elem_end =
+           _mesh->active_elements_end();
+         elem_it != elem_end; ++elem_it)
+      {
+        Elem * elem = *elem_it;
+        if (elem)
+          {
+            const Point c = elem->centroid();
+            if (c(0) < 0.6 &&
+                c(1) < 0.4)
+              elem->subdomain_id() = 1;
+            else
+              elem->subdomain_id() = 2;
+          }
       }
 
     // Get the border of the square
-    _mesh->boundary_info->sync(*_all_boundary_mesh);
+    _mesh->get_boundary_info().sync(*_all_boundary_mesh);
 
     std::set<boundary_id_type> left_id, right_id;
     left_id.insert(3);
@@ -70,11 +109,63 @@ protected:
 
     // Add the right side of the square to the square; this should
     // make it a mixed dimension mesh
-    _mesh->boundary_info->add_elements(right_id, *_mesh);
+    _mesh->get_boundary_info().add_elements(right_id, *_mesh);
     _mesh->prepare_for_use();
 
     // Add the left side of the square to its own boundary mesh.
-    _mesh->boundary_info->sync(left_id, *_left_boundary_mesh);
+    _mesh->get_boundary_info().sync(left_id, *_left_boundary_mesh);
+
+    // We create an internal sideset ID that does not conflict with
+    // sidesets 0-3 that get created by build_square().
+    boundary_id_type bid = 5;
+
+    // To test the "relative to" feature, we add the same sides to the
+    // same sideset twice, from elements in subdomain 2 the second
+    // time.  These should not show up in the BoundaryMesh, i.e. there
+    // should not be overlapped elems in the BoundaryMesh.
+    BoundaryInfo & bi = _mesh->get_boundary_info();
+
+    for (MeshBase::element_iterator elem_it =
+           _mesh->active_elements_begin(),
+         elem_end =
+           _mesh->active_elements_end();
+         elem_it != elem_end; ++elem_it)
+      {
+        Elem * elem = *elem_it;
+        if (elem)
+          {
+            const Point c = elem->centroid();
+            if (c(0) < 0.6 &&
+                c(1) < 0.4)
+              {
+                if (c(0) > 0.4)
+                  bi.add_side(elem, 1, bid);
+                if (c(1) > 0.3)
+                  bi.add_side(elem, 2, bid);
+              }
+            else
+              {
+                if (c(0) < 0.75 &&
+                    c(1) < 0.4)
+                  bi.add_side(elem, 3, bid);
+                if (c(0) < 0.6 &&
+                    c(1) < 0.5)
+                  bi.add_side(elem, 0, bid);
+              }
+          }
+      }
+
+
+    // Create a BoundaryMesh from the internal sideset relative to subdomain 1.
+    {
+      std::set<boundary_id_type> requested_boundary_ids;
+      requested_boundary_ids.insert(bid);
+      std::set<subdomain_id_type> subdomains_relative_to;
+      subdomains_relative_to.insert(1);
+      _mesh->get_boundary_info().sync(requested_boundary_ids,
+                                      *_internal_boundary_mesh,
+                                      subdomains_relative_to);
+    }
   }
 
 public:
@@ -83,33 +174,40 @@ public:
     this->build_mesh();
   }
 
-  void tearDown()
-  {
-    delete _all_boundary_mesh;
-    delete _left_boundary_mesh;
-    delete _mesh;
-  }
-
   void testMesh()
   {
     // There'd better be 3*5 + 5 elements in the interior plus right
     // boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)20, _mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(20),
+                         _mesh->n_elem());
 
     // There'd better be only 7*11 nodes in the interior
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)77, _mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(77),
+                         _mesh->n_nodes());
 
     // There'd better be only 2*(3+5) elements on the full boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)16, _all_boundary_mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(16),
+                         _all_boundary_mesh->n_elem());
 
     // There'd better be only 2*2*(3+5) nodes on the full boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)32, _all_boundary_mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(32),
+                         _all_boundary_mesh->n_nodes());
 
     // There'd better be only 5 elements on the left boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)5, _left_boundary_mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(5),
+                         _left_boundary_mesh->n_elem());
 
     // There'd better be only 2*5+1 nodes on the left boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)11, _left_boundary_mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(11),
+                         _left_boundary_mesh->n_nodes());
+
+    // There are only four elements in the internal sideset mesh.
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(4),
+                         _internal_boundary_mesh->n_elem());
+
+    // There are 2*n_elem + 1 nodes in the internal sideset mesh.
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(9),
+                         _internal_boundary_mesh->n_nodes());
 
     this->sanityCheck();
   }
@@ -123,9 +221,9 @@ public:
       _mesh->active_elements_end();
     for (; elem_it != elem_end; ++elem_it)
       {
-        const Elem *elem = *elem_it;
+        const Elem * elem = *elem_it;
 
-        const Elem *pip = elem->interior_parent();
+        const Elem * pip = elem->interior_parent();
 
         // On a DistributedMesh we might not be able to see the
         // interior_parent of a non-local element
@@ -144,7 +242,7 @@ public:
             CPPUNIT_ASSERT_EQUAL(pip->level(), elem->level());
 
             // We only added right edges
-            CPPUNIT_ASSERT_DOUBLES_EQUAL(elem->centroid()(0), 0.9,
+            CPPUNIT_ASSERT_DOUBLES_EQUAL(elem->centroid()(0), 0.8,
                                          TOLERANCE*TOLERANCE);
           }
         else
@@ -159,11 +257,11 @@ public:
       _left_boundary_mesh->active_elements_end();
     for (; left_bdy_elem_it != left_bdy_elem_end; ++left_bdy_elem_it)
       {
-        const Elem *elem = *left_bdy_elem_it;
+        const Elem * elem = *left_bdy_elem_it;
 
         CPPUNIT_ASSERT_EQUAL(elem->type(), EDGE3);
 
-        const Elem *pip = elem->interior_parent();
+        const Elem * pip = elem->interior_parent();
 
         // On a DistributedMesh we might not be able to see the
         // interior_parent of a non-local element
@@ -179,7 +277,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(pip->level(), elem->level());
 
         // We only added left edges
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(elem->centroid()(0), 0.1,
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(elem->centroid()(0), 0.2,
                                      TOLERANCE*TOLERANCE);
       }
 
@@ -190,11 +288,11 @@ public:
       _left_boundary_mesh->active_elements_end();
     for (; all_bdy_elem_it != all_bdy_elem_end; ++all_bdy_elem_it)
       {
-        const Elem *elem = *all_bdy_elem_it;
+        const Elem * elem = *all_bdy_elem_it;
 
         CPPUNIT_ASSERT_EQUAL(elem->type(), EDGE3);
 
-        const Elem *pip = elem->interior_parent();
+        const Elem * pip = elem->interior_parent();
 
         // On a DistributedMesh we might not be able to see the
         // interior_parent of a non-local element
@@ -210,6 +308,24 @@ public:
         CPPUNIT_ASSERT_EQUAL(pip->level(), elem->level());
       }
 
+
+    // Sanity check for the internal sideset mesh.
+    MeshBase::const_element_iterator
+      internal_elem_it = _internal_boundary_mesh->active_elements_begin(),
+      internal_elem_end = _internal_boundary_mesh->active_elements_end();
+
+    for (; internal_elem_it != internal_elem_end; ++internal_elem_it)
+      {
+        const Elem * elem = *internal_elem_it;
+
+        CPPUNIT_ASSERT_EQUAL(elem->type(), EDGE3);
+
+        // All of the elements in the internal sideset mesh should
+        // have the same subdomain id as the parent Elems (i.e. 1)
+        // they came from.
+        CPPUNIT_ASSERT_EQUAL(static_cast<subdomain_id_type>(1),
+                             elem->subdomain_id());
+      }
   }
 
 };
@@ -250,33 +366,40 @@ public:
   {
     // There'd better be 3*5*4 + 5*2 active elements in the interior
     // plus right boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)70, _mesh->n_active_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(70),
+                         _mesh->n_active_elem());
 
     // Plus the original 20 now-inactive elements
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)90, _mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(90),
+                         _mesh->n_elem());
 
     // There'd better be only 13*21 nodes in the interior
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)273, _mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(273),
+                         _mesh->n_nodes());
 
     // There'd better be only 2*2*(3+5) active elements on the full boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)32,
-                          _all_boundary_mesh->n_active_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(32),
+                         _all_boundary_mesh->n_active_elem());
 
     // Plus the original 16 now-inactive elements
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)48, _all_boundary_mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(48),
+                         _all_boundary_mesh->n_elem());
 
     // There'd better be only 2*2*2*(3+5) nodes on the full boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)64, _all_boundary_mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(64),
+                         _all_boundary_mesh->n_nodes());
 
     // There'd better be only 2*5 active elements on the left boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)10,
-                          _left_boundary_mesh->n_active_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(10),
+                         _left_boundary_mesh->n_active_elem());
 
     // Plus the original 5 now-inactive elements
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)15, _left_boundary_mesh->n_elem() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(15),
+                         _left_boundary_mesh->n_elem());
 
     // There'd better be only 2*2*5+1 nodes on the left boundary
-    CPPUNIT_ASSERT_EQUAL( (dof_id_type)21, _left_boundary_mesh->n_nodes() );
+    CPPUNIT_ASSERT_EQUAL(static_cast<dof_id_type>(21),
+                         _left_boundary_mesh->n_nodes());
 
     this->sanityCheck();
   }
