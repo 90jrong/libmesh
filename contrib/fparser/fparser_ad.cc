@@ -3,6 +3,7 @@
 #include "extrasrc/fptypes.hh"
 #include "extrasrc/fpaux.hh"
 #include <stdlib.h>
+#include "Faddeeva.hh"
 
 using namespace FUNCTIONPARSERTYPES;
 
@@ -89,6 +90,8 @@ FunctionParserADBase<Value_t>::FunctionParserADBase() :
     ad(new ADImplementation<Value_t>(this))
 {
   this->AddFunction("plog", fp_plog, 2);
+  mFErf = this->mData->mFuncPtrs.size();
+  this->AddFunction("erf", fp_erf, 1);
 }
 
 template<typename Value_t>
@@ -96,6 +99,7 @@ FunctionParserADBase<Value_t>::FunctionParserADBase(const FunctionParserADBase& 
     FunctionParserBase<Value_t>(cpy),
     compiledFunction(cpy.compiledFunction),
     mFPlog(cpy.mFPlog),
+    mFErf(cpy.mFErf),
     mADFlags(cpy.mADFlags),
     mRegisteredDerivatives(cpy.mRegisteredDerivatives),
     ad(new ADImplementation<Value_t>(this))
@@ -109,6 +113,32 @@ Value_t FunctionParserADBase<Value_t>::fp_plog(const Value_t * params)
   const Value_t x = params[0];
   const Value_t a = params[1];
   return x < a ? fp_log(a) + (x-a)/a - (x-a)*(x-a)/(Value_t(2)*a*a) + (x-a)*(x-a)*(x-a)/(Value_t(3)*a*a*a) : fp_log(x);
+}
+
+template <typename Value_t>
+Value_t FunctionParserADBase<Value_t>::fp_erf(const Value_t * params)
+{
+  return Faddeeva::erf(params[0]);
+}
+
+template<>
+std::complex<float>
+FunctionParserADBase<std::complex<float> >::fp_erf(const std::complex<float> * params)
+{
+  std::complex<double> result =
+    Faddeeva::erf(std::complex<double>(params[0].real(),
+                                       params[0].imag()));
+  return std::complex<float>(result.real(), result.imag());
+}
+
+template<>
+std::complex<long double>
+FunctionParserADBase<std::complex<long double> >::fp_erf(const std::complex<long double> * params)
+{
+  std::complex<double> result =
+    Faddeeva::erf(std::complex<double>(params[0].real(),
+                                       params[0].imag()));
+  return std::complex<long double>(result.real(), result.imag());
 }
 
 template<typename Value_t>
@@ -375,6 +405,10 @@ typename ADImplementation<Value_t>::CodeTreeAD ADImplementation<Value_t>::D(cons
             MakeTree(cInv, a)
         );
       }
+      else if (func.GetFuncNo() == this->parser->mFErf)
+      {
+        return D(a) * CodeTreeAD(Value_t(2) / fp_sqrt<Value_t>(M_PI)) * MakeTree(cExp, -(a*a));
+      }
       // fall through to undefined
 
     case cPCall:
@@ -460,7 +494,14 @@ int FunctionParserADBase<Value_t>::AutoDiff(const std::string& var_name)
           {
             Serialize(ostr);
             ostr.close();
-            std::rename(cache_file_tmp, cache_file.c_str());
+
+            /**
+             * MPI runs on asynchronous networked filesystems require a two-step
+             * renaming. The link call will not do anything if the cache_file
+             * has already been created by a different rank.
+             */
+            link(cache_file_tmp, cache_file.c_str());
+            std::remove(cache_file_tmp);
           }
         }
       }
@@ -843,6 +884,17 @@ bool FunctionParserADBase<Value_t>::JITCompileHelper(const std::string & Value_t
           // --sp; ccfile << "s[" << sp << "] = s[" << sp << "] < s[" << (sp+1) << "] ? std::log(s[" << (sp+1) << "]) - 1.5 + 2.0/s[" << (sp+1) << "] * s[" << sp << "] - 0.5/(s[" << (sp+1) << "]*s[" << (sp+1) << "]) * s[" << sp << "]*s[" << sp << "] : std::log(s[" << sp << "]);\n";
           --sp; ccfile << "s[" << sp << "] = s[" << sp << "] < s[" << (sp+1) << "] ? std::log(s[" << (sp+1) << "])  +  (s[" << sp << "]-s[" << (sp+1) << "])/s[" << (sp+1) << "]  -  std::pow((s[" << sp << "]-s[" << (sp+1) << "])/s[" << (sp+1) << "],2.0)/2.0  +  std::pow((s[" << sp << "]-s[" << (sp+1) << "])/s[" << (sp+1) << "],3.0)/3.0 : std::log(s[" << sp << "]);\n";
         }
+        else if (function == mFErf)
+        {
+#if LIBMESH_HAVE_CXX11_ERF
+          ccfile << "s[" << sp << "] = std::erf(s[" << sp << "]);\n";
+#else
+          std::cerr << "Libmesh is not compiled with c++11 so std::erf is not supported by JIT.\n";
+          ccfile.close();
+          std::remove(ccname);
+          return false;
+#endif
+        }
         else
         {
           std::cerr << "Function call not supported by JIT.\n";
@@ -986,13 +1038,13 @@ bool FunctionParserADBase<Value_t>::JITCompileHelper(const std::string & Value_t
   // clear evalerror (this will not get set again by the JIT code)
   this->mData->mEvalErrorType = 0;
 
-  // rename successfully compiled obj to cache file
+  // hard link successfully compiled obj to final cache file
   if (cacheFunction && (mkdir(jitdir.c_str(), 0700) == 0 || errno == EEXIST)) {
-    // the directory was either successfuly created, or it already exists
-    status = std::rename(object_so.c_str(), libname.c_str());
-    if (status == 0) return true;
+    // the directory was either successfully created, or it already exists
+    link(object_so.c_str(), libname.c_str());
   }
 
+  // remove temporary object
   std::remove(object_so.c_str());
   return true;
 }
