@@ -76,7 +76,7 @@ public:
   /**
    * Storage for the computed shape function values.
    */
-  std::vector<Number> shape;
+  std::vector<Real> shape;
 
 
 #if defined(LIBMESH_ENABLE_INFINITE_ELEMENTS) && !defined(LIBMESH_USE_COMPLEX_NUMBERS)
