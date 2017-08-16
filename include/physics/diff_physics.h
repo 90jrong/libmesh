@@ -1,4 +1,3 @@
-
 // The libMesh Finite Element Library.
 // Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
@@ -241,8 +240,8 @@ public:
    * any system which reimplements mass_residual() may have to reimplement
    * time_evolving() to prepare data structures.
    *
-   * This method is deprecated. Instead, use the time_evolving override
-   * and specify the order-in-time of the variable, either 1 or 2. This method
+   * \deprecated Instead, use the time_evolving override and specify
+   * the order-in-time of the variable, either 1 or 2. This method
    * assumes the variable is first order for backward compatibility.
    */
   virtual void time_evolving (unsigned int var)
@@ -266,7 +265,7 @@ public:
   virtual void time_evolving (unsigned int var, unsigned int order);
 
   /**
-   * Returns true iff variable \p var is evolving with
+   * \returns \p true iff variable \p var is evolving with
    * respect to time.  In general, the user's init() function
    * should have set time_evolving() for any variables which
    * behave like du/dt = F(u), and should not call time_evolving()
@@ -440,14 +439,14 @@ public:
   virtual void set_mesh_system(System * sys);
 
   /**
-   * Returns a const reference to the system with variables corresponding to
+   * \returns A const reference to the system with variables corresponding to
    * mesh nodal coordinates, or NULL if the mesh is fixed.
    * Useful for ALE calculations.
    */
   const System * get_mesh_system() const;
 
   /**
-   * Returns a reference to the system with variables corresponding to
+   * \returns A reference to the system with variables corresponding to
    * mesh nodal coordinates, or NULL if the mesh is fixed.
    */
   System * get_mesh_system();
@@ -469,7 +468,7 @@ public:
   virtual void set_mesh_x_var(unsigned int var);
 
   /**
-   * Returns the variable number corresponding to the
+   * \returns The variable number corresponding to the
    * mesh x coordinate. Useful for ALE calculations.
    */
   unsigned int get_mesh_x_var() const;
@@ -481,7 +480,7 @@ public:
   virtual void set_mesh_y_var(unsigned int var);
 
   /**
-   * Returns the variable number corresponding to the
+   * \returns The variable number corresponding to the
    * mesh y coordinate. Useful for ALE calculations.
    */
   unsigned int get_mesh_y_var() const;
@@ -493,7 +492,7 @@ public:
   virtual void set_mesh_z_var(unsigned int var);
 
   /**
-   * Returns the variable number corresponding to the
+   * \returns The variable number corresponding to the
    * mesh z coordinate. Useful for ALE calculations.
    */
   unsigned int get_mesh_z_var() const;
@@ -510,7 +509,7 @@ public:
   { return !_first_order_vars.empty(); }
 
   /**
-   * Returns the set of first order in time variable indices. May be empty.
+   * \returns The set of first order in time variable indices. May be empty.
    */
   const std::set<unsigned int> & get_first_order_vars() const
   { return _first_order_vars; }
@@ -523,7 +522,7 @@ public:
   { return !_second_order_vars.empty(); }
 
   /**
-   * Returns the set of second order in time variable indices. May be empty.
+   * \returns The set of second order in time variable indices. May be empty.
    */
   const std::set<unsigned int> & get_second_order_vars() const
   { return _second_order_vars; }

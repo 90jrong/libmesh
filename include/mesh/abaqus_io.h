@@ -41,7 +41,7 @@ class AbaqusIO : public MeshInput<MeshBase>
 {
 public:
   /**
-   * Constructor.  Takes a writeable reference to a mesh object.
+   * Constructor.  Takes a writable reference to a mesh object.
    */
   explicit
   AbaqusIO (MeshBase & mesh);
@@ -104,10 +104,11 @@ private:
   std::string parse_label(std::string line, std::string label_name) const;
 
   /**
-   * Returns true if the input string is a generated elset or nset,
-   * false otherwise. The input string is assumed to already be in all
-   * upper case. Generated nsets are assumed to have the following
-   * format:
+   * \returns \p true if the input string is a generated elset or nset,
+   * false otherwise.
+   *
+   * The input string is assumed to already be in all upper
+   * case. Generated nsets are assumed to have the following format:
    * *Nset, nset=Set-1, generate
    */
   bool detect_generated_set(std::string upper) const;
@@ -180,9 +181,11 @@ private:
   void process_and_discard_comments();
 
   /**
-   * Returns the maximum geometric element dimension encountered while
-   * reading the Mesh.  Only valid after the elements have been read
-   * in and the elems_of_dimension array has been populated.
+   * \returns The maximum geometric element dimension encountered while
+   * reading the Mesh.
+   *
+   * Only valid after the elements have been read in and the
+   * elems_of_dimension array has been populated.
    */
   unsigned char max_elem_dimension_seen();
 
@@ -215,7 +218,8 @@ private:
 
   /**
    * Map from abaqus node number -> sequential, 0-based libmesh node numbering.
-   * Note that in every Abaqus file I've ever seen the node numbers were 1-based,
+   *
+   * \note In every Abaqus file I've ever seen the node numbers were 1-based,
    * sequential, and all in order, so that this map is probably overkill.
    * Nevertheless, it is the most general solution in case we come across a
    * weird Abaqus file some day.

@@ -34,7 +34,8 @@ namespace libMesh
 /**
  * This class provides a wrapper with which to evaluate a
  * (libMesh-style) function pointer in a FunctionBase-compatible
- * interface.
+ * interface. All overridden virtual functions are documented in
+ * fem_function_base.h.
  *
  * \author Roy Stogner
  * \date 2015
@@ -46,7 +47,7 @@ public:
 
   /**
    * Constructor to wrap FunctionBase functors in a FEMFunctionBase
-   * compatible shim
+   * compatible shim.
    */
   WrappedFunctor (const FunctionBase<Output> & func)
     : _func(func.clone())
@@ -58,30 +59,17 @@ public:
       (new WrappedFunctor<Output> (*_func));
   }
 
-  /**
-   * @returns the scalar value of variable varnum at coordinate \p p
-   * and time \p time.
-   */
   virtual Output operator() (const FEMContext &,
                              const Point & p,
                              const Real time = 0.) libmesh_override
   { return _func->operator()(p, time); }
 
-  /**
-   * Return function for vectors.
-   * Returns in \p output the values of all system variables at the
-   * coordinate \p p and for time \p time.
-   */
   virtual void operator() (const FEMContext &,
                            const Point & p,
                            const Real time,
                            DenseVector<Output> & output) libmesh_override
   { _func->operator() (p, time, output); }
 
-  /**
-   * @returns the vector component \p i at coordinate
-   * \p p and time \p time.
-   */
   virtual Output component (const FEMContext &,
                             unsigned int i,
                             const Point & p,

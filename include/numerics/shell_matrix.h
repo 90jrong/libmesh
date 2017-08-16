@@ -38,7 +38,7 @@ template <typename T> class NumericVector;
 /**
  * Generic shell matrix, i.e. a matrix that does not define anything
  * but its action on a vector.  This class contains pure virtual
- * members that must be overloaded in derived classes.
+ * members that must be overridden in derived classes.
  *
  * \author Tim Kroeger
  * \date 2008
@@ -60,13 +60,13 @@ public:
   virtual ~ShellMatrix ();
 
   /**
-   * @returns \p m, the row-dimension of the matrix where the marix is
+   * \returns \p m, the row-dimension of the matrix where the marix is
    * \f$ M \times N \f$.
    */
   virtual numeric_index_type m () const = 0;
 
   /**
-   * @returns \p n, the column-dimension of the matrix where the marix
+   * \returns \p n, the column-dimension of the matrix where the marix
    * is \f$ M \times N \f$.
    */
   virtual numeric_index_type n () const = 0;

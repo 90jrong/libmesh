@@ -37,9 +37,10 @@ template<typename T> class NonlinearSolver;
 /**
  * This class provides a specific system class.  It aims
  * at implicit systems, offering nothing more than just
- * the essentials needed to solve a system.  Note
- * that still additional vectors/matrices may be added,
- * as offered in the parent class \p ExplicitSystem.
+ * the essentials needed to solve a system.
+ *
+ * \note Additional vectors/matrices can be added via parent class
+ * interfaces.
  *
  * \author Benjamin S. Kirk
  * \date 2005
@@ -202,7 +203,7 @@ public:
   };
 
   /**
-   * @returns a clever pointer to the system.
+   * \returns A reference to *this.
    */
   sys_type & system () { return *this; }
 
@@ -224,7 +225,7 @@ public:
   virtual void solve () libmesh_override;
 
   /**
-   * Returns an integer corresponding to the upper iteration count
+   * \returns An integer corresponding to the upper iteration count
    * limit and a Real corresponding to the convergence tolerance to
    * be used in linear adjoint and/or sensitivity solves
    */
@@ -241,7 +242,7 @@ public:
                         bool apply_no_constraints = false) libmesh_override;
 
   /**
-   * @returns \p "NonlinearImplicit".  Helps in identifying
+   * \returns \p "NonlinearImplicit".  Helps in identifying
    * the system type in an equation system file.
    */
   virtual std::string system_type () const libmesh_override { return "NonlinearImplicit"; }
@@ -261,13 +262,13 @@ public:
   UniquePtr<DiffSolver> diff_solver;
 
   /**
-   * Returns  the number of iterations
+   * \returns The number of iterations
    * taken for the most recent nonlinear solve.
    */
   unsigned int n_nonlinear_iterations() const { return _n_nonlinear_iterations; }
 
   /**
-   * Returns the final residual for the nonlinear system solve.
+   * \returns The final residual for the nonlinear system solve.
    */
   Real final_nonlinear_residual() const { return _final_nonlinear_residual; }
 

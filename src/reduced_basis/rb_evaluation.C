@@ -29,6 +29,7 @@
 #include "libmesh/libmesh_logging.h"
 #include "libmesh/xdr_cxx.h"
 #include "libmesh/mesh_tools.h"
+#include "libmesh/utility.h"
 
 // C/C++ includes
 #include <sys/types.h>
@@ -438,7 +439,7 @@ void RBEvaluation::legacy_write_offline_data_to_files(const std::string & direct
     {
 
       // Make a directory to store all the data files
-      mkdir(directory_name.c_str(), 0777);
+      Utility::mkdir(directory_name.c_str());
       //    if (mkdir(directory_name.c_str(), 0777) == -1)
       //    {
       //      libMesh::out << "In RBEvaluation::write_offline_data_to_files, directory "
@@ -920,7 +921,7 @@ void RBEvaluation::write_out_vectors(System & sys,
   if (this->processor_id() == 0)
     {
       // Make a directory to store all the data files
-      mkdir(directory_name.c_str(), 0777);
+      Utility::mkdir(directory_name.c_str());
     }
 
   // Make sure processors are synced up before we begin
@@ -929,44 +930,21 @@ void RBEvaluation::write_out_vectors(System & sys,
   std::ostringstream file_name;
   const std::string basis_function_suffix = (write_binary_vectors ? ".xdr" : ".dat");
 
-  file_name << directory_name << "/" << data_name << "_header" << basis_function_suffix;
-  Xdr header_data(file_name.str(),
-                  write_binary_vectors ? ENCODE : WRITE);
-  sys.write_header(header_data, get_io_version_string(), /*write_additional_data=*/false);
+  file_name << directory_name << "/" << data_name << "_data" << basis_function_suffix;
+  Xdr bf_data(file_name.str(),
+              write_binary_vectors ? ENCODE : WRITE);
+
+  std::string version("libMesh-" + libMesh::get_io_compatibility_version());
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+  version += " with infinite elements";
+#endif
+  bf_data.data(version ,"# File Format Identifier");
+
+  sys.write_header(bf_data, /*(unused arg)*/ version, /*write_additional_data=*/false);
 
   // Following EquationSystemsIO::write, we use a temporary numbering (node major)
   // before writing out the data
   MeshTools::Private::globally_renumber_nodes_and_elements(sys.get_mesh());
-
-  // // Use System::write_serialized_data to write out the basis functions
-  // // by copying them into this->solution one at a time.
-  // for (std::size_t i=0; i<vectors.size(); i++)
-  // {
-  //   // No need to copy, just swap
-  //   // *solution = *vectors[i];
-  //   vectors[i]->swap(*sys.solution);
-  //   file_name.str(""); // reset the string
-  //   file_name << directory_name << "/bf" << i << basis_function_suffix;
-  //   Xdr bf_data(file_name.str(),
-  //               write_binary_vectors ? ENCODE : WRITE);
-  //   // set the current version
-  //   bf_data.set_version(LIBMESH_VERSION_ID(LIBMESH_MAJOR_VERSION,
-  //    LIBMESH_MINOR_VERSION,
-  //    LIBMESH_MICRO_VERSION));
-
-  //   sys.write_serialized_data(bf_data, false);
-
-  //   // Synchronize before moving on
-  //   this->comm().barrier();
-  //   // Swap back
-  //   vectors[i]->swap(*sys.solution);
-  // }
-
-  file_name.str("");
-  file_name << directory_name << "/" << data_name << "_data" << basis_function_suffix;
-
-  Xdr bf_data(file_name.str(),
-              write_binary_vectors ? ENCODE : WRITE);
 
   // Write all vectors at once.
   {
@@ -1044,32 +1022,10 @@ void RBEvaluation::read_in_vectors_from_multiple_files(System & sys,
 
   std::ostringstream file_name;
   const std::string basis_function_suffix = (read_binary_vectors ? ".xdr" : ".dat");
-  struct stat stat_info;
-
-  // Assume that all the headers are the same, hence we can just use the first one.
-  file_name << multiple_directory_names[0] << "/"
-            << multiple_data_names[0] << "_header" << basis_function_suffix;
-  assert_file_exists(file_name.str());
-
-  Xdr header_data(file_name.str(),
-                  read_binary_vectors ? DECODE : READ);
-
-  // set the version number in header_data from io_version_string
-  // (same code as in EquationSystemsIO::_read_impl)
-  std::string io_version_string = get_io_version_string();
-  std::string::size_type lm_pos = io_version_string.find("libMesh");
-  std::istringstream iss(io_version_string.substr(lm_pos + 8));
-  int ver_major = 0, ver_minor = 0, ver_patch = 0;
-  char dot;
-  iss >> ver_major >> dot >> ver_minor >> dot >> ver_patch;
-  header_data.set_version(LIBMESH_VERSION_ID(ver_major, ver_minor, ver_patch));
-
-  // We need to call sys.read_header (e.g. to set _written_var_indices properly),
-  // but by setting the read_header argument to false, it doesn't reinitialize the system
-  sys.read_header(header_data, io_version_string, /*read_header=*/false, /*read_additional_data=*/false);
 
   // Following EquationSystemsIO::read, we use a temporary numbering (node major)
-  // before writing out the data
+  // before writing out the data. For the sake of efficiency, we do this once for
+  // all the vectors that we read in.
   MeshTools::Private::globally_renumber_nodes_and_elements(sys.get_mesh());
 
   for (unsigned int data_index=0; data_index<n_directories; data_index++)
@@ -1100,6 +1056,7 @@ void RBEvaluation::read_in_vectors_from_multiple_files(System & sys,
       // On processor zero check to be sure the file exists
       if (this->processor_id() == 0)
         {
+          struct stat stat_info;
           int stat_result = stat(file_name.str().c_str(), &stat_info);
 
           if (stat_result != 0)
@@ -1110,25 +1067,35 @@ void RBEvaluation::read_in_vectors_from_multiple_files(System & sys,
       Xdr vector_data(file_name.str(),
                       read_binary_vectors ? DECODE : READ);
 
-      // The vector_data needs to know which version to read.
-      vector_data.set_version(LIBMESH_VERSION_ID(ver_major, ver_minor, ver_patch));
+      // Read the header data. This block of code is based on EquationSystems::_read_impl.
+      {
+        std::string version;
+        vector_data.data(version);
+
+        const std::string libMesh_label = "libMesh-";
+        std::string::size_type lm_pos = version.find(libMesh_label);
+        if (lm_pos==std::string::npos)
+        {
+          libmesh_error_msg("version info missing in Xdr header");
+        }
+
+        std::istringstream iss(version.substr(lm_pos + libMesh_label.size()));
+        int ver_major = 0, ver_minor = 0, ver_patch = 0;
+        char dot;
+        iss >> ver_major >> dot >> ver_minor >> dot >> ver_patch;
+        vector_data.set_version(LIBMESH_VERSION_ID(ver_major, ver_minor, ver_patch));
+
+        // Actually read the header data. When we do this, set read_header=false
+        // so taht we do not reinit sys, since we assume that it has already been
+        // set up properly (e.g. the appropriate variables have already been added).
+        sys.read_header(vector_data, version, /*read_header=*/false, /*read_additional_data=*/false);
+      }
 
       sys.read_serialized_vectors (vector_data, vectors);
     }
 
   // Undo the temporary renumbering
   sys.get_mesh().fix_broken_node_and_element_numbering();
-}
-
-std::string RBEvaluation::get_io_version_string()
-{
-  std::string retval("libMesh-" + libMesh::get_io_compatibility_version());
-
-#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
-  retval += " with infinite elements";
-#endif
-
-  return retval;
 }
 
 } // namespace libMesh

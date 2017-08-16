@@ -1,19 +1,29 @@
+// The libMesh Finite Element Library.
+// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 2.1 of the License, or (at your option) any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+
 // Open the mesh and solution file named in command line arguments,
 // and plot them out to the given filename.
-
 #include "libmesh/libmesh.h"
 
-#include "libmesh/mesh.h"
 #include "libmesh/equation_systems.h"
-
-#include "libmesh/exodusII_io.h"
-#include "libmesh/gmsh_io.h"
-#include "libmesh/gmv_io.h"
-#include "libmesh/gnuplot_io.h"
-#include "libmesh/medit_io.h"
-#include "libmesh/nemesis_io.h"
-#include "libmesh/tecplot_io.h"
-#include "libmesh/vtk_io.h"
+#include "libmesh/mesh.h"
+#include "libmesh/namebased_io.h"
 
 int main(int argc, char ** argv)
 {
@@ -53,32 +63,15 @@ int main(int argc, char ** argv)
 
   START_LOG("write_equation_systems()", "main");
   std::string outputname(argv[argc-1]);
-
-  if (outputname.find(".gnuplot") != std::string::npos)
-    GnuPlotIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".gmv") != std::string::npos)
-    GMVIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".mesh") != std::string::npos)
-    MEDITIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".msh") != std::string::npos)
-    GmshIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".plt") != std::string::npos)
-    TecplotIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".vtu") != std::string::npos)
-    VTKIO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".e") != std::string::npos)
-    ExodusII_IO(mesh).write_equation_systems (outputname, es);
-  else if (outputname.find(".n") != std::string::npos)
-    Nemesis_IO(mesh).write_equation_systems (outputname, es);
-  else if ((outputname.find(".xda") != std::string::npos) ||
-           (outputname.find(".xdr") != std::string::npos))
+  if ((outputname.find(".xda") != std::string::npos) ||
+      (outputname.find(".xdr") != std::string::npos))
     {
       mesh.write("mesh-"+outputname);
       es.write("soln-"+outputname);
     }
   else
-    libmesh_error();
-
+    NameBasedIO(mesh).write_equation_systems (outputname, es);
   STOP_LOG("write_equation_systems()", "main");
+
   libMesh::out << "Wrote output " << outputname << std::endl;
 }

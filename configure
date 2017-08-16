@@ -1221,6 +1221,7 @@ enable_triangle
 enable_qhull
 enable_gmv
 enable_vtk
+enable_vtk_required
 with_vtk_include
 with_vtk_lib
 enable_eigen
@@ -2012,6 +2013,7 @@ Optional Features:
   --enable-qhull          build with Qhull API support
   --disable-gmv           build without GMV file I/O support
   --disable-vtk           build without VTK file I/O support
+  --enable-vtk-required   Error if VTK is not detected by configure
   --disable-eigen         build without Eigen linear algebra support
   --disable-glpk          build without GLPK support
   --disable-nlopt         build without NLOPT support
@@ -2824,6 +2826,97 @@ fi
 
 } # ac_fn_fc_try_link
 
+# ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
+# ---------------------------------------------------------
+# Tests whether HEADER exists, giving a warning if it cannot be compiled using
+# the include files in INCLUDES and setting the cache variable VAR
+# accordingly.
+ac_fn_cxx_check_header_mongrel ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if eval \${$3+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
+$as_echo_n "checking $2 usability... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_header_compiler=yes
+else
+  ac_header_compiler=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
+$as_echo_n "checking $2 presence... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$2>
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+  ac_header_preproc=yes
+else
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in #((
+  yes:no: )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+( $as_echo "## -------------------------------------------------- ##
+## Report this to libmesh-users@lists.sourceforge.net ##
+## -------------------------------------------------- ##"
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=\$ac_header_compiler"
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_cxx_check_header_mongrel
+
 # ac_fn_cxx_compute_int LINENO EXPR VAR INCLUDES
 # ----------------------------------------------
 # Tries to find the compile-time value of EXPR in a program that includes
@@ -3007,96 +3100,51 @@ rm -f conftest.val
 
 } # ac_fn_cxx_compute_int
 
-# ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
-# ---------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
+# ac_fn_cxx_check_decl LINENO SYMBOL VAR INCLUDES
+# -----------------------------------------------
+# Tests whether SYMBOL is declared in INCLUDES, setting cache variable VAR
 # accordingly.
-ac_fn_cxx_check_header_mongrel ()
+ac_fn_cxx_check_decl ()
 {
   as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
+  as_decl_name=`echo $2|sed 's/ *(.*//'`
+  as_decl_use=`echo $2|sed -e 's/(/((/' -e 's/)/) 0&/' -e 's/,/) 0& (/g'`
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $as_decl_name is declared" >&5
+$as_echo_n "checking whether $as_decl_name is declared... " >&6; }
 if eval \${$3+:} false; then :
   $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
 else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 $4
-#include <$2>
+int
+main ()
+{
+#ifndef $as_decl_name
+#ifdef __cplusplus
+  (void) $as_decl_use;
+#else
+  (void) $as_decl_name;
+#endif
+#endif
+
+  ;
+  return 0;
+}
 _ACEOF
 if ac_fn_cxx_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
+  eval "$3=yes"
 else
-  ac_header_compiler=no
+  eval "$3=no"
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-( $as_echo "## -------------------------------------------------- ##
-## Report this to libmesh-users@lists.sourceforge.net ##
-## -------------------------------------------------- ##"
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
 fi
 eval ac_res=\$$3
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
-fi
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
-} # ac_fn_cxx_check_header_mongrel
+} # ac_fn_cxx_check_decl
 
 # ac_fn_cxx_check_func LINENO FUNC VAR
 # ------------------------------------
@@ -8649,13 +8697,13 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
     {
     public:
       move_constructable_base() {}
-      move_constructable_base(move_constructable_base && other) {}
+      move_constructable_base(move_constructable_base && other) noexcept {}
     };
     class move_constructable : public move_constructable_base
     {
     public:
       move_constructable() {}
-      move_constructable(move_constructable && other) : move_constructable_base(std::move(other)) {}
+      move_constructable(move_constructable && other) noexcept : move_constructable_base(std::move(other)) {}
     };
 
 int
@@ -29215,11 +29263,41 @@ _ACEOF
 # difficult.  If you know that you are on such a system, configure with
 # --disable-getpwuid.
 # --------------------------------------------------------------
+enablegetpwuid_default=yes
+
+# We can't use getpwuid if pwd.h is not found.
+for ac_header in pwd.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "pwd.h" "ac_cv_header_pwd_h" "$ac_includes_default"
+if test "x$ac_cv_header_pwd_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PWD_H 1
+_ACEOF
+ have_pwd_h=yes
+else
+  have_pwd_h=no
+fi
+
+done
+
+if test "$have_pwd_h" = no ; then
+  enablegetpwuid_default=no
+fi
+
+# If the user configured with --enable-all-static, certain functions
+# like getpwuid cannot be used. You may see warnings like the
+# following from the linker:
+# warning: Using 'getpwuid' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
+if test "$enableallstatic" = yes ; then
+  enablegetpwuid_default=no
+fi
+
+# Let the user override the default (at their own risk).
 # Check whether --enable-getpwuid was given.
 if test "${enable_getpwuid+set}" = set; then :
   enableval=$enable_getpwuid; enablegetpwuid=$enableval
 else
-  enablegetpwuid=yes
+  enablegetpwuid=$enablegetpwuid_default
 fi
 
 
@@ -29942,6 +30020,89 @@ $as_echo "#define HAVE_FEDISABLEEXCEPT 1" >>confdefs.h
 
 fi
 
+
+
+# Check if we have new-style signal handlers
+ac_fn_cxx_check_decl "$LINENO" "sigaction" "ac_cv_have_decl_sigaction" "#include <signal.h>
+"
+if test "x$ac_cv_have_decl_sigaction" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SIGACTION $ac_have_decl
+_ACEOF
+
+
+# Check for mkdir
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for mkdir with two arguments" >&5
+$as_echo_n "checking for mkdir with two arguments... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+        #include <sys/stat.h>
+        #include <sys/types.h>
+int
+main ()
+{
+
+        mkdir("test-dir", 0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_MKDIR /**/" >>confdefs.h
+
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+for ac_header in direct.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "direct.h" "ac_cv_header_direct_h" "$ac_includes_default"
+if test "x$ac_cv_header_direct_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DIRECT_H 1
+_ACEOF
+
+fi
+
+done
+
+ac_fn_cxx_check_decl "$LINENO" "_mkdir" "ac_cv_have_decl__mkdir" "
+    #include <direct.h>
+
+"
+if test "x$ac_cv_have_decl__mkdir" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL__MKDIR $ac_have_decl
+_ACEOF
+
+
+# Check for uname header.
+for ac_header in sys/utsname.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "sys/utsname.h" "ac_cv_header_sys_utsname_h" "$ac_includes_default"
+if test "x$ac_cv_header_sys_utsname_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SYS_UTSNAME_H 1
+_ACEOF
+
+fi
+
+done
 
 
 # Check whether --enable-unordered-containers was given.
@@ -31784,6 +31945,10 @@ else
 fi
 
 
+                  if test "$enableallstatic" = yes ; then
+    ac_cv_cxx_dlopen=no
+  fi
+
     if (test "$ac_cv_cxx_dlopen" = yes); then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the c++ compiler supports dlopen/dlsym/dlclose" >&5
 $as_echo_n "checking whether the c++ compiler supports dlopen/dlsym/dlclose... " >&6; }
@@ -33591,7 +33756,7 @@ $as_echo "$as_me: Your boost libraries seems to old (version $_version)." >&6;}
 
 
 
-$as_echo "#define HAVE_BOOST /**/" >>confdefs.h
+$as_echo "#define HAVE_BOOST 1" >>confdefs.h
 
         # execute ACTION-IF-FOUND (if present):
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: <<< Using external boost installation >>>" >&5
@@ -33603,6 +33768,18 @@ $as_echo "<<< Using external boost installation >>>" >&6; }
 fi
 
 
+
+    # Set an extra define if an external boost installation (as opposed to
+    # libmesh's internal boost subset) was found. This will allow users to
+    # determine at compile time when they are safe to use boost features
+    # that are not available in the libmesh subset. Note: we currently don't
+    # distinguish which features are available in the external boost (we assume
+    # it is a full installation) but that could be added later.
+    if test "$external_boost_found" = "yes" ; then
+
+$as_echo "#define HAVE_EXTERNAL_BOOST 1" >>confdefs.h
+
+    fi
 
     # If that did not work, try using our builtin boost.
     if test "$external_boost_found" = "no" ; then
@@ -33872,7 +34049,7 @@ $as_echo "$as_me: Your boost libraries seems to old (version $_version)." >&6;}
 
 
 
-$as_echo "#define HAVE_BOOST /**/" >>confdefs.h
+$as_echo "#define HAVE_BOOST 1" >>confdefs.h
 
         # execute ACTION-IF-FOUND (if present):
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: <<< Using libmesh-provided boost in ./contrib >>>" >&5
@@ -39449,8 +39626,10 @@ fi
 
   # If PETSc has its own METIS, default to using that one regardless
   # of what the user specified (if anything) in --with-metis.
-  if (test $petsc_have_metis -gt 0) ; then
-    build_metis=no
+  if (test "x$petsc_have_metis" != "x") ; then
+    if (test $petsc_have_metis -gt 0) ; then
+      build_metis=no
+    fi
   fi
 
   # Conversely, if:
@@ -39460,7 +39639,7 @@ fi
   # then we need to make sure that libmesh builds its own METIS!
   if (test $enablemetis = yes) ; then
     if (test $build_metis = no) ; then
-      if (test $petsc_have_metis -eq 0) ; then
+      if (test "x$petsc_have_metis" = "x0") ; then
         build_metis=yes
       fi
       if (test $enablepetsc = no) ; then
@@ -40031,7 +40210,7 @@ fi
 
       # The QHULL API is distributed with libmesh, so we don't have to guess
       # where it might be installed...
-      QHULL_INCLUDE="-I\$(top_srcdir)/contrib/qhull/qhull/src -I\$(top_srcdir)/contrib/qhull/qhull/src/libqhull -I\$(top_srcdir)/contrib/qhull/qhull/src/libqhullcpp"
+      QHULL_INCLUDE="-I\$(top_srcdir)/contrib/qhull/qhull/src -I\$(top_srcdir)/contrib/qhull/qhull/src/libqhullcpp"
 
 $as_echo "#define HAVE_QHULL_API 1" >>confdefs.h
 
@@ -40126,6 +40305,17 @@ else
   enablevtk=$enableoptional
 fi
 
+
+              # Check whether --enable-vtk-required was given.
+if test "${enable_vtk_required+set}" = set; then :
+  enableval=$enable_vtk_required; case "${enableval}" in
+                     yes) vtkrequired=yes ;;
+                     no)  vtkrequired=no ;;
+                     *)   as_fn_error $? "bad value ${enableval} for --enable-vtk-required" "$LINENO" 5 ;;
+                     esac
+else
+  vtkrequired=no
+fi
 
 
   if (test $enablevtk = yes); then
@@ -40460,6 +40650,10 @@ $as_echo "<<< Configuring library without VTK support >>>" >&6; }
 
 
 
+
+      if (test $enablevtk = no -a $vtkrequired = yes) ; then
+                    as_fn_error 4 "*** VTK was not found, but --enable-vtk-required was specified." "$LINENO" 5
+  fi
 
 if (test x$enablevtk = xyes); then
   libmesh_optional_INCLUDES="$VTK_INCLUDE $libmesh_optional_INCLUDES"
@@ -42409,6 +42603,10 @@ else
 fi
 
 
+                  if test "$enableallstatic" = yes ; then
+    ac_cv_cxx_dlopen=no
+  fi
+
     if (test "$ac_cv_cxx_dlopen" = yes); then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the c++ compiler supports dlopen/dlsym/dlclose" >&5
 $as_echo_n "checking whether the c++ compiler supports dlopen/dlsym/dlclose... " >&6; }
@@ -43225,7 +43423,7 @@ $as_echo "#define BUILD_DATE __DATE__ \" \" __TIME__" >>confdefs.h
 
 # Each example gets a makefile
 if (test "x$enableexamples" = "xyes"); then
-   ac_config_files="$ac_config_files examples/introduction/introduction_ex1/Makefile examples/introduction/introduction_ex2/Makefile examples/introduction/introduction_ex3/Makefile examples/introduction/introduction_ex4/Makefile examples/introduction/introduction_ex5/Makefile examples/adaptivity/adaptivity_ex1/Makefile examples/adaptivity/adaptivity_ex2/Makefile examples/adaptivity/adaptivity_ex3/Makefile examples/adaptivity/adaptivity_ex4/Makefile examples/adaptivity/adaptivity_ex5/Makefile examples/adjoints/adjoints_ex1/Makefile examples/adjoints/adjoints_ex2/Makefile examples/adjoints/adjoints_ex3/Makefile examples/adjoints/adjoints_ex4/Makefile examples/adjoints/adjoints_ex5/Makefile examples/eigenproblems/eigenproblems_ex1/Makefile examples/eigenproblems/eigenproblems_ex2/Makefile examples/eigenproblems/eigenproblems_ex3/Makefile examples/fem_system/fem_system_ex1/Makefile examples/fem_system/fem_system_ex2/Makefile examples/fem_system/fem_system_ex3/Makefile examples/fem_system/fem_system_ex4/Makefile examples/solution_transfer/solution_transfer_ex1/Makefile examples/miscellaneous/miscellaneous_ex1/Makefile examples/miscellaneous/miscellaneous_ex2/Makefile examples/miscellaneous/miscellaneous_ex3/Makefile examples/miscellaneous/miscellaneous_ex4/Makefile examples/miscellaneous/miscellaneous_ex5/Makefile examples/miscellaneous/miscellaneous_ex6/Makefile examples/miscellaneous/miscellaneous_ex7/Makefile examples/miscellaneous/miscellaneous_ex8/Makefile examples/miscellaneous/miscellaneous_ex9/Makefile examples/miscellaneous/miscellaneous_ex10/Makefile examples/miscellaneous/miscellaneous_ex11/Makefile examples/miscellaneous/miscellaneous_ex12/Makefile examples/optimization/optimization_ex1/Makefile examples/optimization/optimization_ex2/Makefile examples/subdomains/subdomains_ex1/Makefile examples/subdomains/subdomains_ex2/Makefile examples/subdomains/subdomains_ex3/Makefile examples/systems_of_equations/systems_of_equations_ex1/Makefile examples/systems_of_equations/systems_of_equations_ex2/Makefile examples/systems_of_equations/systems_of_equations_ex3/Makefile examples/systems_of_equations/systems_of_equations_ex4/Makefile examples/systems_of_equations/systems_of_equations_ex5/Makefile examples/systems_of_equations/systems_of_equations_ex6/Makefile examples/systems_of_equations/systems_of_equations_ex7/Makefile examples/systems_of_equations/systems_of_equations_ex8/Makefile examples/reduced_basis/reduced_basis_ex1/Makefile examples/reduced_basis/reduced_basis_ex2/Makefile examples/reduced_basis/reduced_basis_ex3/Makefile examples/reduced_basis/reduced_basis_ex4/Makefile examples/reduced_basis/reduced_basis_ex5/Makefile examples/reduced_basis/reduced_basis_ex6/Makefile examples/reduced_basis/reduced_basis_ex7/Makefile examples/transient/transient_ex1/Makefile examples/transient/transient_ex2/Makefile examples/vector_fe/vector_fe_ex1/Makefile examples/vector_fe/vector_fe_ex2/Makefile examples/vector_fe/vector_fe_ex3/Makefile examples/vector_fe/vector_fe_ex4/Makefile examples/Makefile"
+   ac_config_files="$ac_config_files examples/introduction/introduction_ex1/Makefile examples/introduction/introduction_ex2/Makefile examples/introduction/introduction_ex3/Makefile examples/introduction/introduction_ex4/Makefile examples/introduction/introduction_ex5/Makefile examples/adaptivity/adaptivity_ex1/Makefile examples/adaptivity/adaptivity_ex2/Makefile examples/adaptivity/adaptivity_ex3/Makefile examples/adaptivity/adaptivity_ex4/Makefile examples/adaptivity/adaptivity_ex5/Makefile examples/adjoints/adjoints_ex1/Makefile examples/adjoints/adjoints_ex2/Makefile examples/adjoints/adjoints_ex3/Makefile examples/adjoints/adjoints_ex4/Makefile examples/adjoints/adjoints_ex5/Makefile examples/adjoints/adjoints_ex6/Makefile examples/eigenproblems/eigenproblems_ex1/Makefile examples/eigenproblems/eigenproblems_ex2/Makefile examples/eigenproblems/eigenproblems_ex3/Makefile examples/fem_system/fem_system_ex1/Makefile examples/fem_system/fem_system_ex2/Makefile examples/fem_system/fem_system_ex3/Makefile examples/fem_system/fem_system_ex4/Makefile examples/solution_transfer/solution_transfer_ex1/Makefile examples/miscellaneous/miscellaneous_ex1/Makefile examples/miscellaneous/miscellaneous_ex2/Makefile examples/miscellaneous/miscellaneous_ex3/Makefile examples/miscellaneous/miscellaneous_ex4/Makefile examples/miscellaneous/miscellaneous_ex5/Makefile examples/miscellaneous/miscellaneous_ex6/Makefile examples/miscellaneous/miscellaneous_ex7/Makefile examples/miscellaneous/miscellaneous_ex8/Makefile examples/miscellaneous/miscellaneous_ex9/Makefile examples/miscellaneous/miscellaneous_ex10/Makefile examples/miscellaneous/miscellaneous_ex11/Makefile examples/miscellaneous/miscellaneous_ex12/Makefile examples/optimization/optimization_ex1/Makefile examples/optimization/optimization_ex2/Makefile examples/subdomains/subdomains_ex1/Makefile examples/subdomains/subdomains_ex2/Makefile examples/subdomains/subdomains_ex3/Makefile examples/systems_of_equations/systems_of_equations_ex1/Makefile examples/systems_of_equations/systems_of_equations_ex2/Makefile examples/systems_of_equations/systems_of_equations_ex3/Makefile examples/systems_of_equations/systems_of_equations_ex4/Makefile examples/systems_of_equations/systems_of_equations_ex5/Makefile examples/systems_of_equations/systems_of_equations_ex6/Makefile examples/systems_of_equations/systems_of_equations_ex7/Makefile examples/systems_of_equations/systems_of_equations_ex8/Makefile examples/reduced_basis/reduced_basis_ex1/Makefile examples/reduced_basis/reduced_basis_ex2/Makefile examples/reduced_basis/reduced_basis_ex3/Makefile examples/reduced_basis/reduced_basis_ex4/Makefile examples/reduced_basis/reduced_basis_ex5/Makefile examples/reduced_basis/reduced_basis_ex6/Makefile examples/reduced_basis/reduced_basis_ex7/Makefile examples/transient/transient_ex1/Makefile examples/transient/transient_ex2/Makefile examples/vector_fe/vector_fe_ex1/Makefile examples/vector_fe/vector_fe_ex2/Makefile examples/vector_fe/vector_fe_ex3/Makefile examples/vector_fe/vector_fe_ex4/Makefile examples/Makefile"
 
 fi
 
@@ -44943,6 +45141,7 @@ do
     "examples/adjoints/adjoints_ex3/Makefile") CONFIG_FILES="$CONFIG_FILES examples/adjoints/adjoints_ex3/Makefile" ;;
     "examples/adjoints/adjoints_ex4/Makefile") CONFIG_FILES="$CONFIG_FILES examples/adjoints/adjoints_ex4/Makefile" ;;
     "examples/adjoints/adjoints_ex5/Makefile") CONFIG_FILES="$CONFIG_FILES examples/adjoints/adjoints_ex5/Makefile" ;;
+    "examples/adjoints/adjoints_ex6/Makefile") CONFIG_FILES="$CONFIG_FILES examples/adjoints/adjoints_ex6/Makefile" ;;
     "examples/eigenproblems/eigenproblems_ex1/Makefile") CONFIG_FILES="$CONFIG_FILES examples/eigenproblems/eigenproblems_ex1/Makefile" ;;
     "examples/eigenproblems/eigenproblems_ex2/Makefile") CONFIG_FILES="$CONFIG_FILES examples/eigenproblems/eigenproblems_ex2/Makefile" ;;
     "examples/eigenproblems/eigenproblems_ex3/Makefile") CONFIG_FILES="$CONFIG_FILES examples/eigenproblems/eigenproblems_ex3/Makefile" ;;

@@ -64,7 +64,7 @@ class NumericVector : public ReferenceCountedObject<NumericVector<T> >,
 public:
 
   /**
-   *  Dummy-Constructor. Dimension=0
+   * Dummy-Constructor. Dimension=0
    */
   explicit
   NumericVector (const Parallel::Communicator & comm_in,
@@ -119,41 +119,45 @@ public:
   /**
    * Builds a \p NumericVector on the processors in communicator
    * CommWorld using the linear solver package specified by \p
-   * solver_package.  Deprecated.
+   * solver_package.
+   *
+   * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
+   * build() method that takes a Parallel::Communicator instead.
    */
   static UniquePtr<NumericVector<T> >
   build(const SolverPackage solver_package = libMesh::default_solver_package());
 #endif
 
   /**
-   * @returns true if the vector has been initialized,
+   * \returns \p true if the vector has been initialized,
    * false otherwise.
    */
   virtual bool initialized() const { return _is_initialized; }
 
   /**
-   * @returns the type (SERIAL, PARALLEL, GHOSTED) of the vector.
+   * \returns The type (SERIAL, PARALLEL, GHOSTED) of the vector.
    */
   ParallelType type() const { return _type; }
 
   /**
-   * @returns the type (SERIAL, PARALLEL, GHOSTED) of the vector.
+   * \returns The type (SERIAL, PARALLEL, GHOSTED) of the vector.
    */
   ParallelType & type() { return _type; }
 
   /**
-   * @returns true if the vector is closed and ready for
+   * \returns \p true if the vector is closed and ready for
    * computation, false otherwise.
    */
   virtual bool closed() const { return _is_closed; }
 
   /**
-   * Call the assemble functions
+   * Calls the NumericVector's internal assembly routines, ensuring
+   * that the values are consistent across processors.
    */
   virtual void close () = 0;
 
   /**
-   * @returns the \p NumericVector<T> to a pristine state.
+   * Restores the \p NumericVector<T> to a pristine state.
    */
   virtual void clear ();
 
@@ -164,39 +168,37 @@ public:
   virtual void zero () = 0;
 
   /**
-   * Creates a vector which has the same type, size and partitioning
-   * as this vector, but whose data is all zero.  Returns it in an \p
-   * UniquePtr.
-   * This must be overloaded in the derived classes.
+   * \returns A smart pointer to a copy of this vector with the same
+   * type, size, and partitioning, but with all zero entries.
+   *
+   * \note This must be overridden in the derived classes.
    */
   virtual UniquePtr<NumericVector<T> > zero_clone () const = 0;
 
   /**
-   * Creates a copy of this vector and returns it in an \p UniquePtr.
-   * This must be overloaded in the derived classes.
+   * \returns A copy of this vector wrapped in a smart pointer.
+   *
+   * \note This must be overridden in the derived classes.
    */
   virtual UniquePtr<NumericVector<T> > clone () const = 0;
 
   /**
-   * Change the dimension of the vector to \p N. The reserved memory for
-   * this vector remains unchanged if possible, to make things faster, but
-   * this may waste some memory, so take this in the back of your head.
-   * However, if \p N==0 all memory is freed, i.e. if you want to resize
-   * the vector and release the memory not needed, you have to first call
-   * \p init(0) and then \p init(N). This cited behaviour is analogous
-   * to that of the STL containers.
+   * Change the dimension of the vector to \p N. The reserved memory
+   * for this vector remains unchanged if possible.  If \p N==0, all
+   * memory is freed. Therefore, if you want to resize the vector and
+   * release the memory not needed, you have to first call \p init(0)
+   * and then \p init(N). This behaviour is analogous to that of the
+   * STL containers.
    *
-   * On \p fast==false, the vector is filled by
-   * zeros.
+   * On \p fast==false, the vector is filled by zeros.
    */
-
   virtual void init (const numeric_index_type,
                      const numeric_index_type,
                      const bool = false,
                      const ParallelType = AUTOMATIC) = 0;
 
   /**
-   * call init with n_local = N,
+   * Call \p init() with n_local = N.
    */
   virtual void init (const numeric_index_type,
                      const bool = false,
@@ -220,127 +222,119 @@ public:
                      const bool fast = false) = 0;
 
   /**
-   * \f$U(0-N) = s\f$: fill all components.
+   * Sets all entries of the vector to the value \p s.
+   *
+   * \returns A reference to *this.
    */
   virtual NumericVector<T> & operator= (const T s) = 0;
 
   /**
-   *  \f$U = V\f$: copy all components.
+   * Sets (*this)(i) = v(i) for each entry of the vector.
+   *
+   * \returns A reference to *this as the base type.
    */
-  virtual NumericVector<T> & operator= (const NumericVector<T> & V) = 0;
+  virtual NumericVector<T> & operator= (const NumericVector<T> & v) = 0;
 
   /**
-   *  \f$U = V\f$: copy all components.
+   * Sets (*this)(i) = v(i) for each entry of the vector.
+   *
+   * \returns A reference to *this as the base type.
    */
   virtual NumericVector<T> & operator= (const std::vector<T> & v) = 0;
 
   /**
-   * @returns the minimum element in the vector.
-   * In case of complex numbers, this returns the minimum
-   * Real part.
+   * \returns The minimum entry in the vector, or the minimum real
+   * part in the case of complex numbers.
    */
   virtual Real min () const = 0;
 
   /**
-   * @returns the maximum element in the vector.
-   * In case of complex numbers, this returns the maximum
-   * Real part.
+   * \returns The maximum entry in the vector, or the maximum real
+   * part in the case of complex numbers.
    */
   virtual Real max () const = 0;
 
   /**
-   * returns the sum of the elements in a vector
+   * \returns The sum of all values in the vector.
    */
   virtual T sum() const = 0;
 
   /**
-   * @returns the \f$l_1\f$-norm of the vector, i.e.
-   * the sum of the absolute values.
+   * \returns The \f$ \ell_1 \f$-norm of the vector, i.e. the sum of the
+   * absolute values of the entries.
    */
   virtual Real l1_norm () const = 0;
 
   /**
-   * @returns the \f$l_2\f$-norm of the vector, i.e.
-   * the square root of the sum of the
-   * squares of the elements.
+   * \returns The \f$ \ell_2 \f$-norm of the vector, i.e. the square root
+   * of the sum of the squares of the entries.
    */
   virtual Real l2_norm () const = 0;
 
   /**
-   * @returns the maximum absolute value of the
-   * elements of this vector, which is the
-   * \f$l_\infty\f$-norm of a vector.
+   * \returns The \f$ \ell_{\infty} \f$-norm of the vector, i.e. the maximum
+   * absolute value of the entries of the vector.
    */
   virtual Real linfty_norm () const = 0;
 
   /**
-   * @returns the \f$l_1\f$-norm of the vector, i.e.
-   * the sum of the absolute values for the specified
-   * entries in the vector.
+   * \returns The \f$ \ell_1 \f$-norm of the vector, i.e. the sum of the
+   * absolute values for the specified entries in the vector.
    *
-   * Note that the indices must necessary live on this
-   * processor.
+   * \note The indices must necessarily live on this processor.
    */
   virtual Real subset_l1_norm (const std::set<numeric_index_type> & indices) const;
 
   /**
-   * @returns the \f$l_2\f$-norm of the vector, i.e.
-   * the square root of the sum of the
-   * squares of the elements for the specified entries
-   * in the vector.
+   * \returns The \f$ \ell_2 \f$-norm of the vector, i.e. the square root
+   * of the sum of the squares of the elements for the specified
+   * entries in the vector.
    *
-   * Note that the indices must necessary live on this
-   * processor.
+   * \note The indices must necessarily live on this processor.
    */
   virtual Real subset_l2_norm (const std::set<numeric_index_type> & indices) const;
 
   /**
-   * @returns the maximum absolute value of the
-   * specified entries of this vector, which is the
-   * \f$l_\infty\f$-norm of a vector.
+   * \returns The maximum absolute value of the specified entries of
+   * this vector, which is the \f$ \ell_{\infty} \f$-norm of a vector.
    *
-   * Note that the indices must necessary live on this
-   * processor.
+   * \note The indices must necessarily live on this processor.
    */
   virtual Real subset_linfty_norm (const std::set<numeric_index_type> & indices) const;
 
   /**
-   * @returns dimension of the vector. This
-   * function was formerly called \p n(), but
-   * was renamed to get the \p NumericVector<T> class
-   * closer to the C++ standard library's
-   * \p std::vector container.
+   * \returns The size of the vector.
    */
   virtual numeric_index_type size () const = 0;
 
   /**
-   * @returns the local size of the vector
-   * (index_stop-index_start).
-   * In ghost cell mode, this does *not* include the ghost cells.
+   * \returns The local size of the vector, i.e. \p index_stop - \p index_start.
    */
   virtual numeric_index_type local_size() const = 0;
 
   /**
-   * @returns the index of the first vector element
-   * actually stored on this processor.  Hint: the
-   * minimum for this index is \p 0.
+   * \returns The index of the first vector element actually stored on
+   * this processor.
+   *
+   * \note The minimum for this index is \p 0.
    */
   virtual numeric_index_type first_local_index() const = 0;
 
   /**
-   * @returns the index+1 of the last vector element
-   * actually stored on this processor.  Hint: the
-   * maximum for this index is \p size().
+   * \returns The index+1 of the last vector element actually stored
+   * on this processor.
+   *
+   * \note The maximum for this index is \p size().
    */
   virtual numeric_index_type last_local_index() const = 0;
 
   /**
-   * Access components, returns \p U(i).
+   * \returns A copy of the ith entry of the vector.
    */
   virtual T operator() (const numeric_index_type i) const = 0;
 
   /**
-   * @returns the element \p U(i)
+   * \returns (*this)(i).
    */
   virtual T el(const numeric_index_type i) const { return (*this)(i); }
 
@@ -363,213 +357,225 @@ public:
            std::vector<T> & values) const;
 
   /**
-   * Addition operator.
-   * Fast equivalent to \p U.add(1, V).
+   * Adds \p v to *this,
+   * \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$.
+   * Equivalent to \p u.add(1, v).
+   *
+   * \returns A reference to *this.
    */
-  virtual NumericVector<T> & operator += (const NumericVector<T> & V) = 0;
+  virtual NumericVector<T> & operator += (const NumericVector<T> & v) = 0;
 
   /**
-   * Subtraction operator.
-   * Fast equivalent to \p U.add(-1, V).
+   * Subtracts \p v from *this,
+   * \f$ \vec{u} \leftarrow \vec{u} - \vec{v} \f$.
+   * Equivalent to \p u.add(-1, v).
+   *
+   * \returns A reference to *this.
    */
-  virtual NumericVector<T> & operator -= (const NumericVector<T> & V) = 0;
+  virtual NumericVector<T> & operator -= (const NumericVector<T> & v) = 0;
 
   /**
-   * Multiplication operator.
-   * Equivalent to \p U.scale(a)
+   * Scales the vector by \p a,
+   * \f$ \vec{u} \leftarrow a\vec{u} \f$.
+   * Equivalent to \p u.scale(a)
+   *
+   * \returns A reference to *this.
    */
   NumericVector<T> & operator *= (const T a) { this->scale(a); return *this; }
 
   /**
-   * Division operator.
-   * Equivalent to \p U.scale(1./a)
+   * Scales the vector by \p 1/a,
+   * \f$ \vec{u} \leftarrow \frac{1}{a}\vec{u} \f$.
+   * Equivalent to \p u.scale(1./a)
+   *
+   * \returns A reference to *this.
    */
   NumericVector<T> & operator /= (const T a) { this->scale(1./a); return *this; }
 
   /**
-   * Pointwise Division operator. ie divide every entry in this vector by the entry in v
+   * Computes the pointwise division of this vector's entries by another's,
+   * \f$ u_i \leftarrow \frac{u_i}{v_i} \, \forall i\f$
+   *
+   * \returns A reference to *this.
    */
   virtual NumericVector<T> & operator /= (NumericVector<T> & /*v*/) = 0;
 
   /**
-   * Replace each entry v_i of this vector by its reciprocal, 1/v_i.
+   * Computes the pointwise reciprocal,
+   * \f$ u_i \leftarrow \frac{1}{u_i} \, \forall i\f$
    */
   virtual void reciprocal() = 0;
 
   /**
-   * Replace each entry v_i = real(v_i) + imag(v_i)
-   * of this vector by its complex conjugate, real(v_i) - imag(v_i)
+   * Negates the imaginary component of each entry in the vector.
    */
   virtual void conjugate() = 0;
 
   /**
-   * v(i) = value
+   * Sets v(i) = \p value.
    */
   virtual void set (const numeric_index_type i, const T value) = 0;
 
   /**
-   * v(i) += value
+   * Adds \p value to each entry of the vector.
    */
   virtual void add (const numeric_index_type i, const T value) = 0;
 
   /**
-   * \f$U(0-LIBMESH_DIM)+=s\f$.
-   * Addition of \p s to all components. Note
-   * that \p s is a scalar and not a vector.
+   * Adds \p s to each entry of the vector,
+   * \f$ u_i \leftarrow u_i + s \f$
    */
   virtual void add (const T s) = 0;
 
   /**
-   * \f$U+=V\f$:
-   * Simple vector addition, equal to the
-   * \p operator +=.
+   * Adds \p v to \p this,
+   * \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$.
+   * Equivalent to calling \p operator+=().
    */
-  virtual void add (const NumericVector<T> & V) = 0;
+  virtual void add (const NumericVector<T> & v) = 0;
 
   /**
-   * \f$U+=a*V\f$.
-   * Simple vector addition, equal to the
-   * \p operator +=.
+   * Vector addition with a scalar multiple,
+   * \f$ \vec{u} \leftarrow \vec{u} + a\vec{v} \f$.
+   * Equivalent to calling \p operator+=().
    */
   virtual void add (const T a, const NumericVector<T> & v) = 0;
 
   /**
-   * \f$ U+=v \f$ where v is a pointer and each \p dof_indices[i]
-   * specifies where to add value \p v[i]
-   *
-   * This should be overridden in subclasses for efficiency
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$,
+   * where \p v is a pointer and each \p dof_indices[i] specifies where
+   * to add value \p v[i].  This should be overridden in subclasses
+   * for efficiency.
    */
   virtual void add_vector (const T * v,
                            const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U+=v \f$ where v is a std::vector and each \p dof_indices[i]
-   * specifies where to add value \p v[i]
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$,
+   * where \p v is a std::vector and each \p dof_indices[i] specifies
+   * where to add value \p v[i].
    */
   void add_vector (const std::vector<T> & v,
                    const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U+=v \f$ where v is a NumericVector and each \p dof_indices[i]
-   * specifies where to add value \p v(i)
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$,
+   * where \p v is a NumericVector and each \p dof_indices[i]
+   * specifies where to add value \p v(i).
    */
-  virtual void add_vector (const NumericVector<T> & V,
+  virtual void add_vector (const NumericVector<T> & v,
                            const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U+=v \f$ where v is a DenseVector and each \p dof_indices[i]
-   * specifies where to add value \p v(i)
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + \vec{v} \f$,
+   * where \p v is a DenseVector and each \p dof_indices[i] specifies
+   * where to add value \p v(i).
    */
-  void add_vector (const DenseVector<T> & V,
+  void add_vector (const DenseVector<T> & v,
                    const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$U+=A*V\f$, add the product of a \p SparseMatrix \p A
-   * and a \p NumericVector \p V to \p this, where \p this=U.
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + A \vec{v} \f$,
+   * i.e. adds the product of a \p SparseMatrix \p A and a \p
+   * NumericVector \p v to \p this.
    */
-  virtual void add_vector (const NumericVector<T> &,
-                           const SparseMatrix<T> &) = 0;
+  virtual void add_vector (const NumericVector<T> & v,
+                           const SparseMatrix<T> & A) = 0;
 
   /**
-   * \f$U+=A*V\f$, add the product of a \p ShellMatrix \p A
-   * and a \p NumericVector \p V to \p this, where \p this=U.
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + A \vec{v} \f$,
+   * i.e. adds the product of a \p ShellMatrix \p A and a \p
+   * NumericVector \p v to \p this.
    */
   void add_vector (const NumericVector<T> & v,
-                   const ShellMatrix<T> & a);
+                   const ShellMatrix<T> & A);
 
   /**
-   * \f$U+=A^T*V\f$, add the product of the transpose of a \p SparseMatrix \p A_trans
-   * and a \p NumericVector \p V to \p this, where \p this=U.
+   * Computes \f$ \vec{u} \leftarrow \vec{u} + A^T \vec{v} \f$,
+   * i.e. adds the product of the transpose of a \p SparseMatrix \p A
+   * and a \p NumericVector \p v to \p this.
    */
-  virtual void add_vector_transpose (const NumericVector<T> &,
-                                     const SparseMatrix<T> &) = 0;
+  virtual void add_vector_transpose (const NumericVector<T> & v,
+                                     const SparseMatrix<T> & A) = 0;
 
   /**
-   * \f$ U=v \f$ where v is a \p T[] or T *
-   * and you want to specify WHERE to insert it
+   * Inserts the entries of \p v in *this at the locations specified by \p v.
    */
   virtual void insert (const T * v,
                        const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U=v \f$ where v is a \p std::vector<T>
-   * and you want to specify WHERE to insert it
+   * Inserts the entries of \p v in *this at the locations specified by \p v.
    */
   void insert (const std::vector<T> & v,
                const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$U=V\f$, where U and V are type
-   * NumericVector<T> and you
-   * want to specify WHERE to insert
-   * the NumericVector<T> V
+   * Inserts the entries of \p v in *this at the locations specified by \p v.
    */
-  virtual void insert (const NumericVector<T> & V,
+  virtual void insert (const NumericVector<T> & v,
                        const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U=V \f$ where U and V are type
-   * DenseVector<T> and you
-   * want to specify WHERE to insert
-   * the DenseVector<T> V
+   * Inserts the entries of \p v in *this at the locations specified by \p v.
    */
-  void insert (const DenseVector<T> & V,
+  void insert (const DenseVector<T> & v,
                const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * \f$ U=V \f$ where V is a
-   * DenseSubVector<T> and you
-   * want to specify WHERE to insert it
+   * Inserts the entries of \p v in *this at the locations specified by \p v.
    */
-  void insert (const DenseSubVector<T> & V,
+  void insert (const DenseSubVector<T> & v,
                const std::vector<numeric_index_type> & dof_indices);
 
   /**
-   * Scale each element of the
-   * vector by the given factor.
+   * Scale each element of the vector by the given \p factor.
    */
   virtual void scale (const T factor) = 0;
 
   /**
-   * v = abs(v)... that is, each entry in v is replaced
-   * by its absolute value.
+   * Sets \f$ u_i \leftarrow |u_i| \f$ for each entry in the vector.
    */
   virtual void abs() = 0;
 
   /**
-   * Computes the dot product, p = U.V
+   * \returns \f$ \vec{u} \cdot \vec{v} \f$, the dot product of
+   * (*this) with the vector \p v.
+   *
+   * Uses the complex-conjugate of \p v in the complex-valued case.
    */
-  virtual T dot(const NumericVector<T> &) const = 0;
+  virtual T dot(const NumericVector<T> & v) const = 0;
 
   /**
-   * Creates a copy of the global vector in the
-   * local vector \p v_local.
+   * Creates a copy of the global vector in the local vector \p
+   * v_local.
    */
   virtual void localize (std::vector<T> & v_local) const = 0;
 
   /**
-   * Same, but fills a \p NumericVector<T> instead of
-   * a \p std::vector.
+   * Same, but fills a \p NumericVector<T> instead of a \p
+   * std::vector.
    */
   virtual void localize (NumericVector<T> & v_local) const = 0;
 
   /**
-   * Creates a local vector \p v_local containing
-   * only information relevant to this processor, as
-   * defined by the \p send_list.
+   * Creates a local vector \p v_local containing only information
+   * relevant to this processor, as defined by the \p send_list.
    */
   virtual void localize (NumericVector<T> & v_local,
                          const std::vector<numeric_index_type> & send_list) const = 0;
 
   /**
    * Fill in the local std::vector "v_local" with the global indices
-   * given in "indices".  Note that indices can be different on every
-   * processor, and the same index can be localized to more than one
-   * processor.  The resulting v_local can be shorter than the
-   * original, and the entries will be in the order specified by
-   * indices.
+   * given in "indices".
+   *
+   * \note The indices can be different on every processor, and the
+   * same index can be localized to more than one processor.  The
+   * resulting v_local can be shorter than the original, and the
+   * entries will be in the order specified by indices.
    *
    * Example:
+   * \verbatim
    *   On 4 procs *this = {a, b, c, d, e, f, g, h, i} is a parallel vector.
    *   On each proc, the indices arrays are set up as:
    *   proc0, indices = {1,2,4,5}
@@ -582,13 +588,14 @@ public:
    *   proc1, v_local = {c,f,g,i}
    *   proc2, v_local = {c,d,g,h}
    *   proc3, v_local = {a,b,c,d}
+   * \endverbatim
    *
    * This function is useful in parallel I/O routines, when you have a
    * parallel vector of solution values which you want to write a
    * subset of.
    */
-  virtual void localize (std::vector<T> & /*v_local*/,
-                         const std::vector<numeric_index_type> & /*indices*/) const = 0;
+  virtual void localize (std::vector<T> & v_local,
+                         const std::vector<numeric_index_type> & indices) const = 0;
 
   /**
    * Updates a local vector with selected values from neighboring
@@ -599,50 +606,41 @@ public:
                          const std::vector<numeric_index_type> & send_list) = 0;
 
   /**
-   * Creates a local copy of the global vector in
-   * \p v_local only on processor \p proc_id.  By
-   * default the data is sent to processor 0.  This method
-   * is useful for outputting data from one processor.
+   * Creates a local copy of the global vector in \p v_local only on
+   * processor \p proc_id.  By default the data is sent to processor
+   * 0.  This method is useful for outputting data from one processor.
    */
   virtual void localize_to_one (std::vector<T> & v_local,
                                 const processor_id_type proc_id=0) const = 0;
 
   /**
-   * @returns \p -1 when \p this is equivalent to \p other_vector,
-   * up to the given \p threshold.  When differences occur,
-   * the return value contains the first index \p i where
-   * the difference \p (a[i]-b[i]) exceeded the threshold.  When
-   * no threshold is given, the \p libMesh \p TOLERANCE
-   * is used.
+   * \returns \p -1 when \p this is equivalent to \p other_vector
+   * (up to the given \p threshold), or the first index where
+   * \p abs(a[i]-b[i]) exceeds the threshold.
    */
   virtual int compare (const NumericVector<T> & other_vector,
                        const Real threshold = TOLERANCE) const;
 
   /**
-   * @returns \p -1 when \p this is equivalent to \p other_vector,
-   * up to the given local relative \p threshold.  When differences
-   * occur, the return value contains the first index where
-   * the difference \p (a[i]-b[i])/max(a[i],b[i]) exceeded the
-   * threshold.  When no threshold is given, the \p libMesh
-   * \p TOLERANCE is used.
+   * \returns \p -1 when \p this is equivalent to \p other_vector, (up
+   * to the given local relative \p threshold), or the first index
+   * where \p abs(a[i]-b[i])/max(a[i],b[i]) exceeds the threshold.
    */
   virtual int local_relative_compare (const NumericVector<T> & other_vector,
                                       const Real threshold = TOLERANCE) const;
 
   /**
-   * @returns \p -1 when \p this is equivalent to \p other_vector,
-   * up to the given local relative \p threshold.  When differences
-   * occur, the return value contains the first index where
-   * the difference \p (a[i]-b[i])/max_j(a[j],b[j]) exceeded the
-   * threshold.  When no threshold is given, the \p libMesh
-   * \p TOLERANCE is used.
+   * \returns \p -1 when \p this is equivalent to \p other_vector (up
+   * to the given global relative \p threshold), or the first index
+   * where \p abs(a[i]-b[i])/max_j(a[j],b[j]) exceeds the threshold.
    */
   virtual int global_relative_compare (const NumericVector<T> & other_vector,
                                        const Real threshold = TOLERANCE) const;
 
   /**
-   * Computes the pointwise (i.e. component-wise) product of \p vec1
-   * and \p vec2 and stores the result in \p *this.
+   * Computes \f$ u_i \leftarrow u_i v_i \f$ (summation not implied)
+   * i.e. the pointwise (component-wise) product of \p vec1 and
+   * \p vec2, and stores the result in \p *this.
    */
   virtual void pointwise_mult (const NumericVector<T> & vec1,
                                const NumericVector<T> & vec2) = 0;
@@ -669,10 +667,9 @@ public:
   }
 
   /**
-   * Print the contents of the matrix in Matlab's
-   * sparse matrix format. Optionally prints the
-   * matrix to the file named \p name.  If \p name
-   * is not specified it is dumped to the screen.
+   * Print the contents of the vector in Matlab's sparse matrix
+   * format. Optionally prints the vector to the file named \p name.
+   * If \p name is not specified it is dumped to the screen.
    */
   virtual void print_matlab(const std::string & /*name*/ = "") const
   {
@@ -680,9 +677,9 @@ public:
   }
 
   /**
-   * Creates the subvector "subvector" from the indices in the
-   * "rows" array.  Similar to the create_submatrix routine for
-   * the SparseMatrix class, it is currently only implemented for
+   * Fills in \p subvector from this vector using the indices in \p
+   * rows.  Similar to the \p create_submatrix() routine for the
+   * SparseMatrix class, it is currently only implemented for
    * PetscVectors.
    */
   virtual void create_subvector(NumericVector<T> & ,
@@ -692,8 +689,8 @@ public:
   }
 
   /**
-   * Exchanges the values/sizes of two vectors.  There should be
-   * enough indirection in subclasses to make this an O(1) header-swap
+   * Swaps the contents of this with \p v.  There should be enough
+   * indirection in subclasses to make this an O(1) header-swap
    * operation.
    */
   virtual void swap (NumericVector<T> & v);
@@ -701,19 +698,19 @@ public:
 protected:
 
   /**
-   * Flag to see if the Numeric
-   * assemble routines have been called yet
+   * Flag which tracks whether the vector's values are consistent on
+   * all processors after insertion or addition of values has occurred
+   * on some or all processors.
    */
   bool _is_closed;
 
   /**
-   * Flag to tell if init
-   * has been called yet
+   * \p true once init() has been called.
    */
   bool _is_initialized;
 
   /**
-   * Type of vector
+   * Type of vector.
    */
   ParallelType _type;
 };

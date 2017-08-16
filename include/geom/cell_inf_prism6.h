@@ -67,66 +67,68 @@ public:
   {}
 
   /**
-   * @returns 6.  The \p InfPrism6 has 6 nodes.
+   * \returns 6.  The \p InfPrism6 has 6 nodes.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 6; }
 
   /**
-   * @returns \p INFPRISM6.
+   * \returns \p INFPRISM6.
    */
   virtual ElemType type() const libmesh_override { return INFPRISM6; }
 
   /**
-   * @returns 1.
+   * \returns 1.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 1; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge.
    */
   virtual bool is_node_on_edge(const unsigned int n,
                                const unsigned int e) const libmesh_override;
 
   /**
-   * @returns FIRST.
+   * \returns FIRST.
    */
   virtual Order default_order() const libmesh_override { return FIRST; }
 
   /**
-   * Returns a \p TRI3 built coincident with face 0, an \p INFQUAD4
-   * built coincident with faces 1 to 3.  Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns A \p TRI3 built coincident with face 0, or an \p INFQUAD4
+   * built coincident with faces 1 to 3.
+   *
+   * \note The \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
                                           bool proxy) libmesh_override;
 
   /**
-   * Returns a \p EDGE2 built coincident with edges 0 to 2, an \p INFEDGE2
-   * built coincident with edges 3 to 5.  Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns An \p EDGE2 built coincident with edges 0 to 2, an \p INFEDGE2
+   * built coincident with edges 3 to 5.
+   *
+   * \note that the \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
@@ -135,7 +137,7 @@ public:
                             std::vector<dof_id_type> & conn) const libmesh_override;
 
   /**
-   * @returns \p true when this element contains the point
+   * \returns \p true when this element contains the point
    * \p p.  Customized for infinite elements, since knowledge
    * about the envelope can be helpful.
    */

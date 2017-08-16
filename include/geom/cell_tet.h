@@ -51,7 +51,7 @@ public:
   }
 
   /**
-   * @returns the \p Point associated with local \p Node \p i,
+   * \returns The \p Point associated with local \p Node \p i,
    * in master element rather than physical coordinates.
    */
   virtual Point master_point (const unsigned int i) const libmesh_override
@@ -63,32 +63,32 @@ public:
   }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_sides() const libmesh_override { return 4; }
 
   /**
-   * @returns 4.  All tetrahedrals have 4 vertices.
+   * \returns 4.  All tetrahedrals have 4 vertices.
    */
   virtual unsigned int n_vertices() const libmesh_override { return 4; }
 
   /**
-   * @returns 6.  All tetrahedrals have 6 edges.
+   * \returns 6.  All tetrahedrals have 6 edges.
    */
   virtual unsigned int n_edges() const libmesh_override { return 6; }
 
   /**
-   * @returns 4.  All tetrahedrals have 4 faces.
+   * \returns 4.  All tetrahedrals have 4 faces.
    */
   virtual unsigned int n_faces() const libmesh_override { return 4; }
 
   /**
-   * @returns 8.
+   * \returns 8.
    */
   virtual unsigned int n_children() const libmesh_override { return 8; }
 
   /**
-   * @returns true if the specified edge is on the specified side.
+   * \returns \p true if the specified edge is on the specified side.
    */
   virtual bool is_edge_on_side(const unsigned int e,
                                const unsigned int s) const libmesh_override;
@@ -99,32 +99,32 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    */
   virtual dof_id_type key (const unsigned int s) const libmesh_override;
 
   /**
-   * Does some range checking and then returns Tet4::side_nodes_map[side][side_node].
+   * \returns \p Tet4::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
   /**
-   * @returns a primitive (3-noded) triangle for face i.
+   * \returns A primitive (3-noded) triangle for face i.
    */
   virtual UniquePtr<Elem> side_ptr (const unsigned int i) libmesh_override;
 
   /**
-   * Based on the quality metric q specified by the user,
-   * returns a quantitative assessment of element quality.
+   * \returns A quantitative assessment of element quality based on
+   * the quality metric \p q specified by the user.
    */
   virtual Real quality (const ElemQuality q) const libmesh_override;
 
   /**
-   * Returns the suggested quality bounds for the hex based on quality
-   * measure q.  These are the values suggested by the CUBIT User's
+   * \returns The suggested quality bounds for the hex based on quality
+   * measure \p q.  These are the values suggested by the CUBIT User's
    * Manual.
    */
   virtual std::pair<Real, Real> qual_bounds (const ElemQuality q) const libmesh_override;
@@ -144,7 +144,7 @@ public:
     };
 
   /**
-   * Returns the diagonal that has been selected during refinement.
+   * \returns The diagonal that has been selected during refinement.
    */
   Diagonal diagonal_selection () const { return _diagonal_selection; }
 

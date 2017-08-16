@@ -38,9 +38,10 @@ template <typename T> class ShellMatrix;
 /**
  * This class provides a specific system class.  It aims
  * at implicit systems, offering nothing more than just
- * the essentials needed to solve a system.  Note
- * that still additional vectors/matrices may be added,
- * as offered in the parent class \p ExplicitSystem.
+ * the essentials needed to solve a system.
+ *
+ * \note Additional vectors/matrices can be added via parent class
+ * interfaces.
  *
  * \author Benjamin Kirk
  * \date 2005
@@ -73,7 +74,7 @@ public:
   typedef ImplicitSystem Parent;
 
   /**
-   * @returns a clever pointer to the system.
+   * \returns A reference to *this.
    */
   sys_type & system () { return *this; }
 
@@ -98,7 +99,7 @@ public:
    * Prepares \p matrix and \p _dof_map for matrix assembly.
    * Does not actually assemble anything.  For matrix assembly,
    * use the \p assemble() in derived classes.
-   * @e Should be overloaded in derived classes.
+   * Should be overridden in derived classes.
    */
   virtual void assemble () libmesh_override { ImplicitSystem::assemble(); }
 
@@ -116,7 +117,7 @@ public:
   virtual void solve () libmesh_override;
 
   /**
-   * Returns a pointer to a linear solver appropriate for use in
+   * \returns A pointer to a linear solver appropriate for use in
    * adjoint and/or sensitivity solves
    */
   virtual LinearSolver<Number> * get_linear_solver() const libmesh_override;
@@ -137,7 +138,7 @@ public:
                         bool apply_no_constraints = false) libmesh_override;
 
   /**
-   * @returns \p "LinearImplicit".  Helps in identifying
+   * \returns \p "LinearImplicit".  Helps in identifying
    * the system type in an equation system file.
    */
   virtual std::string system_type () const libmesh_override { return "LinearImplicit"; }
@@ -151,13 +152,13 @@ public:
   UniquePtr<LinearSolver<Number> > linear_solver;
 
   /**
-   * Returns  the number of iterations
+   * \returns The number of iterations
    * taken for the most recent linear solve.
    */
   unsigned int n_linear_iterations() const { return _n_linear_iterations; }
 
   /**
-   * Returns the final residual for the linear system solve.
+   * \returns The final residual for the linear system solve.
    */
   Real final_linear_residual() const { return _final_linear_residual; }
 
@@ -178,7 +179,7 @@ public:
   void detach_shell_matrix () { attach_shell_matrix(libmesh_nullptr); }
 
   /**
-   * Returns a pointer to the currently attached shell matrix, if any,
+   * \returns A pointer to the currently attached shell matrix, if any,
    * or \p NULL else.
    */
   ShellMatrix<Number> * get_shell_matrix() { return _shell_matrix; }

@@ -48,12 +48,12 @@ namespace libMesh
  * val2 = vmap[key2];
  * \endverbatim
  *
- * Note in particular the two-phase usage.  It is not advised to do
- * intermediate insert/lookups, as each time an insertion is done the
- * sort is invalidated, and must be reperformed. Additionally, during
- * the insersion phase, there is no accounting for duplicate keys.
- * Each insertion is accepted regardless of key value, and then
- * duplicate keys are removed later.
+ * \note The two-phase usage.  It is not advised to do intermediate
+ * insert/lookups, as each time an insertion is done the sort is
+ * invalidated, and must be reperformed. Additionally, during the
+ * insersion phase, there is no accounting for duplicate keys.  Each
+ * insertion is accepted regardless of key value, and then duplicate
+ * keys are removed later.
  *
  * \author  Benjamin S. Kirk
  */
@@ -132,7 +132,7 @@ public:
   }
 
   /**
-   * @returns the value corresponding to \p key
+   * \returns The value corresponding to \p key
    */
   const Tp & operator[](const key_type & key) const
   {
@@ -154,7 +154,7 @@ public:
   }
 
   /**
-   * Returns an iterator corresponding to key, or the end iterator if
+   * \returns An iterator corresponding to key, or the end iterator if
    * not found.
    */
   iterator find (const key_type & key)
@@ -177,7 +177,7 @@ public:
   }
 
   /**
-   * Returns an iterator corresponding to key, or the end iterator if
+   * \returns An iterator corresponding to key, or the end iterator if
    * not found.
    */
   const_iterator find (const key_type & key) const
@@ -202,8 +202,9 @@ public:
   }
 
   /**
-   * *returns the number of occurances of \p key.  For a map-like object, this should
-   * be 1 or 0.
+   * \returns The number of occurrences of \p key.
+   *
+   * For a map-like object, this should be 1 or 0.
    */
   difference_type
   count (const key_type & key) const

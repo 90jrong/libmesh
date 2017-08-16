@@ -37,7 +37,8 @@ namespace libMesh
 /**
  * This class provides a wrapper with which to evaluate a
  * (libMesh-style) function pointer in a FunctionBase-compatible
- * interface.
+ * interface. All overridden virtual functions are documented in
+ * function_base.h.
  *
  * \author Roy Stogner
  * \date 2012
@@ -69,26 +70,13 @@ public:
 
   virtual UniquePtr<FunctionBase<Output> > clone () const libmesh_override;
 
-  /**
-   * @returns the scalar value of variable varnum at coordinate \p p
-   * and time \p time.
-   */
   virtual Output operator() (const Point & p,
                              const Real time = 0.) libmesh_override;
 
-  /**
-   * Return function for vectors.
-   * Returns in \p output the values of all system variables at the
-   * coordinate \p p and for time \p time.
-   */
   virtual void operator() (const Point & p,
                            const Real time,
                            DenseVector<Output> & output) libmesh_override;
 
-  /**
-   * @returns the vector component \p i at coordinate
-   * \p p and time \p time.
-   */
   virtual Output component (unsigned int i,
                             const Point & p,
                             Real time=0.) libmesh_override;
@@ -137,11 +125,6 @@ WrappedFunction<Output>::clone () const
 }
 
 
-/**
- * Return function for vectors.
- * Returns in \p output the values of all system variables at the
- * coordinate \p p and for time \p time.
- */
 template <typename Output>
 inline
 void WrappedFunction<Output>::operator() (const Point & p,
@@ -183,10 +166,6 @@ void WrappedFunction<Output>::operator() (const Point & p,
 }
 
 
-/**
- * @returns the vector component \p i at coordinate
- * \p p and time \p time.
- */
 template <typename Output>
 inline
 Output WrappedFunction<Output>::component (unsigned int i,

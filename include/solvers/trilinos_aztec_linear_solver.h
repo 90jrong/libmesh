@@ -88,8 +88,9 @@ public:
 
   /**
    * This method allows you to call a linear solver while specifying
-   * the matrix to use as the (left) preconditioning matrix.  Note
-   * that the linear solver will not compute a preconditioner in this
+   * the matrix to use as the (left) preconditioning matrix.
+   *
+   * \note The linear solver will not compute a preconditioner in this
    * case, and will instead premultiply by the matrix you provide.
    */
   virtual std::pair<unsigned int, Real>
@@ -130,10 +131,11 @@ public:
   void get_residual_history(std::vector<double> & hist);
 
   /**
-   * Returns just the initial residual for the solve just
-   * completed with this interface.  Use this method instead
-   * of the one above if you just want the starting residual
-   * and not the entire history.
+   * \returns The initial residual for the solve just completed with
+   * this interface.
+   *
+   * Use this method instead of the one above if you just want the
+   * starting residual and not the entire history.
    */
   Real get_initial_residual();
 
@@ -144,7 +146,7 @@ public:
   virtual void print_converged_reason() const libmesh_override;
 
   /**
-   * Returns the solver's convergence flag
+   * \returns The solver's convergence flag
    */
   virtual LinearConvergenceReason get_converged_reason() const libmesh_override;
 

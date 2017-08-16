@@ -102,7 +102,7 @@ public:
 private:
 
   /**
-   * @returns a new object of type Derived.
+   * \returns A new object of type Derived.
    */
   virtual UniquePtr<Base> create () libmesh_override;
 };
@@ -148,17 +148,6 @@ UniquePtr<Base> Factory<Base>::build (const std::string & name)
   Factory<Base> * f = factory_map()[name];
   return UniquePtr<Base>(f->create());
 }
-
-
-
-// Note - this cannot be inlined!
-// template <class Base>
-// std::map<std::string, Factory<Base> *> & Factory<Base>::factory_map()
-// {
-//   static std::map<std::string, Factory<Base> *> _factory_map;
-
-//   return _factory_map;
-// }
 
 
 

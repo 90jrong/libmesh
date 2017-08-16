@@ -88,21 +88,19 @@ public:
   Node & operator= (const Point & p);
 
   /**
-   * Builds a \p Node and returns an \p UniquePtr<Node> to the
-   * newly-created object.  The \p id is copied from \p n.id().
+   * \returns A \p Node copied from \p n and wrapped in a smart pointer.
    */
   static UniquePtr<Node> build (const Node & n);
 
   /**
-   * Builds a \p Node from \p Point p and returns an \p UniquePtr<Node>
-   * to the newly-created object.  Optionally assignes the \p id.
+   * \returns A \p Node copied from \p p with id == \id and wrapped in a smart pointer.
    */
   static UniquePtr<Node> build (const Point & p,
                                 const dof_id_type id);
 
   /**
-   * Builds a \p Node from specified points and returns an \p UniquePtr<Node>
-   * to the newly-created object.  Optionally assigned the \p id.
+   * \returns A \p Node created from the specified (x,y,z) positions
+   * with id == \id and wrapped in a smart pointer.
    */
   static UniquePtr<Node> build (const Real x,
                                 const Real y,
@@ -110,7 +108,7 @@ public:
                                 const dof_id_type id);
 
   /**
-   * @returns \p true if the node is active.  An active node is
+   * \returns \p true if the node is active.  An active node is
    * defined as one for which \p id() is not \p Node::invalid_id.
    * Inactive nodes are nodes that are in the mesh but are not
    * connected to any elements.
@@ -119,7 +117,7 @@ public:
 
 
   /**
-   * @returns \p true if this node equals rhs, false otherwise.
+   * \returns \p true if this node equals rhs, false otherwise.
    */
   bool operator ==(const Node & rhs) const;
 
@@ -149,7 +147,7 @@ public:
 #endif // #ifdef LIBMESH_HAVE_MPI
 
   /**
-   * @returns the number of nodes connected with this node.
+   * \returns The number of nodes connected with this node.
    * Currently, this value is invalid (zero) except for
    * subdivision meshes.
    */

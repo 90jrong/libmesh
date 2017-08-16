@@ -62,44 +62,44 @@ public:
     InfQuad(InfQuad6::n_nodes(), p, _nodelinks_data) {}
 
   /**
-   * @returns 6.
+   * \returns 6.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 6; }
 
   /**
-   * @returns \p INFQUAD6.
+   * \returns \p INFQUAD6.
    */
   virtual ElemType type () const libmesh_override { return INFQUAD6; }
 
   /**
-   * @returns 2.
+   * \returns 2.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 2; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge (== is_node_on_side in 2D).
    */
   virtual bool is_node_on_edge(const unsigned int n,
@@ -107,7 +107,7 @@ public:
   { return this->is_node_on_side(n,e); }
 
   /**
-   * @returns \p SECOND.
+   * \returns \p SECOND.
    */
   virtual Order default_order() const libmesh_override { return SECOND; }
 
@@ -117,7 +117,7 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    *
@@ -127,13 +127,13 @@ public:
   virtual dof_id_type key (const unsigned int s) const libmesh_override;
 
   /**
-   * Does some range checking and then returns InfQuad6::side_nodes_map[side][side_node].
+   * \returns \p InfQuad6::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
   /**
-   * Creates and returns an \p Edge3 for the base (0) side, and an \p InfEdge2 for
+   * \returns An \p Edge3 for the base (0) side, and an \p InfEdge2 for
    * the sides 1, 2.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
@@ -144,21 +144,22 @@ public:
                             std::vector<dof_id_type> & conn) const libmesh_override;
 
   /**
-   * @returns 2 for all \p n.
+   * \returns 2 for all \p n.
    */
   virtual unsigned int n_second_order_adjacent_vertices (const unsigned int) const libmesh_override
   { return 2; }
 
   /**
-   * @returns the element-local number of the  \f$ v^{th} \f$ vertex
+   * \returns The element-local number of the \f$ v^{th} \f$ vertex
    * that defines the \f$ n^{th} \f$ second-order node.
-   * Note that \p n is counted as depicted above, \f$ 4 \le n < 6 \f$.
+   *
+   * \note \p n is counted as depicted above, \f$ 4 \le n < 6 \f$.
    */
   virtual unsigned short int second_order_adjacent_vertex (const unsigned int n,
                                                            const unsigned int v) const libmesh_override;
 
   /**
-   * @returns the child number \p c and element-local index \p v of
+   * \returns The child number \p c and element-local index \p v of
    * the \f$ n^{th} \f$ second-order node on the parent element.  See
    * elem.h for further details.
    */

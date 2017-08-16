@@ -34,7 +34,7 @@
 
 namespace libMesh
 {
-// Allow users access to these functions in case they want to reuse them.  Note that users shouldn't
+// Allow users access to these functions in case they want to reuse them.  Users shouldn't
 // need access to these most of the time as they are used internally by this object.
 extern "C"
 {
@@ -95,7 +95,7 @@ public:
   virtual void init (const char * name = libmesh_nullptr) libmesh_override;
 
   /**
-   * Returns the raw PETSc snes context pointer.
+   * \returns The raw PETSc snes context pointer.
    */
   SNES snes() { this->init(); return _snes; }
 
@@ -117,8 +117,10 @@ public:
   virtual void print_converged_reason() libmesh_override;
 
   /**
-   * Returns the currently-available (or most recently obtained, if the SNES object has
-   * been destroyed) convergence reason.  Refer to PETSc docs for the meaning of different
+   * \returns The currently-available (or most recently obtained, if
+   * the SNES object has been destroyed) convergence reason.
+   *
+   * Refer to PETSc docs for the meaning of different
    * SNESConvergedReasons.
    */
   SNESConvergedReason get_converged_reason();
@@ -129,9 +131,9 @@ public:
   virtual int get_total_linear_iterations() libmesh_override;
 
   /**
-   * If called *during* the solve(), for example by the user-specified
-   * residual or Jacobian function, returns the current nonlinear iteration
-   * number.
+   * \returns The current nonlinear iteration number if called
+   * *during* the solve(), for example by the user-specified residual
+   * or Jacobian function.
    */
   virtual unsigned get_current_nonlinear_iteration_number() const libmesh_override
   { return _current_nonlinear_iteration_number; }
@@ -159,10 +161,13 @@ protected:
 
   /**
    * Store the reason for SNES convergence/divergence for use even after the _snes
-   * has been cleared.  Note that print_converged_reason() will always *try* to
-   * get the current reason with SNESGetConvergedReason(), but if the SNES object
-   * has already been cleared, it will fall back on this stored value.  Note that
-   * this value is therefore necessarily *not* cleared by the clear() function.
+   * has been cleared.
+   *
+   * \note \p print_converged_reason() will always \e try to get the
+   * current reason with SNESGetConvergedReason(), but if the SNES
+   * object has already been cleared, it will fall back on this stored
+   * value.  This value is therefore necessarily \e not cleared by the
+   * \p clear() function.
    */
   SNESConvergedReason _reason;
 

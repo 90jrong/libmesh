@@ -58,8 +58,7 @@ public:
   ~ParmetisPartitioner ();
 
   /**
-   * Creates a new partitioner of this type and returns it in
-   * a \p UniquePtr.
+   * \returns A copy of this partitioner wrapped in a smart pointer.
    */
   virtual UniquePtr<Partitioner> clone () const libmesh_override
   {
@@ -106,9 +105,11 @@ private:
   void assign_partitioning (MeshBase & mesh);
 
   /**
-   * The number of active elements on each processor.  Note that
-   * ParMETIS requires that each processor have some active elements;
-   * it will abort if any processor passes a NULL _part array.
+   * The number of active elements on each processor.
+   *
+   * \note ParMETIS requires that each processor have some active
+   * elements; it will abort if any processor passes a NULL _part
+   * array.
    */
   std::vector<dof_id_type> _n_active_elem_on_proc;
 

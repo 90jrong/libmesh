@@ -48,14 +48,14 @@ class Elem;
  * \author Benjamin S. Kirk
  * \date 2004
  */
-
-
-// ------------------------------------------------------------
-// MeshTools namespace
 namespace MeshTools
 {
 
-// Backwards compatibility with forward declarations
+/**
+ * Backwards compatibility with forward declarations.
+ *
+ * \deprecated Use libMesh::BoundingBox instead.
+ */
 class BoundingBox : public libMesh::BoundingBox
 {
 public:
@@ -77,18 +77,22 @@ public:
 
 
 /**
- * This function returns the sum over all the elemenents of the number
- * of nodes per element.  This can be useful for partitioning hybrid meshes.
- * A feasible load balancing scheme is to keep the weight per processor as
- * uniform as possible.
+ * \returns The sum over all the elemenents of the number
+ * of nodes per element.
+ *
+ * This can be useful for partitioning hybrid meshes.  A feasible load
+ * balancing scheme is to keep the weight per processor as uniform as
+ * possible.
  */
 dof_id_type total_weight (const MeshBase & mesh);
 
 /**
- * This function returns the sum over all the elemenents on processor \p pid
- * of nodes per element.  This can be useful for partitioning hybrid meshes.
- * A feasible load balancing scheme is to keep the weight per processor as
- * uniform as possible.
+ * \returns The sum over all the elemenents on processor \p pid
+ * of nodes per element.
+ *
+ * This can be useful for partitioning hybrid meshes.  A feasible load
+ * balancing scheme is to keep the weight per processor as uniform as
+ * possible.
  */
 dof_id_type weight (const MeshBase & mesh,
                     const processor_id_type pid);
@@ -128,30 +132,31 @@ void find_boundary_nodes (const MeshBase & mesh,
                           std::vector<bool> & on_boundary);
 
 /**
- * @returns two points defining a cartesian box that bounds the
+ * \returns Two points defining a cartesian box that bounds the
  * mesh.  The first entry in the pair is the mininum, the second
  * is the maximim.
  *
- * This function is now deprecated, use create_bounding_box() instead.
+ * \deprecated Use create_bounding_box() instead.
  */
 BoundingBox
 bounding_box (const MeshBase & mesh);
 
 /**
- * The same functionality as the deprecated MeshTools::bounding_box()
- * function, but returns the non-deprecated libMesh::BoundingBox type.
+ * The same functionality as the deprecated MeshTools::bounding_box().
+ *
+ * \returns The non-deprecated libMesh::BoundingBox type.
  */
 libMesh::BoundingBox
 create_bounding_box (const MeshBase & mesh);
 
 /**
- * Same, but returns a sphere instead of a box.
+ * \returns A bounding sphere for \p mesh instead of a bounding box.
  */
 Sphere
 bounding_sphere (const MeshBase & mesh);
 
 /**
- * @returns two points defining a cartesian box that bounds the
+ * \returns Two points defining a cartesian box that bounds the
  * nodes of the mesh.
  *
  * In the case of curved elements, this box might *not* bound the
@@ -161,7 +166,7 @@ libMesh::BoundingBox
 create_nodal_bounding_box (const MeshBase & mesh);
 
 /**
- * @returns two points defining a cartesian box that bounds the
+ * \returns Two points defining a cartesian box that bounds the
  * elements belonging to the local processor.
  *
  * Unlike the other bounding box creation functions, this does *not*
@@ -172,35 +177,36 @@ libMesh::BoundingBox
 create_local_bounding_box (const MeshBase & mesh);
 
 /**
- * @returns two points defining a cartesian box that bounds the
+ * \returns Two points defining a cartesian box that bounds the
  * elements belonging to processor pid.
  *
- * This function is now deprecated, use create_processor_bounding_box() instead.
+ * \deprecated Use create_processor_bounding_box() instead.
  */
 BoundingBox
 processor_bounding_box (const MeshBase & mesh,
                         const processor_id_type pid);
 
 /**
- * The same functionality as the deprecated MeshTools::processor_bounding_box()
- * function, but returns the non-deprecated libMesh::BoundingBox type.
+ * The same functionality as the deprecated MeshTools::processor_bounding_box().
+ *
+ * \returns The non-deprecated libMesh::BoundingBox type.
  */
 libMesh::BoundingBox
 create_processor_bounding_box (const MeshBase & mesh,
                                const processor_id_type pid);
 
 /**
- * Same, but returns a sphere instead of a box.
+ * \returns A processor bounding sphere instead of a processor bounding box.
  */
 Sphere
 processor_bounding_sphere (const MeshBase & mesh,
                            const processor_id_type pid);
 
 /**
- * @returns two points defining a Cartesian box that bounds the
+ * \returns Two points defining a Cartesian box that bounds the
  * elements belonging to subdomain sid.
  *
- * This function is now deprecated, use create_subdomain_bounding_box() instead.
+ * \deprecated Use create_subdomain_bounding_box() instead.
  */
 BoundingBox
 subdomain_bounding_box (const MeshBase & mesh,
@@ -208,15 +214,16 @@ subdomain_bounding_box (const MeshBase & mesh,
 
 
 /**
- * The same functionality as the deprecated MeshTools::subdomain_bounding_box()
- * function, but returns the non-deprecated libMesh::BoundingBox type.
+ * The same functionality as the deprecated MeshTools::subdomain_bounding_box().
+ *
+ * \returns The non-deprecated libMesh::BoundingBox type.
  */
 libMesh::BoundingBox
 create_subdomain_bounding_box (const MeshBase & mesh,
                                const subdomain_id_type sid);
 
 /**
- * Same, but returns a sphere instead of a box.
+ * \returns A subdomain bounding sphere instead of a subdomain bounding box.
  */
 Sphere
 subdomain_bounding_sphere (const MeshBase & mesh,
@@ -224,32 +231,34 @@ subdomain_bounding_sphere (const MeshBase & mesh,
 
 
 /**
- * Return a vector of all element types for the mesh.  Implemented
+ * Fills in a vector of all element types in the mesh.  Implemented
  * in terms of element_iterators.
  */
 void elem_types (const MeshBase & mesh,
                  std::vector<ElemType> & et);
 
 /**
- * Return the number of elements of type \p type.  Implemented
- * in terms of type_element_iterators.
+ * \returns The number of elements of type \p type.
+ *
+ * Implemented in terms of type_element_iterators.
  */
 dof_id_type n_elem_of_type (const MeshBase & mesh,
                             const ElemType type);
 
 /**
- * Return the number of active elements of type \p type.
+ * \returns The number of active elements of type \p type.
+ *
  * Implemented in terms of active_type_element_iterators.
  */
 dof_id_type n_active_elem_of_type (const MeshBase & mesh,
                                    const ElemType type);
 
 /**
- * Return the number of elements of type \p type at the specified
+ * \returns The number of elements of type \p type at the specified
  * refinement level.
  *
- * TODO: Replace all of the n_xxx_elem() functions like this with
- * a single function which takes a range of iterators and returns the
+ * \todo Replace all of the n_xxx_elem() functions like this with
+ * a single function which takes a range of iterators and computes the
  * std::distance between them.
  */
 dof_id_type n_non_subactive_elem_of_type_at_level(const MeshBase & mesh,
@@ -257,7 +266,8 @@ dof_id_type n_non_subactive_elem_of_type_at_level(const MeshBase & mesh,
                                                   const unsigned int level);
 
 /**
- * Return the number of levels of refinement in the mesh.
+ * \returns The number of levels of refinement in the mesh.
+ *
  * Implemented by looping over all the local elements and
  * unpartitioned elements and finding the maximum level, then summing
  * in parallel.
@@ -265,35 +275,39 @@ dof_id_type n_non_subactive_elem_of_type_at_level(const MeshBase & mesh,
 unsigned int n_levels(const MeshBase & mesh);
 
 /**
- * Return the number of levels of refinement in the local mesh.
+ * \returns The number of levels of refinement in the local mesh.
+ *
  * Implemented by looping over all the local elements and finding the
  * maximum level.
  */
 unsigned int n_local_levels(const MeshBase & mesh);
 
 /**
- * Return the number of levels of refinement in the active mesh.
+ * \returns The number of levels of refinement in the active mesh.
+ *
  * Implemented by looping over all the active local elements and finding
  * the maximum level, then maxxing in parallel.
  */
 unsigned int n_active_levels(const MeshBase & mesh);
 
 /**
- * Return the number of levels of refinement in the active local mesh.
+ * \returns The number of levels of refinement in the active local mesh.
+ *
  * Implemented by looping over all the active local elements and finding
  * the maximum level.
  */
 unsigned int n_active_local_levels(const MeshBase & mesh);
 
 /**
- * Return the number of p-levels of refinement in the mesh.
+ * \returns The number of p-levels of refinement in the mesh.
+ *
  * Implemented by looping over all the local elements and finding the
  * maximum p-level, then summing in parallel.
  */
 unsigned int n_p_levels (const MeshBase & mesh);
 
 /**
- * Return the number of levels of refinement in the mesh, even if that
+ * \returns The number of levels of refinement in the mesh, even if that
  * mesh is not currently properly distributed or properly serialized.
  *
  * Implemented by looping over all elements and finding the maximum
@@ -512,12 +526,15 @@ namespace Private {
 /**
  * There is no reason for a user to ever call this function.
  *
- * This function determines partition-agnostic global indices for all nodes and elements
- * in the mesh.  Note that after this function is called the mesh will likely be in an
- * inconsistent state, i.e. \p mesh.nodes(i)->id() != i in the nodes container.
- * Direct node/element access via the \p mesh.node(n) or \p mesh.elem(e) functions will
- * likely fail. The original numbering can (and should) be restored with a subsequent call to
- * \p fix_node_and_element_numbering().
+ * This function determines partition-agnostic global indices for all
+ * nodes and elements in the mesh.
+ *
+ * \note After this function is called, the mesh will likely be in an
+ * inconsistent state, i.e. \p mesh.nodes(i)->id() != i in the nodes
+ * container.  Direct node/element access via the \p mesh.node(n) or
+ * \p mesh.elem(e) functions will likely fail. The original numbering
+ * can (and should) be restored with a subsequent call to \p
+ * fix_node_and_element_numbering().
  *
  */
 void globally_renumber_nodes_and_elements (MeshBase &);

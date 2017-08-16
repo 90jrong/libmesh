@@ -13,6 +13,7 @@ unit_tests_sources = \
   test_comm.h \
   stream_redirector.h \
   base/dof_object_test.h \
+  base/dof_map_test.h \
   base/default_coupling_test.C \
   base/getpot_test.C \
   base/point_neighbor_coupling_test.C \
@@ -183,7 +184,7 @@ if LIBMESH_ENABLE_CPPUNIT
 TESTS = run_unit_tests.sh
 endif
 
-CLEANFILES = cube_mesh.xdr \
+CLEANFILES = cube_mesh.xda \
              checkpoint_splitter.cpr* checkpoint_splitter.cpa* \
              slit_mesh.xda slit_solution.xda
 

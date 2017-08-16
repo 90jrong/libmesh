@@ -159,18 +159,19 @@ public:
 
   /**
    * This method allows you to call a linear solver while specifying
-   * the matrix to use as the (left) preconditioning matrix.  Note
-   * that the linear solver will not compute a preconditioner in this
-   * case, and will instead premultiply by the matrix you provide.
+   * the matrix to use as the (left) preconditioning matrix.
    *
-   * In PETSc, this is accomplished by calling
-   *
+   * \note The linear solver will not compute a preconditioner in this
+   * case, and will instead premultiply by the matrix you provide.  In
+   * PETSc, this is accomplished by calling
+   * \code
    * PCSetType(_pc, PCMAT);
+   * \endcode
+   * before invoking KSPSolve().
    *
-   * before invoking KSPSolve().  Note: this functionality is not implemented
-   * in the LinearSolver class since there is not a built-in analog
-   * to this method for LasPack -- You could probably implement it by hand
-   * if you wanted.
+   * \note This functionality is not implemented in the LinearSolver
+   * class since there is not a built-in analog to this method for
+   * LASPACK. You could probably implement it by hand if you wanted.
    */
   virtual std::pair<unsigned int, Real>
   solve (SparseMatrix<T> & matrix,
@@ -204,16 +205,19 @@ public:
          const unsigned int m_its) libmesh_override;
 
   /**
-   * Returns the raw PETSc preconditioner context pointer.  This allows
-   * you to specify the PCShellSetApply() and PCShellSetSetUp() functions
-   * if you desire.  Just don't do anything crazy like calling PCDestroy()!
+   * \returns The raw PETSc preconditioner context pointer.
+   *
+   * This allows you to specify the PCShellSetApply() and
+   * PCShellSetSetUp() functions if you desire.  Just don't do
+   * anything crazy like calling libMeshPCDestroy() on the pointer!
    */
   PC pc() { this->init(); return _pc; }
 
   /**
-   * Returns the raw PETSc ksp context pointer.  This is useful if
-   * you are for example setting a custom convergence test with
-   * KSPSetConvergenceTest().
+   * \returns The raw PETSc ksp context pointer.
+   *
+   * This is useful if you are for example setting a custom
+   * convergence test with KSPSetConvergenceTest().
    */
   KSP ksp() { this->init(); return _ksp; }
 
@@ -224,15 +228,16 @@ public:
   void get_residual_history(std::vector<double> & hist);
 
   /**
-   * Returns just the initial residual for the solve just
-   * completed with this interface.  Use this method instead
-   * of the one above if you just want the starting residual
-   * and not the entire history.
+   * \returns Just the initial residual for the solve just
+   * completed with this interface.
+   *
+   * Use this method instead of the one above if you just want the
+   * starting residual and not the entire history.
    */
   Real get_initial_residual();
 
   /**
-   * Returns the solver's convergence flag
+   * \returns The solver's convergence flag
    */
   virtual LinearConvergenceReason get_converged_reason() const libmesh_override;
 
@@ -283,8 +288,7 @@ private:
   IS _restrict_solve_to_is_complement;
 
   /**
-   * Internal method that returns the local size of \p
-   * _restrict_solve_to_is.
+   * \returns The local size of \p _restrict_solve_to_is.
    */
   PetscInt _restrict_solve_to_is_local_size() const;
 

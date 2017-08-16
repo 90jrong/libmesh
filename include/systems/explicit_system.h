@@ -27,11 +27,11 @@ namespace libMesh
 {
 
 /**
- * This class provides a specific system class.  It aims
- * at explicit systems, offering nothing more than just
- * the essentials needed to solve a system.  Note
- * that still additional vectors/matrices may be added,
- * as offered in the parent class \p System.
+ * The ExplicitSystem provides only "right hand side" storage, which
+ * should be sufficient for solving most types of explicit problems.
+ *
+ * \note Additional vectors/matrices can be added via parent class
+ * interfaces.
  *
  * \author Benjamin S. Kirk
  * \date 2004
@@ -50,11 +50,6 @@ public:
                   const unsigned int number);
 
   /**
-   * Destructor.
-   */
-  ~ExplicitSystem ();
-
-  /**
    * The type of system.
    */
   typedef ExplicitSystem sys_type;
@@ -65,7 +60,7 @@ public:
   typedef System Parent;
 
   /**
-   * @returns a clever pointer to the system.
+   * \returns A reference to *this.
    */
   sys_type & system () { return *this; }
 
@@ -84,14 +79,14 @@ public:
   /**
    * Prepares \p qoi for quantity of interest assembly, then calls
    * user qoi function.
-   * @e Can be overloaded in derived classes.
+   * Can be overridden in derived classes.
    */
   virtual void assemble_qoi (const QoISet & qoi_indices = QoISet()) libmesh_override;
 
   /**
    * Prepares \p adjoint_rhs for quantity of interest derivative assembly,
    * then calls user qoi derivative function.
-   * @e Can be overloaded in derived classes.
+   * Can be overridden in derived classes.
    */
   virtual void assemble_qoi_derivative (const QoISet & qoi_indices = QoISet(),
                                         bool include_liftfunc = true,
@@ -103,7 +98,7 @@ public:
   virtual void solve () libmesh_override;
 
   /**
-   * @returns \p "Explicit".  Helps in identifying
+   * \returns \p "Explicit".  Helps in identifying
    * the system type in an equation system file.
    */
   virtual std::string system_type () const libmesh_override { return "Explicit"; }
@@ -114,15 +109,6 @@ public:
    * right-hand-side vector b.
    */
   NumericVector<Number> * rhs;
-
-
-protected:
-
-  /**
-   * Initializes the member data fields associated with
-   * the system, so that, e.g., \p assemble() may be used.
-   */
-  virtual void init_data () libmesh_override;
 
 
 private:

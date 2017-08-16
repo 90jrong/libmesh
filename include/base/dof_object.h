@@ -127,7 +127,7 @@ public:
   void invalidate ();
 
   /**
-   * @returns the number of degrees of freedom associated with
+   * \returns The number of degrees of freedom associated with
    * system \p s for this object. Optionally only counts degrees
    * of freedom for variable number \p var
    */
@@ -136,22 +136,22 @@ public:
                        libMesh::invalid_uint) const;
 
   /**
-   * \returns the \p id for this \p DofObject
+   * \returns The \p id for this \p DofObject
    */
   dof_id_type id () const;
 
   /**
-   * \returns the \p id for this \p DofObject as a writeable reference.
+   * \returns The \p id for this \p DofObject as a writable reference.
    */
   dof_id_type & set_id ();
 
   /**
-   * \returns the globally \p unique_id for this \p DofObject
+   * \returns The globally \p unique_id for this \p DofObject
    */
   unique_id_type unique_id () const;
 
   /**
-   * \returns the globally \p unique_id for this \p DofObject as a writeable reference.
+   * \returns The globally \p unique_id for this \p DofObject as a writable reference.
    */
   unique_id_type & set_unique_id ();
 
@@ -162,19 +162,19 @@ public:
   { this->set_id() = dofid; }
 
   /**
-   * @returns \p true if this \p DofObject has a valid \p id set,
+   * \returns \p true if this \p DofObject has a valid \p id set,
    * \p false otherwise.
    */
   bool valid_id () const;
 
   /**
-   * @returns \p true if this \p DofObject has a valid \p unique_id set,
+   * \returns \p true if this \p DofObject has a valid \p unique_id set,
    * \p false otherwise.
    */
   bool valid_unique_id () const;
 
   /**
-   * @returns the processor that this DofObject belongs to.
+   * \returns The processor that this DofObject belongs to.
    *
    * When partitioning and DoF numbering have been performed by
    * libMesh, every current DoF on this DofObject will belong to its
@@ -183,8 +183,8 @@ public:
   processor_id_type processor_id () const;
 
   /**
-   * @returns the processor that this DofObject belongs to as a
-   * writeable reference.
+   * \returns The processor that this DofObject belongs to as a
+   * writable reference.
    */
   processor_id_type & processor_id ();
 
@@ -194,13 +194,13 @@ public:
   void processor_id (const processor_id_type pid);
 
   /**
-   * @returns \p true if this \p DofObject has a valid \p id set,
+   * \returns \p true if this \p DofObject has a valid \p id set,
    * \p false otherwise.
    */
   bool valid_processor_id () const;
 
   /**
-   * @returns the number of systems associated with this
+   * \returns The number of systems associated with this
    * \p DofObject
    */
   unsigned int n_systems() const;
@@ -216,20 +216,20 @@ public:
   void add_system ();
 
   /**
-   * @returns the number of \p VariableGroup variable groups
+   * \returns The number of \p VariableGroup variable groups
    * associated with system \p s for this \p DofObject
    */
   unsigned int n_var_groups(const unsigned int s) const;
 
   /**
-   * @returns the number of \p Variable variables associated
+   * \returns The number of \p Variable variables associated
    * with \p VariableGroup \p vg in system \p s for this \p DofObject
    */
   unsigned int n_vars(const unsigned int s,
                       const unsigned int vg) const;
 
   /**
-   * @returns the number of \p Variable variables associated
+   * \returns The number of \p Variable variables associated
    * with system \p s for this \p DofObject
    */
   unsigned int n_vars(const unsigned int s) const;
@@ -245,10 +245,10 @@ public:
                             const std::vector<unsigned int> & nvpg);
 
   /**
-   * @returns the number of components for variable \p var
+   * \returns The number of components for variable \p var
    * of system \p s associated with this \p DofObject.
    * For example, the \p HIERARCHIC shape functions may
-   * have @e multiple DoFs associated with @e one node.  Another
+   * have multiple DoFs associated with one node.  Another
    * example is the \p MONOMIALs, where only the elements
    * hold the DoFs.  For the different spatial directions,
    * and orders, see \p FE.
@@ -257,10 +257,10 @@ public:
                       const unsigned int var) const;
 
   /**
-   * @returns the number of components for \p VariableGroup \p vg
+   * \returns The number of components for \p VariableGroup \p vg
    * of system \p s associated with this \p DofObject.
    * For example, the \p HIERARCHIC shape functions may
-   * have @e multiple DoFs associated with @e one node.  Another
+   * have multiple DoFs associated with one node.  Another
    * example is the \p MONOMIALs, where only the elements
    * hold the DoFs.  For the different spatial directions,
    * and orders, see \p FE.
@@ -285,9 +285,8 @@ public:
                         const unsigned int ncomp);
 
   /**
-   * @returns the global degree of freedom number for variable \p var,
+   * \returns The global degree of freedom number for variable \p var,
    * component \p comp for system \p s associated with this \p DofObject
-   *
    *
    * When partitioning and DoF numbering have been performed by
    * libMesh, every current DoF on this DofObject will belong to its
@@ -307,8 +306,8 @@ public:
                       const dof_id_type dn);
 
   /**
-   * @returns true if any system has variables which have been assigned,
-   * false otherwise
+   * \returns \p true if any system has variables which have been assigned,
+   * \p false otherwise.
    */
   bool has_dofs(const unsigned int s=libMesh::invalid_uint) const;
 
@@ -433,7 +432,8 @@ private:
    * \endverbatim
    *
    * where 'end_s' is the index past the end of the variable group storage for system \p s.
-   * Note that we specifically do not store the end for the last system - this always _idx_buf.size().
+   *
+   * \note We specifically do not store the end for the last system - this always _idx_buf.size().
    *
    * Specifically, consider the case of 4 systems, with 3, 0, 1, 2 variable groups, respectively.  The _idx_buf then looks like:
    *
@@ -466,7 +466,7 @@ private:
    *
    * idx_var = idx_# + n_comp*v + c
    *
-   * note there is a subtlety here - "variable v within that group" usually means nothing to the
+   * \note There is a subtlety here - "variable v within that group" usually means nothing to the
    * user. This class is either indexed with variable group numbers, or variable numbers counted
    * *within the system*. So for a system with 2 variable groups, 4 and 8 variables each,
    * the 5th variable in the system is the 1st variable in 2nd variable group.

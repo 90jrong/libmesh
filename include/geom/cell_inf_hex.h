@@ -35,7 +35,7 @@ namespace libMesh
  * The \f$ 6^{th} \f$ side is theoretically located at infinity,
  * and therefore not accounted for.
  * However, one could say that the \f$ 6^{th} \f$ side actually
- * @e does exist in the mesh, since the outer nodes are located
+ * does exist in the mesh, since the outer nodes are located
  * at a specific distance from the mesh origin (and therefore
  * define a side).  Still, this face is not to be used!
  *
@@ -60,7 +60,7 @@ public:
   }
 
   /**
-   * @returns the \p Point associated with local \p Node \p i,
+   * \returns The \p Point associated with local \p Node \p i,
    * in master element rather than physical coordinates.
    */
   virtual Point master_point (const unsigned int i) const libmesh_override
@@ -72,50 +72,50 @@ public:
   }
 
   /**
-   * @returns 5.  Infinite elements have one side less
+   * \returns 5.  Infinite elements have one side less
    * than their conventional counterparts, since one
    * side is supposed to be located at infinity.
    */
   virtual unsigned int n_sides() const libmesh_override { return 5; }
 
   /**
-   * @returns 8.  All infinite hexahedra (in our
+   * \returns 8.  All infinite hexahedra (in our
    * setting) have 8 vertices.
    */
   virtual unsigned int n_vertices() const libmesh_override { return 8; }
 
   /**
-   * @returns true if the specified (local) node number is a
+   * \returns \p true if the specified (local) node number is a
    * "mid-edge" node on an infinite element edge.
    */
   virtual bool is_mid_infinite_edge_node(const unsigned int i) const
     libmesh_override { return (i > 3 && i < 8); }
 
   /**
-   * @returns 8.  All infinite hexahedra have 8 edges,
+   * \returns 8.  All infinite hexahedra have 8 edges,
    * 4 lying in the base, and 4 perpendicular to the base.
    */
   virtual unsigned int n_edges() const libmesh_override { return 8; }
 
   /**
-   * @returns 5.  All infinite hexahedra have 5 faces.
+   * \returns 5.  All infinite hexahedra have 5 faces.
    */
   virtual unsigned int n_faces() const libmesh_override { return 5; }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_children() const libmesh_override { return 4; }
 
   /**
-   * @returns true if the specified child is on the
+   * \returns \p true if the specified child is on the
    * specified side.
    */
   virtual bool is_child_on_side(const unsigned int c,
                                 const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified edge is on the specified side.
+   * \returns \p true if the specified edge is on the specified side.
    */
   virtual bool is_edge_on_side(const unsigned int e,
                                const unsigned int s) const libmesh_override;
@@ -126,34 +126,34 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    */
   virtual dof_id_type key (const unsigned int s) const libmesh_override;
 
   /**
-   * Does some range checking and then returns InfHex8::side_nodes_map[side][side_node].
+   * \returns \p InfHex8::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
   /**
-   * @returns a primitive (4-noded) quad or infquad for
+   * \returns A primitive (4-noded) quad or infquad for
    * face i.
    */
   virtual UniquePtr<Elem> side_ptr (const unsigned int i) libmesh_override;
 
   /**
-   * Based on the quality metric q specified by the user,
-   * returns a quantitative assessment of element quality.
+   * \returns A quantitative assessment of element quality based on
+   * the metric \p q specified by the user.
    */
   virtual Real quality (const ElemQuality q) const libmesh_override;
 
   /**
-   * Returns the suggested quality bounds for
-   * the hex based on quality measure q.  These are
-   * the values suggested by the CUBIT User's Manual.
+   * \returns The suggested quality bounds for the hex based on
+   * quality measure \p q.  These are the values suggested by the
+   * CUBIT User's Manual.
    */
   virtual std::pair<Real, Real> qual_bounds (const ElemQuality q) const libmesh_override;
 

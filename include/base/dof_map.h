@@ -383,16 +383,19 @@ public:
   void prepare_send_list ();
 
   /**
-   * Returns a constant reference to the \p _send_list for this processor.  The
-   * \p _send_list contains the global indices of all the variables in the
-   * global solution vector that influence the current processor.  This
-   * information can be used for gathers at each solution step to retrieve
-   * solution values needed for computation.
+   * \returns A constant reference to the \p _send_list for this processor.
+   *
+   * The \p _send_list contains the global indices of all the
+   * variables in the global solution vector that influence the
+   * current processor.  This information can be used for gathers at
+   * each solution step to retrieve solution values needed for
+   * computation.
    */
   const std::vector<dof_id_type> & get_send_list() const { return _send_list; }
 
   /**
-   * Returns a constant reference to the \p _n_nz list for this processor.
+   * \returns A constant reference to the \p _n_nz list for this processor.
+   *
    * The vector contains the bandwidth of the on-processor coupling for each
    * row of the global matrix that the current processor owns.  This
    * information can be used to preallocate space for a parallel sparse matrix.
@@ -404,7 +407,8 @@ public:
   }
 
   /**
-   * Returns a constant reference to the \p _n_oz list for this processor.
+   * \returns A constant reference to the \p _n_oz list for this processor.
+   *
    * The vector contains the bandwidth of the off-processor coupling for each
    * row of the global matrix that the current processor owns.  This
    * information can be used to preallocate space for a parallel sparse matrix.
@@ -428,37 +432,37 @@ public:
   void add_variable_group (const VariableGroup & var_group);
 
   /**
-   * @returns the \p VariableGroup description object for group \p g.
+   * \returns The \p VariableGroup description object for group \p g.
    */
   const VariableGroup & variable_group (const unsigned int c) const;
 
   /**
-   * @returns the variable description object for variable \p c.
+   * \returns The variable description object for variable \p c.
    */
   const Variable & variable (const unsigned int c) const;
 
   /**
-   * @returns the approximation order for variable \p c.
+   * \returns The approximation order for variable \p c.
    */
   Order variable_order (const unsigned int c) const;
 
   /**
-   * @returns the approximation order for \p VariableGroup \p vg.
+   * \returns The approximation order for \p VariableGroup \p vg.
    */
   Order variable_group_order (const unsigned int vg) const;
 
   /**
-   * @returns the finite element type for variable \p c.
+   * \returns The finite element type for variable \p c.
    */
   const FEType & variable_type (const unsigned int c) const;
 
   /**
-   * @returns the finite element type for \p VariableGroup \p vg.
+   * \returns The finite element type for \p VariableGroup \p vg.
    */
   const FEType & variable_group_type (const unsigned int vg) const;
 
   /**
-   * @returns the number of variables in the global solution vector. Defaults
+   * \returns The number of variables in the global solution vector. Defaults
    * to 1, should be 1 for a scalar equation, 3 for 2D incompressible Navier
    * Stokes (u,v,p), etc...
    */
@@ -466,7 +470,7 @@ public:
   { return cast_int<unsigned int>(_variable_groups.size()); }
 
   /**
-   * @returns the number of variables in the global solution vector. Defaults
+   * \returns The number of variables in the global solution vector. Defaults
    * to 1, should be 1 for a scalar equation, 3 for 2D incompressible Navier
    * Stokes (u,v,p), etc...
    */
@@ -474,7 +478,7 @@ public:
   { return cast_int<unsigned int>(_variables.size()); }
 
   /**
-   * @returns true if the variables are capable of being stored in a blocked
+   * \returns \p true if the variables are capable of being stored in a blocked
    * form.  Presently, this means that there can only be one variable group,
    * and that the group has more than one variable.
    */
@@ -488,7 +492,7 @@ public:
   }
 
   /**
-   * @returns the block size, if the variables are amenable to block storage.
+   * \returns The block size, if the variables are amenable to block storage.
    * Otherwise 1.
    */
   unsigned int block_size() const
@@ -501,23 +505,23 @@ public:
   }
 
   /**
-   * @returns the total number of degrees of freedom in the problem.
+   * \returns The total number of degrees of freedom in the problem.
    */
   dof_id_type n_dofs() const { return _n_dfs; }
 
   /**
-   * @returns the number of SCALAR dofs.
+   * \returns The number of SCALAR dofs.
    */
   dof_id_type n_SCALAR_dofs() const { return _n_SCALAR_dofs; }
 
   /**
-   * @returns the number of degrees of freedom on this processor.
+   * \returns The number of degrees of freedom on this processor.
    */
   dof_id_type n_local_dofs () const
   { return this->n_dofs_on_processor (this->processor_id()); }
 
   /**
-   * Returns the number of degrees of freedom on partition \p proc.
+   * \returns The number of degrees of freedom on partition \p proc.
    */
   dof_id_type n_dofs_on_processor(const processor_id_type proc) const
   {
@@ -526,7 +530,7 @@ public:
   }
 
   /**
-   * Returns the first dof index that is local to partition \p proc.
+   * \returns The first dof index that is local to partition \p proc.
    */
   dof_id_type first_dof(const processor_id_type proc) const
   { libmesh_assert_less (proc, _first_df.size()); return _first_df[proc]; }
@@ -536,7 +540,7 @@ public:
 
 #ifdef LIBMESH_ENABLE_AMR
   /**
-   * Returns the first old dof index that is local to partition \p proc.
+   * \returns The first old dof index that is local to partition \p proc.
    */
   dof_id_type first_old_dof(const processor_id_type proc) const
   { libmesh_assert_less (proc, _first_old_df.size()); return _first_old_df[proc]; }
@@ -547,9 +551,10 @@ public:
 #endif //LIBMESH_ENABLE_AMR
 
   /**
-   * Returns the last dof index that is local to processor \p proc.
-   * This function is now deprecated, because it returns nonsense in the rare
-   * case where \p proc has no local dof indices.  Use end_dof() instead.
+   * \returns The last dof index that is local to processor \p proc.
+   *
+   * \deprecated This function returns nonsense in the rare case where
+   * \p proc has no local dof indices.  Use end_dof() instead.
    */
   dof_id_type last_dof(const processor_id_type proc) const
   {
@@ -562,8 +567,9 @@ public:
   { return this->last_dof(this->processor_id()); }
 
   /**
-   * Returns the first dof index that is after all indices local to
+   * \returns The first dof index that is after all indices local to
    * processor \p proc.
+   *
    * Analogous to the end() member function of STL containers.
    */
   dof_id_type end_dof(const processor_id_type proc) const
@@ -572,10 +578,21 @@ public:
   dof_id_type end_dof() const
   { return this->end_dof(this->processor_id()); }
 
+  /**
+   * \returns The processor id that owns the dof index \p dof
+   */
+  processor_id_type dof_owner(const dof_id_type dof) const
+  { std::vector<dof_id_type>::const_iterator ub =
+      std::upper_bound(_end_df.begin(), _end_df.end(), dof);
+    libmesh_assert (ub != _end_df.end());
+    return (ub - _end_df.begin());
+  }
+
 #ifdef LIBMESH_ENABLE_AMR
   /**
-   * Returns the first old dof index that is after all indices local
+   * \returns The first old dof index that is after all indices local
    * to processor \p proc.
+   *
    * Analogous to the end() member function of STL containers.
    */
   dof_id_type end_old_dof(const processor_id_type proc) const
@@ -621,23 +638,26 @@ public:
   /**
    * Fills the vector \p di with the global degree of freedom indices
    * corresponding to the SCALAR variable vn. If old_dofs=true,
-   * the old SCALAR dof indices are returned. Note that we do not
-   * need to pass in an element since SCALARs are global variables.
+   * the old SCALAR dof indices are returned.
+   *
+   * \note We do not need to pass in an element since SCALARs are
+   * global variables.
    */
   void SCALAR_dof_indices (std::vector<dof_id_type> & di,
                            const unsigned int vn,
                            const bool old_dofs=false) const;
 
   /**
-   * Returns \p true iff all degree of freedom indices in
-   * \p dof_indices are either local indices or in the \p send_list.
-   * Note that this is an O(logN) operation, not O(1); we don't cache
+   * \returns \p true if all degree of freedom indices in \p
+   * dof_indices are either local indices or in the \p send_list.
+   *
+   * \note This is an O(logN) operation, not O(1); we don't cache
    * enough information for O(1) right now.
    */
   bool all_semilocal_indices (const std::vector<dof_id_type> & dof_indices) const;
 
   /**
-   * @returns \p true iff our solutions can be locally evaluated on
+   * \returns \p true iff our solutions can be locally evaluated on
    * \p obj (which should be an Elem or a Node) for variable number \p
    * var_num (for all variables, if \p var_num is invalid_uint)
    */
@@ -668,7 +688,7 @@ public:
    * without constrained degrees of freedom this is the trivial mapping
    * \f$ Ue[i] = Ug[dof_indices[i]] \f$
    *
-   * Note that the user must ensure that the element vector \p Ue is
+   * \note The user must ensure that the element vector \p Ue is
    * properly sized when calling this method.  This is because there
    * is no \p resize() method in the \p DenseVectorBase<> class.
    */
@@ -689,20 +709,20 @@ public:
   //--------------------------------------------------------------------
   // Constraint-specific methods
   /**
-   * @returns the total number of constrained degrees of freedom
+   * \returns The total number of constrained degrees of freedom
    * in the problem.
    */
   dof_id_type n_constrained_dofs() const;
 
   /**
-   * @returns the number of constrained degrees of freedom
+   * \returns The number of constrained degrees of freedom
    * on this processor.
    */
   dof_id_type n_local_constrained_dofs() const;
 
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
   /**
-   * @returns the total number of constrained Nodes
+   * \returns The total number of constrained Nodes
    * in the mesh.
    */
   dof_id_type n_constrained_nodes() const
@@ -788,13 +808,13 @@ public:
   { add_constraint_row(dof_number, constraint_row, 0., forbid_constraint_overwrite); }
 
   /**
-   * Returns an iterator pointing to the first DoF constraint row
+   * \returns An iterator pointing to the first DoF constraint row.
    */
   DofConstraints::const_iterator constraint_rows_begin() const
   { return _dof_constraints.begin(); }
 
   /**
-   * Returns an iterator pointing just past the last DoF constraint row
+   * \returns An iterator pointing just past the last DoF constraint row.
    */
   DofConstraints::const_iterator constraint_rows_end() const
   { return _dof_constraints.end(); }
@@ -813,32 +833,32 @@ public:
 
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
   /**
-   * Returns an iterator pointing to the first Node constraint row
+   * \returns An iterator pointing to the first Node constraint row.
    */
   NodeConstraints::const_iterator node_constraint_rows_begin() const
   { return _node_constraints.begin(); }
 
   /**
-   * Returns an iterator pointing just past the last Node constraint row
+   * \returns An iterator pointing just past the last Node constraint row.
    */
   NodeConstraints::const_iterator node_constraint_rows_end() const
   { return _node_constraints.end(); }
 #endif // LIBMESH_ENABLE_NODE_CONSTRAINTS
 
   /**
-   * @returns true if the degree of freedom dof is constrained,
-   * false otherwise.
+   * \returns \p true if the degree of freedom dof is constrained,
+   * \p false otherwise.
    */
   bool is_constrained_dof (const dof_id_type dof) const;
 
   /**
-   * @returns true if the system has any heterogenous constraints for
-   * adjoint solution \p qoi_num, false otherwise.
+   * \returns \p true if the system has any heterogenous constraints for
+   * adjoint solution \p qoi_num, \p false otherwise.
    */
   bool has_heterogenous_adjoint_constraints (const unsigned int qoi_num) const;
 
   /**
-   * @returns the heterogeneous constraint value if the degree of
+   * \returns The heterogeneous constraint value if the degree of
    * freedom \p dof has a heterogenous constraint for adjoint solution
    * \p qoi_num, zero otherwise.
    */
@@ -846,13 +866,13 @@ public:
                                               const dof_id_type dof) const;
 
   /**
-   * @returns a reference to the set of right-hand-side values in
+   * \returns A reference to the set of right-hand-side values in
    * primal constraint equations
    */
   DofConstraintValueMap & get_primal_constraint_values();
 
   /**
-   * @returns true if the Node is constrained,
+   * \returns \p true if the Node is constrained,
    * false otherwise.
    */
   bool is_constrained_node (const Node * node) const;
@@ -1062,13 +1082,13 @@ public:
   /**
    * Add a periodic boundary pair
    *
-   * @param boundary - primary boundary
-   * @param inverse_boundary - inverse boundary
+   * \param boundary - primary boundary
+   * \param inverse_boundary - inverse boundary
    */
   void add_periodic_boundary (const PeriodicBoundaryBase & boundary, const PeriodicBoundaryBase & inverse_boundary);
 
   /**
-   * @returns true if the boundary given by \p boundaryid is periodic,
+   * \returns \p true if the boundary given by \p boundaryid is periodic,
    * false otherwise
    */
   bool is_periodic_boundary (const boundary_id_type boundaryid) const;
@@ -1157,8 +1177,7 @@ public:
                         std::vector<dof_id_type> & di,
                         const unsigned int vn = libMesh::invalid_uint) const;
   /**
-   * @returns the total number of degrees of freedom on old_dof_objects
-   *
+   * \returns The total number of degrees of freedom on old_dof_objects
    */
   dof_id_type n_old_dofs() const { return _n_old_dfs; }
 
@@ -1210,7 +1229,7 @@ public:
   CouplingMatrix * _dof_coupling;
 
   /**
-   * @returns the number of the system we are responsible for.
+   * \returns The number of the system we are responsible for.
    */
   unsigned int sys_number() const;
 
@@ -1246,17 +1265,17 @@ private:
   void invalidate_dofs(MeshBase & mesh) const;
 
   /**
-   * An adapter function that returns Node pointers by index
+   * \returns The Node pointer with index \p i from the \p mesh.
    */
   DofObject * node_ptr(MeshBase & mesh, dof_id_type i) const;
 
   /**
-   * An adapter function that returns Elem pointers by index
+   * \returns The Elem pointer with index \p i from the \p mesh.
    */
   DofObject * elem_ptr(MeshBase & mesh, dof_id_type i) const;
 
   /**
-   * A member function type like node_ptr or elem_ptr
+   * A member function type like \p node_ptr() or \p elem_ptr().
    */
   typedef DofObject * (DofMap::*dofobject_accessor)
     (MeshBase & mesh, dof_id_type i) const;
@@ -1282,16 +1301,15 @@ private:
                                         MeshBase & mesh);
 
   /**
-   * Distributes the global degrees of freedom, for dofs on
-   * this processor.  In this format all the
-   * degrees of freedom at a node/element are in contiguous
-   * blocks.  Note in particular that the degrees of freedom
-   * for a given variable are not in contiguous blocks, as
-   * in the case of \p distribute_local_dofs_var_major.
-   * Starts at index next_free_dof, and increments it to
-   * the post-final index.
-   * If build_send_list is true, builds the send list.  If
-   * false, clears and reserves the send list
+   * Distributes the global degrees of freedom for dofs on this
+   * processor.  In this format all the degrees of freedom at a
+   * node/element are in contiguous blocks.  Starts at index \p
+   * next_free_dof, and increments it to the post-final index.  If \p
+   * build_send_list is \p true, builds the send list.  If \p false,
+   * clears and reserves the send list.
+   *
+   * \note The degrees of freedom for a given variable are not in
+   * contiguous blocks, as in the case of \p distribute_local_dofs_var_major.
    */
   void distribute_local_dofs_node_major (dof_id_type & next_free_dof,
                                          MeshBase & mesh);
@@ -1394,7 +1412,7 @@ private:
   MeshBase & _mesh;
 
   /**
-   * Additional matrices handled by this object.  These pointers do @e
+   * Additional matrices handled by this object.  These pointers do \e
    * not handle the memory, instead, \p System, who
    * told \p DofMap about them, owns them.
    */

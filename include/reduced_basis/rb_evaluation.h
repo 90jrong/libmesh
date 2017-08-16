@@ -80,16 +80,15 @@ public:
   RBThetaExpansion & get_rb_theta_expansion();
 
   /**
-   * @return true if the theta expansion has been initialized.
+   * \returns \p true if the theta expansion has been initialized.
    */
   bool is_rb_theta_expansion_initialized() const;
 
   /**
-   * Resize and clear the data vectors corresponding to the
-   * value of \p Nmax. Optionally resize the data structures
-   * required for the error bound.
-   * Overload to also clear and resize any extra
-   * data in subclasses.
+   * Resize and clear the data vectors corresponding to the value of
+   * \p Nmax. Optionally resize the data structures required for the
+   * error bound.  Override to also clear and resize any extra data in
+   * subclasses.
    */
   virtual void resize_data_structures(const unsigned int Nmax,
                                       bool resize_error_bound_data=true);
@@ -102,7 +101,7 @@ public:
   /**
    * Perform online solve with the N RB basis functions, for the
    * set of parameters in current_params, where 0 <= N <= RB_size.
-   * @return the (absolute) error bound associated with
+   * \returns The (absolute) error bound associated with
    * the RB approximation.
    * With an empty RB space (N=0), our RB solution is zero, but we
    * still obtain a meaningful error bound associated with the
@@ -111,7 +110,7 @@ public:
   virtual Real rb_solve(unsigned int N);
 
   /**
-   * @return a scaling factor that we can use to provide a consistent
+   * \returns A scaling factor that we can use to provide a consistent
    * scaling of the RB error bound across different parameter values.
    */
   virtual Real get_error_bound_normalization();
@@ -124,7 +123,7 @@ public:
 
   /**
    * Specifies the residual scaling on the denominator to
-   * be used in the a posteriori error bound. Overload
+   * be used in the a posteriori error bound. Override
    * in subclass in order to obtain the desired error bound.
    */
   virtual Real residual_scaling_denom(Real alpha_LB);
@@ -163,7 +162,8 @@ public:
   /**
    * Write out all the data to text files in order to segregate the
    * Offline stage from the Online stage.
-   * Note: This is a legacy method, use RBDataSerialization instead.
+   *
+   * \note This is a legacy method, use RBDataSerialization instead.
    */
   virtual void legacy_write_offline_data_to_files(const std::string & directory_name = "offline_data",
                                                   const bool write_binary_data=true);
@@ -171,7 +171,8 @@ public:
   /**
    * Read in the saved Offline reduced basis data
    * to initialize the system for Online solves.
-   * Note: This is a legacy method, use RBDataSerialization instead.
+   *
+   * \note This is a legacy method, use RBDataSerialization instead.
    */
   virtual void legacy_read_offline_data_from_files(const std::string & directory_name = "offline_data",
                                                    bool read_error_bound_data=true,
@@ -200,10 +201,10 @@ public:
 
   /**
    * Read in all the basis functions from file.
-   * \p sys is used for file IO
-   * \p directory_name specifies which directory to write files to
-   * \p read_binary_basis_functions indicates whether to expect
-   * binary or ASCII data
+   *
+   * \param sys Used for file IO.
+   * \param directory_name Specifies which directory to write files to.
+   * \param read_binary_basis_functions Indicates whether to expect binary or ASCII data.
    */
   virtual void read_in_basis_functions(System & sys,
                                        const std::string & directory_name = "offline_data",
@@ -231,11 +232,6 @@ public:
                                            const std::vector<std::string> & multiple_directory_names,
                                            const std::vector<std::string> & multiple_data_names,
                                            const bool read_binary_vectors);
-
-  /**
-   * Version string that we need to use for writing/reading basis functions.
-   */
-  static std::string get_io_version_string();
 
   //----------- PUBLIC DATA MEMBERS -----------//
 
@@ -343,7 +339,8 @@ private:
   /**
    * A pointer to to the object that stores the theta expansion.
    * This is not a UniquePtr since we may want to share it.
-   * (Note: a shared_ptr would be a good option here.)
+   *
+   * \note A \p shared_ptr would be a good option here.
    */
   RBThetaExpansion * rb_theta_expansion;
 

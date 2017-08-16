@@ -52,7 +52,7 @@ public:
    * The restrictions of get_inline_value() and set_inline_value()
    * in ParsedFunction apply to this interface as well.
    *
-   * Note that *only* the function referred to here is changed by
+   * \note Only the function referred to here is changed by
    * set() - any clones of the function which precede the set()
    * remain at their previous values.
    */
@@ -82,7 +82,7 @@ public:
   }
 
   /**
-   * Returns a new copy of the accessor.
+   * \returns A new copy of the accessor.
    */
   virtual UniquePtr<ParameterAccessor<T> > clone() const {
     return UniquePtr<ParameterAccessor<T> >

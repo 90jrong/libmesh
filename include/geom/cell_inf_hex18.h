@@ -80,66 +80,68 @@ public:
   {}
 
   /**
-   * @returns 18.  The \p InfHex18 has 18 nodes.
+   * \returns 18.  The \p InfHex18 has 18 nodes.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 18; }
 
   /**
-   * @returns \p INFHEX18.
+   * \returns \p INFHEX18.
    */
   virtual ElemType type () const libmesh_override { return INFHEX18; }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 4; }
 
   /**
-   * @returns SECOND.
+   * \returns SECOND.
    */
   virtual Order default_order() const libmesh_override { return SECOND; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge.
    */
   virtual bool is_node_on_edge(const unsigned int n,
                                const unsigned int e) const libmesh_override;
 
   /**
-   * Returns a \p QUAD9 built coincident with face 0, an \p INFQUAD6
-   * built coincident with faces 1 to 4. Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns A \p QUAD9 built coincident with face 0, or an \p INFQUAD6
+   * built coincident with faces 1 to 4.
+   *
+   * \note The \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
                                           bool proxy) libmesh_override;
 
   /**
-   * Returns a \p EDGE3 built coincident with edges 0-3, an \p INFEDGE2
-   * built coincident with edges 4 to 11. Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns An \p EDGE3 built coincident with edges 0-3, or an \p INFEDGE2
+   * built coincident with edges 4 to 11.
+   *
+   * \note that the \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
@@ -149,7 +151,7 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    *
@@ -160,7 +162,7 @@ public:
   virtual dof_id_type key (const unsigned int s) const libmesh_override;
 
   /**
-   * Does some range checking and then returns InfHex18::side_nodes_map[side][side_node].
+   * \returns \p InfHex18::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
@@ -173,20 +175,21 @@ public:
   { return 12; }
 
   /**
-   * @returns 2 for all edge nodes, 4 for face nodes.
+   * \returns 2 for all edge nodes, 4 for face nodes.
    */
   virtual unsigned int n_second_order_adjacent_vertices (const unsigned int) const libmesh_override;
 
   /**
-   * @returns the element-local number of the  \f$ v^{th} \f$ vertex
+   * \returns The element-local number of the \f$ v^{th} \f$ vertex
    * that defines the \f$ n^{th} \f$ second-order node.
-   * Note that \p n is counted as depicted above, \f$ 8 \le n < 18 \f$.
+   *
+   * \note \p n is counted as depicted above, \f$ 8 \le n < 18 \f$.
    */
   virtual unsigned short int second_order_adjacent_vertex (const unsigned int n,
                                                            const unsigned int v) const libmesh_override;
 
   /**
-   * @returns the child number \p c and element-local index \p v of the
+   * \returns The child number \p c and element-local index \p v of the
    * \f$ n^{th} \f$ second-order node on the parent element.  See
    * elem.h for further details.
    */

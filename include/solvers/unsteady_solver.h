@@ -117,14 +117,16 @@ public:
   virtual Real error_order () const = 0;
 
   /**
-   * Returns the maximum order of time derivatives for which the
-   * UnsteadySolver subclass is capable of handling. E.g. EulerSolver
-   * will have time_order = 1 and NewmarkSolver will have time_order = 2
+   * \returns The maximum order of time derivatives for which the
+   * UnsteadySolver subclass is capable of handling.
+   *
+   * For example, EulerSolver will have \p time_order() = 1 and
+   * NewmarkSolver will have \p time_order() = 2.
    */
   virtual unsigned int time_order () const = 0;
 
   /**
-   * @returns the old nonlinear solution for the specified global
+   * \returns The old nonlinear solution for the specified global
    * DOF.
    */
   Number old_nonlinear_solution (const dof_id_type global_dof_number) const;
@@ -137,7 +139,7 @@ public:
   /**
    * Computes the size of ||u^{n+1} - u^{n}|| in some norm.
    *
-   * Note that, while you can always call this function, its
+   * \note While you can always call this function, its
    * result may or may not be very meaningful.  For example, if
    * you call this function right after calling advance_timestep()
    * then you'll get a result of zero since old_nonlinear_solution

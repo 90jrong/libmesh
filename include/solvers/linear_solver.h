@@ -48,9 +48,8 @@ class System;
 class SolverConfiguration;
 
 /**
- * This class provides a uniform interface for linear solvers.  This base
- * class is overloaded to provide linear solvers from different packages
- * like PETSC or LASPACK.
+ * This base class can be inherited from to provide interfaces to
+ * linear solvers from different packages like PETSc and LASPACK.
  *
  * \author Benjamin Kirk
  * \date 2003
@@ -80,7 +79,7 @@ public:
                                            const SolverPackage solver_package = libMesh::default_solver_package());
 
   /**
-   * @returns true if the data structures are
+   * \returns \p true if the data structures are
    * initialized, false otherwise.
    */
   bool initialized () const { return _is_initialized; }
@@ -107,7 +106,7 @@ public:
   virtual void init_names (const System &) {}
 
   /**
-   * Returns the type of solver to use.
+   * \returns The type of solver to use.
    */
   SolverType solver_type () const { return _solver_type; }
 
@@ -118,7 +117,7 @@ public:
   { _solver_type = st; }
 
   /**
-   * Returns the type of preconditioner to use.
+   * \returns The type of preconditioner to use.
    */
   PreconditionerType preconditioner_type () const;
 
@@ -139,7 +138,7 @@ public:
   virtual void reuse_preconditioner(bool );
 
   /**
-   * @return same_preconditioner, which indicates if we reuse the
+   * \returns \p same_preconditioner, which indicates if we reuse the
    * same preconditioner for subsequent solves.
    */
   bool get_same_preconditioner();
@@ -155,10 +154,11 @@ public:
                                   const SubsetSolveMode subset_solve_mode=SUBSET_ZERO);
 
   /**
-   * This function calls the solver
-   * "_solver_type" preconditioned with the
-   * "_preconditioner_type" preconditioner.  Note that this method
-   * will compute the preconditioner from the system matrix.
+   * This function calls the solver \p _solver_type preconditioned
+   * with the \p _preconditioner_type preconditioner.
+   *
+   * \note This method will compute the preconditioner from the system
+   * matrix.
    */
   virtual std::pair<unsigned int, Real> solve (SparseMatrix<T> &,  // System Matrix
                                                NumericVector<T> &, // Solution vector
@@ -167,9 +167,11 @@ public:
                                                const unsigned int) = 0; // N. Iterations
 
   /**
-   * Function to solve the adjoint system. Note that this method
-   * will compute the preconditioner from the system matrix. This is not a pure virtual
-   * function and is defined linear_solver.C
+   * Function to solve the adjoint system.
+   *
+   * \note This method will compute the preconditioner from the system
+   * matrix. This is not a pure virtual function and is defined
+   * linear_solver.C
    */
   virtual std::pair<unsigned int, Real> adjoint_solve (SparseMatrix<T> &,  // System Matrix
                                                        NumericVector<T> &, // Solution vector
@@ -246,7 +248,7 @@ public:
   virtual void print_converged_reason() const;
 
   /**
-   * Returns the solver's convergence flag
+   * \returns The solver's convergence flag
    */
   virtual LinearConvergenceReason get_converged_reason() const = 0;
 

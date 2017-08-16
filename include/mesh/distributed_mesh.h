@@ -61,9 +61,12 @@ public:
 
 #ifndef LIBMESH_DISABLE_COMMWORLD
   /**
-   * Deprecated constructor.  Takes \p dim, the dimension of the mesh.
-   * The mesh dimension can be changed (and may automatically be
-   * changed by mesh generation/loading) later.
+   * Constructor which takes \p dim, the dimension of the mesh.  The
+   * mesh dimension can be changed (and may automatically be changed
+   * by mesh generation/loading) later.
+   *
+   * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
+   * constructor that takes a Parallel::Communicator instead.
    */
   explicit
   DistributedMesh (unsigned char dim=1);
@@ -112,21 +115,29 @@ public:
   virtual void update_post_partitioning () libmesh_override;
 
   /**
-   * @returns \p true if all elements and nodes of the mesh
+   * \returns \p true if all elements and nodes of the mesh
    * exist on the current processor, \p false otherwise
    */
   virtual bool is_serial () const libmesh_override
   { return _is_serial; }
 
   /**
+   * \returns \p true if all elements and nodes of the mesh
+   * exist on the processor 0, \p false otherwise
+   */
+  virtual bool is_serial_on_zero () const libmesh_override
+  { return _is_serial || _is_serial_on_proc_0; }
+
+  /**
    * Asserts that not all elements and nodes of the mesh necessarily
    * exist on the current processor.
    */
   virtual void set_distributed () libmesh_override
-  { _is_serial = false; }
+  { _is_serial = false;
+    _is_serial_on_proc_0 = false; }
 
   /**
-   * @returns \p true if new elements and nodes can and should be
+   * \returns \p true if new elements and nodes can and should be
    * created in synchronization on all processors, \p false otherwise
    */
   virtual bool is_replicated () const libmesh_override
@@ -161,9 +172,9 @@ public:
   void libmesh_assert_valid_parallel_flags() const;
 
   /**
-   * Renumber a parallel objects container
-   * Returns the smallest globally unused id for that
-   * container.
+   * Renumber a parallel objects container.
+   *
+   * \returns The smallest globally unused id for that container.
    */
   template <typename T>
   dof_id_type renumber_dof_objects (mapvector<T *,dof_id_type> &);

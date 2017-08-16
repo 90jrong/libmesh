@@ -12,9 +12,12 @@ from matplotlib.dates import date2num, num2date
 # are in basically the same format as those pages, which is to say,
 # not particularly useful for plotting.
 
-# Approximate subscriber counts:
+# Approximate subscriber counts (as of July 2017, subscriber emails and counts are no longer available!):
 # https://lists.sourceforge.net/lists/admindb/libmesh-users
 # https://lists.sourceforge.net/lists/admindb/libmesh-devel
+
+# You can now see the subscriber counts for both lists in another place:
+# https://sourceforge.net/p/libmesh/admin/mailman/
 
 # Month, year, libmesh-devel subscriber count, libmesh-users subscriber count
 membership_data = [
@@ -88,6 +91,9 @@ membership_data = [
     'Mar 2017', 117, 250,
     'Apr 2017', 118, 249,
     'May 2017', 118, 249,
+    'Jun 2017', 118, 245,
+    'Jul 2017', 109, 226,
+    'Aug 2017', 109, 226,
 ]
 
 # Strip out the dates from membership_data
@@ -159,7 +165,7 @@ devel_data = [
     '2014',   47,  62,  27,   8,  12,   2,  22,  22,   0,  17,  20,  12,
     '2015',   25,   2,  16,  13,  21,   5,   1,   8,   9,  30,   8,   0,
     '2016',   16,  31,  43,  18,  21,  11,  17,  26,   4,  16,   5,   6,
-    '2017',    1,   2,   5,   4,
+    '2017',    1,   2,   5,   4,   1,  11,   5,
 ]
 
 # libmesh-users starts in Sept 2003!
@@ -180,7 +186,7 @@ users_data = [
     '2014',   38,  45,  26,  41, 125,  70,  61,  66,  60, 110,  27,  30,
     '2015',   43,  67,  71,  92,  39,  15,  46,  63,  84,  82,  69,  45,
     '2016',   92,  91, 148,  43,  58, 117,  92, 140,  49,  33,  85,  40,
-    '2017',   41,  36,  49,  41,
+    '2017',   41,  36,  49,  41,  73,  51,  12,
 ]
 
 # Make plot of monthly data

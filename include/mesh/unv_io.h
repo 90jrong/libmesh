@@ -56,7 +56,7 @@ class UNVIO : public MeshInput<MeshBase>,
 public:
 
   /**
-   * Constructor.  Takes a writeable reference to a mesh object.
+   * Constructor.  Takes a writable reference to a mesh object.
    * This is the constructor required to read a mesh.
    */
   UNVIO (MeshBase & mesh);
@@ -94,10 +94,12 @@ public:
   void read_dataset(std::string file_name);
 
   /**
-   * @returns a pointer the values associated with the node \p node,
-   * as read in by the read_dataset() method.  If no values exist for
-   * the node in question, a libmesh_nullptr is returned instead.  It
-   * is up to the user to check the return value before using it.
+   * \returns A pointer the values associated with the node \p node,
+   * as read in by the read_dataset() method.
+   *
+   * If no values exist for the node in question, a libmesh_nullptr is
+   * returned instead.  It is up to the user to check the return value
+   * before using it.
    */
   const std::vector<Number> * get_data (Node * node) const;
 
@@ -156,17 +158,18 @@ private:
   void elements_out (std::ostream & out_file);
 
   /**
-   * Returns the maximum geometric element dimension encountered while
+   * \returns The maximum geometric element dimension encountered while
    * reading the Mesh.  Only valid after the elements have been read
    * in and the elems_of_dimension array has been populated.
    */
   unsigned char max_elem_dimension_seen ();
 
   /**
-   * Replaces "1.1111D+00" with "1.1111e+00" if necessary.  Returns
-   * true if the replacement occurs, false otherwise.  This function
-   * only needs to be called once per stream, one can assume that if
-   * one number needs rewriting, they all do.
+   * Replaces "1.1111D+00" with "1.1111e+00" if necessary. This
+   * function only needs to be called once per stream, one can assume
+   * that if one number needs rewriting, they all do.
+   *
+   * \returns \p true if the replacement occurs, false otherwise.
    */
   bool need_D_to_e (std::string & number);
 

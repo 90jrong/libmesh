@@ -61,44 +61,44 @@ public:
     InfQuad(InfQuad4::n_nodes(), p, _nodelinks_data) {}
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 4; }
 
   /**
-   * @returns \p INFQUAD4.
+   * \returns \p INFQUAD4.
    */
   virtual ElemType type () const libmesh_override { return INFQUAD4; }
 
   /**
-   * @returns 1.
+   * \returns 1.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 1; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge (== is_node_on_side in 2D).
    */
   virtual bool is_node_on_edge(const unsigned int n,
@@ -106,12 +106,12 @@ public:
   { return this->is_node_on_side(n,e); }
 
   /**
-   * @returns \p FIRST.
+   * \returns \p FIRST.
    */
   virtual Order default_order() const libmesh_override { return FIRST; }
 
   /**
-   * Creates and returns an \p Edge2 for the base side, and an \p InfEdge2 for
+   * \returns An \p Edge2 for the base side, or an \p InfEdge2 for
    * the sides 1, 2.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
@@ -122,7 +122,7 @@ public:
                             std::vector<dof_id_type> & conn) const libmesh_override;
 
   /**
-   * @returns \p true when this element contains the point
+   * \returns \p true when this element contains the point
    * \p p.  Customized for this \p InfQuad4, since knowledge
    * about the envelope can help avoiding slightly more
    * expensive computations.

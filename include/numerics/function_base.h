@@ -35,23 +35,24 @@ namespace libMesh
 class Point;
 
 /**
- * This is the base class for functor-like classes.  These
- * entities are functions (in the mathematical sense) of time
- * and space, \f$ f(\mathbf{x},t) =  \mbox{\texttt{v}} \f$,
- * where \p v may be either a \p Number or a \p DenseVector<Number>.
- * Children of this base class implement different styles of
- * data retrieval for these functions.  Use the constructors
- * of the derived classes for creating new objects. The
- * required input of each derived class thwarts the effective
- * use of the commonly used \p build() member.  But afterwards
- * the virtual members allow the convenient and libMesh-common
- * usage through a \p FunctionBase *. Note that for functor objects
- * for vector-valued variables, it is assumed each component is indexed
- * contiguously; i.e. if u_var is index 3, then libMesh expects
- * the x-component of u_var is index 3, the y-component is index 4,
- * and the z-component is index 5. Note that for 2-D elements in 3
- * spatial dimensions, libMesh is expecting 2 components (i.e.
- * mesh_dimension() number of components).
+ * This is the base class for functor-like classes.  These entities
+ * are functions (in the mathematical sense) of time and space, \f$
+ * f(\mathbf{x},t) = \mbox{\texttt{v}} \f$, where \p v may be either a
+ * \p Number or a \p DenseVector<Number>.  Children of this base class
+ * implement different styles of data retrieval for these functions.
+ * Use the constructors of the derived classes for creating new
+ * objects. The required input of each derived class thwarts the
+ * effective use of the commonly used \p build() member.  But
+ * afterwards the virtual members allow the convenient and
+ * libMesh-common usage through a \p FunctionBase *.
+ *
+ * \note For functor objects for vector-valued variables, it is
+ * assumed each component is indexed contiguously; i.e. if u_var is
+ * index 3, then libMesh expects the x-component of u_var is index 3,
+ * the y-component is index 4, and the z-component is index 5.
+ *
+ * \note For 2-D elements in 3 spatial dimensions, libMesh is expecting
+ * 2 components (i.e. mesh_dimension() number of components).
  *
  * \author Daniel Dreyer
  * \date 2003
@@ -85,54 +86,49 @@ public:
   virtual void clear () {}
 
   /**
-   * Returns a new copy of the function.  The new copy should be as
-   * ``deep'' as necessary to allow independent destruction and
-   * simultaneous evaluations of the copies in different threads.
+   * \returns A new copy of the function.
+   *
+   * The new copy should be as "deep" as necessary to allow
+   * independent destruction and simultaneous evaluations of the
+   * copies in different threads.
    */
   virtual UniquePtr<FunctionBase<Output> > clone () const = 0;
 
-
-  // ------------------------------------------------------
-  // misc
   /**
-   * @returns the scalar value at coordinate
-   * \p p and time \p time, which defaults to zero.
-   * Purely virtual, so you have to overload it.
-   * Note that this cannot be a const method, check \p MeshFunction.
+   * \returns The scalar function value at coordinate \p p and time \p
+   * time, which defaults to zero.
+   *
+   * Pure virtual, so you have to override it.
    */
   virtual Output operator() (const Point & p,
                              const Real time = 0.) = 0;
 
   /**
-   * Return function for vectors.
-   * Returns in \p output the values of the data at the
-   * coordinate \p p.
+   * Evaluation function for time-independent vector-valued functions.
+   * Sets output values in the passed-in \p output DenseVector.
    */
   void operator() (const Point & p,
                    DenseVector<Output> & output);
 
   /**
-   * Return function for vectors.
-   * Returns in \p output the values of the data at the
-   * coordinate \p p and for time \p time.
-   * Purely virtual, so you have to overload it.
-   * Note that this cannot be a const method, check \p MeshFunction.
-   * Can optionally provide subdomain_ids which will restrict
-   * the function to operate on elements with subdomain id contained
-   * in the set. This is useful in cases where there are multiple
-   * dimensioned elements, for example.
+   * Evaluation function for time-dependent vector-valued functions.
+   * Sets output values in the passed-in \p output DenseVector.
+   *
+   * Pure virtual, so you have to override it.
    */
   virtual void operator() (const Point & p,
                            const Real time,
                            DenseVector<Output> & output) = 0;
 
   /**
-   * @returns the vector component \p i at coordinate
-   * \p p and time \p time.
-   * Subclasses aren't required to overload this, since the default
+   * \returns The vector component \p i at coordinate \p p and time \p
+   * time.
+   *
+   * \note Subclasses aren't required to override this, since the default
    * implementation is based on the full vector evaluation, which is
    * often correct.
-   * Subclasses are recommended to overload this, since the default
+   *
+   * \note Subclasses are recommended to override this, since the default
    * implementation is based on a vector evaluation, which is usually
    * unnecessarily inefficient.
    */
@@ -142,7 +138,7 @@ public:
 
 
   /**
-   * @returns \p true when this object is properly initialized
+   * \returns \p true when this object is properly initialized
    * and ready for use, \p false otherwise.
    */
   bool initialized () const;
@@ -156,7 +152,7 @@ public:
   void set_is_time_dependent( bool is_time_dependent);
 
   /**
-   * @returns \p true when the function this object represents
+   * \returns \p true when the function this object represents
    * is actually time-dependent, \p false otherwise.
    */
   bool is_time_dependent() const;

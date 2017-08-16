@@ -56,7 +56,7 @@ class ExodusII_IO : public MeshInput<MeshBase>,
 public:
 
   /**
-   * Constructor.  Takes a writeable reference to a mesh object.
+   * Constructor.  Takes a writable reference to a mesh object.
    * This is the constructor required to read a mesh.
    */
   explicit
@@ -88,21 +88,25 @@ public:
   void verbose (bool set_verbosity);
 
   /**
-   * Returns an array containing the timesteps in the file
+   * \returns An array containing the timesteps in the file.
    */
   const std::vector<Real> & get_time_steps();
 
   /**
-   * Returns the number of timesteps currently stored in the Exodus
-   * file.  Knowing the number of time steps currently stored in the
-   * file is sometimes necessary when appending, so we can know where
-   * to start writing new data.  Throws an error if the file is not
-   * currently open for reading or writing.
+   * \returns The number of timesteps currently stored in the Exodus
+   * file.
+   *
+   * Knowing the number of time steps currently stored in the file is
+   * sometimes necessary when appending, so we can know where to start
+   * writing new data.  Throws an error if the file is not currently
+   * open for reading or writing.
    */
   int get_num_time_steps();
 
   /**
-   * Backward compatibility version of function that takes a single variable name
+   * Backward compatibility version of function that takes a single variable name.
+   *
+   * \deprecated Use the version of copy_nodal_solution() that takes two names.
    */
   void copy_nodal_solution(System & system,
                            std::string var_name,
@@ -171,10 +175,10 @@ public:
 
   /**
    * Writes out the solution at a specific timestep.
-   * @param fname Name of the file to write to
-   * @param es EquationSystems object which contains the solution vector.
-   * @param timestep The timestep to write out, should be _1_ indexed.
-   * @param time The current simulation time.
+   * \param fname Name of the file to write to
+   * \param es EquationSystems object which contains the solution vector.
+   * \param timestep The timestep to write out, should be _1_ indexed.
+   * \param time The current simulation time.
    */
   void write_timestep (const std::string & fname,
                        const EquationSystems & es,
@@ -217,8 +221,18 @@ public:
   void write_as_dimension(unsigned dim);
 
   /**
-   * Allows you to set a vector that is added to the coordinates of all
-   * of the nodes.  Effectively, this "moves" the mesh to a particular position
+   * Allows you to set a vector that is added to the coordinates of
+   * all of the nodes. Effectively, this "moves" the mesh to a
+   * particular position.
+   *
+   * \deprecated As requested by Roy in libmesh PR #90, this function
+   * was "deprecated on arrival". There is not really a suitable
+   * replacement for it in the works, however. The same effect *could*
+   * be achieved by calling MeshTools::Modification::translate()
+   * twice, but that approach seems inefficient in the case of very
+   * large problems with millions of nodes. That said, this should
+   * probably become a base class API so that it works for all the
+   * different IO subclasses.
    */
   void set_coordinate_offset(Point p);
 

@@ -64,11 +64,28 @@ AC_C_RESTRICT
 # difficult.  If you know that you are on such a system, configure with
 # --disable-getpwuid.
 # --------------------------------------------------------------
+enablegetpwuid_default=yes
+
+# We can't use getpwuid if pwd.h is not found.
+AC_CHECK_HEADERS(pwd.h, [have_pwd_h=yes], [have_pwd_h=no])
+if test "$have_pwd_h" = no ; then
+  enablegetpwuid_default=no
+fi
+
+# If the user configured with --enable-all-static, certain functions
+# like getpwuid cannot be used. You may see warnings like the
+# following from the linker:
+# warning: Using 'getpwuid' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
+if test "$enableallstatic" = yes ; then
+  enablegetpwuid_default=no
+fi
+
+# Let the user override the default (at their own risk).
 AC_ARG_ENABLE(getpwuid,
               AS_HELP_STRING([--disable-getpwuid],
                              [do not make calls to getpwuid]),
               enablegetpwuid=$enableval,
-              enablegetpwuid=yes)
+              enablegetpwuid=$enablegetpwuid_default)
 
 if test "$enablegetpwuid" != no ; then
   AC_DEFINE(HAVE_GETPWUID, 1,
@@ -158,6 +175,27 @@ AC_CHECK_HEADERS(xmmintrin.h)
 
 # See if we can actually compile code using the fe{enable,disable}except functions
 AC_HAVE_FEEXCEPT
+
+# Check if we have new-style signal handlers
+AC_CHECK_DECLS([sigaction], [], [], [#include <signal.h>])
+
+# Check for mkdir
+AC_MSG_CHECKING([for mkdir with two arguments])
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([
+        #include <sys/stat.h>
+        #include <sys/types.h> ],[
+        mkdir("test-dir", 0); ])],
+    [AC_DEFINE(HAVE_MKDIR, [], "The make directory command")
+     AC_MSG_RESULT(yes)],
+    [AC_MSG_RESULT(no)])
+AC_CHECK_HEADERS(direct.h)
+AC_CHECK_DECLS([_mkdir], [], [], [
+    #include <direct.h>
+])
+
+# Check for uname header.
+AC_CHECK_HEADERS(sys/utsname.h)
 
 AC_ARG_ENABLE(unordered-containers,
               AS_HELP_STRING([--disable-unordered-containers],

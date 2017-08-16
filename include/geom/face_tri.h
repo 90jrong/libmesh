@@ -63,7 +63,7 @@ public:
   }
 
   /**
-   * @returns the \p Point associated with local \p Node \p i,
+   * \returns The \p Point associated with local \p Node \p i,
    * in master element rather than physical coordinates.
    */
   virtual Point master_point (const unsigned int i) const libmesh_override
@@ -75,33 +75,33 @@ public:
   }
 
   /**
-   * @returns 3.  All tri-derivatives are guaranteed to have at
+   * \returns 3.  All tri-derivatives are guaranteed to have at
    * least 3 nodes.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 3; }
 
   /**
-   * @returns 3.
+   * \returns 3.
    */
   virtual unsigned int n_sides() const libmesh_override { return 3; }
 
   /**
-   * @returns 3.  All triangles have 3 vertices.
+   * \returns 3.  All triangles have 3 vertices.
    */
   virtual unsigned int n_vertices() const libmesh_override { return 3; }
 
   /**
-   * @returns 3.  All triangles have 3 edges.
+   * \returns 3.  All triangles have 3 edges.
    */
   virtual unsigned int n_edges() const libmesh_override { return 3; }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_children() const libmesh_override { return 4; }
 
   /**
-   * @returns true if the specified child is on the
+   * \returns \p true if the specified child is on the
    * specified side.
    */
   virtual bool is_child_on_side(const unsigned int c,
@@ -113,39 +113,39 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    */
   virtual dof_id_type key (const unsigned int s) const libmesh_override;
 
   /**
-   * @returns an id associated with the global node ids of this
+   * \returns An id associated with the global node ids of this
    * element.  The id is not necessarily unique, but should be
    * close.
    */
   virtual dof_id_type key () const libmesh_override;
 
   /**
-   * Does some range checking and then returns Tri3::side_nodes_map[side][side_node].
+   * \returns \p Tri3::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
   /**
-   * @returns a primitive (2-noded) edge for edge i.
+   * \returns A primitive (2-noded) edge for edge i.
    */
   virtual UniquePtr<Elem> side_ptr (const unsigned int i) libmesh_override;
 
   /**
-   * Based on the quality metric q specified by the user,
-   * returns a quantitative assessment of element quality.
+   * \returns A quantitative assessment of element quality based on
+   * the quality metric \p q specified by the user.
    */
   virtual Real quality (const ElemQuality q) const libmesh_override;
 
   /**
-   * Returns the suggested quality bounds for the hex based on quality
-   * measure q.  These are the values suggested by the CUBIT User's
+   * \returns The suggested quality bounds for the hex based on quality
+   * measure \p q.  These are the values suggested by the CUBIT User's
    * Manual.
    */
   virtual std::pair<Real, Real> qual_bounds (const ElemQuality q) const libmesh_override;

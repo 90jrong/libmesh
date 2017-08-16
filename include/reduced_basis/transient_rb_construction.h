@@ -95,7 +95,7 @@ public:
   virtual Real truth_solve(int write_interval) libmesh_override;
 
   /**
-   * Train the reduced basis. Overloaded so that we can set the
+   * Train the reduced basis. Overridden so that we can set the
    * flag compute_truth_projection_error to true so that the calls
    * to truth_solve during the basis construction will compute the
    * projection error. Other calls to truth_solve generally do not
@@ -124,7 +124,7 @@ public:
 
   /**
    * Assemble and store all the affine operators.
-   * Overload to assemble the mass matrix operators.
+   * Override to assemble the mass matrix operators.
    */
   virtual void assemble_all_affine_operators() libmesh_override;
 
@@ -166,7 +166,7 @@ public:
   void set_L2_assembly(ElemAssembly & L2_assembly_in);
 
   /**
-   * @return a reference to the L2 assembly object
+   * \returns A reference to the L2 assembly object
    */
   ElemAssembly & get_L2_assembly();
 
@@ -200,8 +200,10 @@ public:
   /**
    * Get/set max_truth_solves, the maximum number of RB
    * truth solves we are willing to compute in the transient
-   * case. Note in the steady state case max_truth_solves is
-   * not needed since equivalent to Nmax.
+   * case.
+   *
+   * \note In the steady state case, \p max_truth_solves is not needed
+   * since it is equivalent to \p Nmax.
    */
   int get_max_truth_solves() const                   { return max_truth_solves; }
   void set_max_truth_solves(int max_truth_solves_in) { this->max_truth_solves = max_truth_solves_in; }

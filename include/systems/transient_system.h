@@ -38,9 +38,10 @@ class EigenSystem;
 /**
  * This class provides a specific system class.  It aims
  * at transient systems, offering nothing more than just
- * the essentials needed to solve a system.  Note
- * that still additional vectors/matrices may be added,
- * as offered in the parent classes.
+ * the essentials needed to solve a system.
+ *
+ * \note Additional vectors/matrices can be added via parent class
+ * interfaces.
  *
  * \author Benjamin S. Kirk
  * \date 2004
@@ -70,7 +71,7 @@ public:
   typedef TransientSystem<Base> sys_type;
 
   /**
-   * @returns a clever pointer to the system.
+   * \returns A reference to *this.
    */
   sys_type & system () { return *this; }
 
@@ -87,7 +88,7 @@ public:
   virtual void reinit () libmesh_override;
 
   /**
-   * @returns \p "Transient" prepended to T::system_type().
+   * \returns \p "Transient" prepended to T::system_type().
    * Helps in identifying the system type in an equation
    * system file.
    */
@@ -98,13 +99,13 @@ public:
   // access to the solution data fields
 
   /**
-   * @returns the old solution (at the previous timestep)
+   * \returns The old solution (at the previous timestep)
    * for the specified global DOF.
    */
   Number old_solution (const dof_id_type global_dof_number) const;
 
   /**
-   * @returns the older solution (two timesteps ago)
+   * \returns The older solution (two timesteps ago)
    * for the specified global DOF.
    */
   Number older_solution (const dof_id_type global_dof_number) const;
@@ -129,17 +130,18 @@ public:
 protected:
 
   /**
-   * Initializes the member data fields associated with
-   * the system, so that, e.g., \p assemble() may be used.
-   */
-  virtual void init_data () libmesh_override;
-
-  /**
    * Re-update the local values when the mesh has changed.
    * This method takes the data updated by \p update() and
    * makes it up-to-date on the current mesh.
    */
   virtual void re_update () libmesh_override;
+
+private:
+
+  /**
+   * Helper function for (re-)adding old and older solution vectors.
+   */
+  virtual void add_old_vectors ();
 };
 
 

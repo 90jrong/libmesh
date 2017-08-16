@@ -55,7 +55,7 @@ class MeshBase;
  * for a \p MeshBase.  It may have multiple systems, which may
  * be active or inactive, so that at different solution
  * stages only a sub-set may be solved for.  Also, through
- * the templated access, @e different types of systems
+ * the templated access, different types of systems
  * may be handled.  Also other features, like flags,
  * parameters, I/O etc are provided.
  *
@@ -99,7 +99,7 @@ public:
   virtual ~EquationSystems ();
 
   /**
-   * Returns tha data structure to a pristine state.
+   * Restores the data structure to a pristine state.
    */
   virtual void clear ();
 
@@ -119,18 +119,18 @@ public:
   void update ();
 
   /**
-   * @returns the number of equation systems.
+   * \returns The number of equation systems.
    */
   unsigned int n_systems() const;
 
   /**
-   * @returns true if the system named \p name exists within
+   * \returns \p true if the system named \p name exists within
    * this EquationSystems object.
    */
   bool has_system (const std::string & name) const;
 
   /**
-   * @returns a constant reference to the system named \p name.
+   * \returns A constant reference to the system named \p name.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> ("sys");
    * is an example of how the method might be used
@@ -139,7 +139,7 @@ public:
   const T_sys & get_system (const std::string & name) const;
 
   /**
-   * @returns a writeable referene to the system named \p name.
+   * \returns A writable referene to the system named \p name.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> ("sys");
    * is an example of how the method might be used
@@ -148,7 +148,7 @@ public:
   T_sys & get_system (const std::string & name);
 
   /**
-   * @returns a constant reference to system number \p num.
+   * \returns A constant reference to system number \p num.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> (0);
    * is an example of how the method might be used
@@ -157,7 +157,7 @@ public:
   const T_sys & get_system (const unsigned int num) const;
 
   /**
-   * @returns a writeable referene to the system number \p num.
+   * \returns A writable referene to the system number \p num.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> (0);
    * is an example of how the method might be used
@@ -166,22 +166,22 @@ public:
   T_sys & get_system (const unsigned int num);
 
   /**
-   * @returns a constant reference to the system named \p name.
+   * \returns A constant reference to the system named \p name.
    */
   const System & get_system (const std::string & name) const;
 
   /**
-   * @returns a writeable referene to the system named \p name.
+   * \returns A writable referene to the system named \p name.
    */
   System & get_system (const std::string & name);
 
   /**
-   * @returns a constant reference to system number \p num.
+   * \returns A constant reference to system number \p num.
    */
   const System & get_system (const unsigned int num) const;
 
   /**
-   * @returns a writeable referene to the system number \p num.
+   * \returns A writable referene to the system number \p num.
    */
   System & get_system (const unsigned int num);
 
@@ -200,25 +200,28 @@ public:
 
   /**
    * Remove the system named \p name from the systems array.
-   * This function is now deprecated - write the
-   * libmesh-devel mailing list if you need it reimplemented.
+   *
+   * \deprecated This function may not work as intended and has not
+   * been actively tested over the years. If you need the ability to
+   * delete a System from an EquationSystems object, it could probably
+   * be added.
    */
   void delete_system (const std::string & name);
 
   /**
-   * @returns the total number of variables in all
+   * \returns The total number of variables in all
    * systems.
    */
   unsigned int n_vars () const;
 
   /**
-   * @returns the total number of degrees of freedom
+   * \returns The total number of degrees of freedom
    * in all systems.
    */
   std::size_t n_dofs () const;
 
   /**
-   * Returns the number of active degrees of freedom
+   * \returns The number of active degrees of freedom
    * for the EquationSystems object.
    */
   std::size_t n_active_dofs() const;
@@ -266,9 +269,11 @@ public:
 
   /**
    * Fill the input vector \p soln with the solution values for the
-   * system named \p name.  Note that the input
-   * vector \p soln will only be assembled on processor 0, so this
-   * method is only applicable to outputting plot files from processor 0.
+   * system named \p name.
+   *
+   * \note The input vector \p soln will only be assembled on
+   * processor 0, so this method is only applicable to outputting plot
+   * files from processor 0.
    */
   void build_solution_vector (std::vector<Number> & soln,
                               const std::string & system_name,
@@ -286,10 +291,11 @@ public:
 
   /**
    * A version of build_solution_vector which is appropriate for
-   * "parallel" output formats like Nemesis.  Returns a UniquePtr to a
-   * node-major NumericVector of total length n_nodes*n_vars that
-   * various I/O classes can then use to get the local values they
-   * need to write on each processor.
+   * "parallel" output formats like Nemesis.
+   *
+   * \returns A UniquePtr to a node-major NumericVector of total
+   * length n_nodes*n_vars that various I/O classes can then use to
+   * get the local values they need to write on each processor.
    */
   UniquePtr<NumericVector<Number> >
   build_parallel_solution_vector(const std::set<std::string> * system_names=libmesh_nullptr) const;
@@ -321,20 +327,20 @@ public:
    * read all sections of the file, set read_flags to:
    * (READ_HEADER | READ_DATA | READ_ADDITIONAL_DATA)
    *
-   * Note that the equation system can be defined without initializing
+   * \note The equation system can be defined without initializing
    * the data vectors to any solution values.  This can be done
    * by omitting READ_DATA in the read_flags parameter.
    *
    * If XdrMODE is omitted, it will be inferred as READ for filenames
    * containing .xda or as DECODE for filenames containing .xdr
    *
-   * @param name Name of the file to be read.
-   * @param read_flags Single flag created by bitwise-OR'ing several flags together.
-   * @param mode Controls whether reading is done in binary or ascii mode.
-   * @param partition_agnostic If true then the mesh and degrees of freedom
+   * \param name Name of the file to be read.
+   * \param read_flags Single flag created by bitwise-OR'ing several flags together.
+   * \param mode Controls whether reading is done in binary or ascii mode.
+   * \param partition_agnostic If true then the mesh and degrees of freedom
    * will be temporarily renumbered in a partition agnostic way so that
    * files written using "n" mpi processes can be re-read on "m" mpi
-   * processes.  Note that this renumbering is not compatible with meshes
+   * processes.  This renumbering is not compatible with meshes
    * that have two nodes in exactly the same position!
    */
   template <typename InValType>
@@ -369,19 +375,19 @@ public:
    * the enumeration values. Write everything by setting write_flags to:
    * (WRITE_DATA | WRITE_ADDITIONAL_DATA)
    *
-   * Note that the solution data can be omitted by calling
+   * \note The solution data can be omitted by calling
    * this routine with WRITE_DATA omitted in the write_flags argument.
    *
    * If XdrMODE is omitted, it will be inferred as WRITE for filenames
    * containing .xda or as ENCODE for filenames containing .xdr
    *
-   * @param name Name of the file to be read.
-   * @param write_flags Single flag created by bitwise-OR'ing several flags together.
-   * @param mode Controls whether reading is done in binary or ascii mode.
-   * @param partition_agnostic If true then the mesh and degrees of freedom
+   * \param name Name of the file to be read.
+   * \param write_flags Single flag created by bitwise-OR'ing several flags together.
+   * \param mode Controls whether reading is done in binary or ascii mode.
+   * \param partition_agnostic If true then the mesh and degrees of freedom
    * will be temporarily renumbered in a partition agnostic way so that
    * files written using "n" mpi processes can be re-read on "m" mpi
-   * processes.  Note that this renumbering is not compatible with meshes
+   * processes.  This renumbering is not compatible with meshes
    * that have two nodes in exactly the same position!
    */
   void write (const std::string & name,
@@ -394,7 +400,7 @@ public:
               bool partition_agnostic = true) const;
 
   /**
-   * @returns \p true when this equation system contains
+   * \returns \p true when this equation system contains
    * identical data, up to the given threshold.  Delegates
    * most of the comparisons to perform to the responsible
    * systems
@@ -404,7 +410,7 @@ public:
                         const bool verbose) const;
 
   /**
-   * @returns a string containing information about the
+   * \returns A string containing information about the
    * systems, flags, and parameters.
    */
   virtual std::string get_info() const;
@@ -422,12 +428,12 @@ public:
                                      const EquationSystems & es);
 
   /**
-   * @returns a constant reference to the mesh
+   * \returns A constant reference to the mesh
    */
   const MeshBase & get_mesh() const;
 
   /**
-   * @returns a reference to the mesh
+   * \returns A reference to the mesh
    */
   MeshBase & get_mesh();
 
@@ -448,7 +454,7 @@ public:
   void disable_refine_in_reinit() { this->_refine_in_reinit = false; }
 
   /**
-   * @returns whether or not calls to reinit() will try to coarsen/refine the mesh
+   * \returns Whether or not calls to reinit() will try to coarsen/refine the mesh
    **/
   bool refine_in_reinit_flag() { return this->_refine_in_reinit; }
 
@@ -494,13 +500,15 @@ private:
    * Actual read implementation.  This can be called repeatedly
    * inside a try-catch block in an attempt to read broken files.
    *
-   * @param name Name of the file to be read.
-   * @param read_flags Single flag created by bitwise-OR'ing several flags together.
-   * @param partition_agnostic If true then the mesh and degrees of freedom
+   * \param name Name of the file to be read.
+   * \param read_flags Single flag created by bitwise-OR'ing several flags together.
+   * \param partition_agnostic If true then the mesh and degrees of freedom
    * will be temporarily renumbered in a partition agnostic way so that
    * files written using "n" mpi processes can be re-read on "m" mpi
-   * processes.  Note that this renumbering is not compatible with meshes
-   * that have two nodes in exactly the same position!
+   * processes.
+   *
+   * \note This renumbering is not compatible with meshes that have
+   * two nodes in exactly the same position!
    */
   template <typename InValType>
   void _read_impl (const std::string & name,

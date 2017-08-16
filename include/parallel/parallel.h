@@ -690,10 +690,11 @@ public:
   const communicator & get() const { return _communicator; }
 
   /**
-   * Get a tag that is unique to this Communicator.  Note that if
-   * people are also using magic numbers or copying communicators
-   * around then we can't guarantee the tag is unique to this
-   * MPI_Comm.
+   * Get a tag that is unique to this Communicator.
+   *
+   * \note If people are also using magic numbers or copying
+   * communicators around then we can't guarantee the tag is unique to
+   * this MPI_Comm.
    */
   MessageTag get_unique_tag(int tagvalue) const;
 
@@ -867,9 +868,9 @@ public:
    * Template type must match the object type that will be in
    * the packed range
    *
-   * @param src_processor_id The processor the mssage is expected from or Parallel::any_source
-   * @param tag The message tag or Parallel::any_tag
-   * @param flag Output.  True if a message exists.  False otherwise.
+   * \param src_processor_id The processor the mssage is expected from or Parallel::any_source
+   * \param tag The message tag or Parallel::any_tag
+   * \param flag Output.  True if a message exists.  False otherwise.
    */
   template <typename T>
   Status packed_range_probe (const unsigned int src_processor_id,

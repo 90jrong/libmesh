@@ -39,9 +39,11 @@ namespace libMesh
 /**
  * An allocator which can be used in standard containers.  Uses
  * pool-based memory allocation to efficiently allocate many small
- * objects.  Note that object destruction returns memory to the pool
- * rather than deallocate it.  It must be explicitly deallocated
- * prior to program termination.
+ * objects.
+ *
+ * \note Object destruction returns memory to the pool rather than
+ * deallocate it.  It must be explicitly deallocated prior to program
+ * termination.
  *
  * \author Benjamin S. Kirk
  * \date 2011
@@ -71,7 +73,7 @@ public:
 
   /**
    * Frees every memory block that doesn't have any allocated chunks.
-   * Returns true if at least one memory block was freed.
+   * \returns \p true if at least one memory block was freed.
    */
   static bool release_memory ()
   {
@@ -80,7 +82,9 @@ public:
 
   /**
    * Frees every memory block. This function invalidates any pointers previously returned
-   * by allocation functions. Returns true if at least one memory block was freed.
+   * by allocation functions.
+   *
+   * \returns \p true if at least one memory block was freed.
    */
   static bool purge_memory ()
   {
@@ -93,9 +97,11 @@ public:
 /**
  * An allocator which can be used in standard containers.  Uses
  * pool-based memory allocation to efficiently allocate many small
- * objects.  Note that object destruction returns memory to the pool
- * rather than deallocate it.  It must be explicitly deallocated
- * prior to program termination.
+ * objects.
+ *
+ * \note Object destruction returns memory to the pool rather than
+ * deallocate it.  It must be explicitly deallocated prior to program
+ * termination.
  *
  * \author Benjamin S. Kirk
  * \date 2011
@@ -126,7 +132,7 @@ public:
 
   /**
    * Frees every memory block that doesn't have any allocated chunks.
-   * Returns true if at least one memory block was freed.
+   * \returns \p true if at least one memory block was freed.
    */
   static bool release_memory ()
   {
@@ -135,7 +141,9 @@ public:
 
   /**
    * Frees every memory block. This function invalidates any pointers previously returned
-   * by allocation functions. Returns true if at least one memory block was freed.
+   * by allocation functions.
+   *
+   * \returns \p true if at least one memory block was freed.
    */
   static bool purge_memory ()
   {
@@ -177,13 +185,15 @@ public:
 
   /**
    * Frees every memory block that doesn't have any allocated chunks.
-   * Returns true if at least one memory block was freed.
+   * \returns \p true if at least one memory block was freed.
    */
   static bool release_memory () { /* no-op for std::allocator<> - already freed. */ return false; }
 
   /**
    * Frees every memory block. This function invalidates any pointers previously returned
-   * by allocation functions. Returns true if at least one memory block was freed.
+   * by allocation functions.
+   *
+   * \returns \p true if at least one memory block was freed.
    */
   static bool purge_memory ()   { /* no-op for std::allocator<> - already freed. */ return false; }
 };
@@ -221,13 +231,15 @@ public:
 
   /**
    * Frees every memory block that doesn't have any allocated chunks.
-   * Returns true if at least one memory block was freed.
+   * \returns \p true if at least one memory block was freed.
    */
   static bool release_memory () { /* no-op for std::allocator<> - already freed. */ return false; }
 
   /**
    * Frees every memory block. This function invalidates any pointers previously returned
-   * by allocation functions. Returns true if at least one memory block was freed.
+   * by allocation functions.
+   *
+   * \returns \p true if at least one memory block was freed.
    */
   static bool purge_memory ()   { /* no-op for std::allocator<> - already freed. */ return false; }
 };

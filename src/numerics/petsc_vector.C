@@ -218,42 +218,56 @@ void PetscVector<T>::add_vector (const T * v,
 
 
 template <typename T>
-void PetscVector<T>::add_vector (const NumericVector<T> & V_in,
+void PetscVector<T>::add_vector (const NumericVector<T> & v_in,
                                  const SparseMatrix<T> & A_in)
 {
   this->_restore_array();
   // Make sure the data passed in are really of Petsc types
-  const PetscVector<T> * V = cast_ptr<const PetscVector<T> *>(&V_in);
+  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&v_in);
   const PetscMatrix<T> * A = cast_ptr<const PetscMatrix<T> *>(&A_in);
 
   PetscErrorCode ierr=0;
 
-  A->close();
+  // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
+  if (!A->closed())
+    {
+      libmesh_deprecated();
+      libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector(v, A).\n"
+                      "Please update your code, as this warning will become an error in a future release.");
+      const_cast<PetscMatrix<T> *>(A)->close();
+    }
 
   // The const_cast<> is not elegant, but it is required since PETSc
-  // is not const-correct.
-  ierr = MatMultAdd(const_cast<PetscMatrix<T> *>(A)->mat(), V->_vec, _vec, _vec);
+  // expects a non-const Mat.
+  ierr = MatMultAdd(const_cast<PetscMatrix<T> *>(A)->mat(), v->_vec, _vec, _vec);
   LIBMESH_CHKERR(ierr);
 }
 
 
 
 template <typename T>
-void PetscVector<T>::add_vector_transpose (const NumericVector<T> & V_in,
+void PetscVector<T>::add_vector_transpose (const NumericVector<T> & v_in,
                                            const SparseMatrix<T> & A_in)
 {
   this->_restore_array();
   // Make sure the data passed in are really of Petsc types
-  const PetscVector<T> * V = cast_ptr<const PetscVector<T> *>(&V_in);
+  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&v_in);
   const PetscMatrix<T> * A = cast_ptr<const PetscMatrix<T> *>(&A_in);
 
   PetscErrorCode ierr=0;
 
-  A->close();
+  // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
+  if (!A->closed())
+    {
+      libmesh_deprecated();
+      libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector_transpose(v, A).\n"
+                      "Please update your code, as this warning will become an error in a future release.");
+      const_cast<PetscMatrix<T> *>(A)->close();
+    }
 
   // The const_cast<> is not elegant, but it is required since PETSc
-  // is not const-correct.
-  ierr = MatMultTransposeAdd(const_cast<PetscMatrix<T> *>(A)->mat(), V->_vec, _vec, _vec);
+  // expects a non-const Mat.
+  ierr = MatMultTransposeAdd(const_cast<PetscMatrix<T> *>(A)->mat(), v->_vec, _vec, _vec);
   LIBMESH_CHKERR(ierr);
 }
 
@@ -271,23 +285,30 @@ void PetscVector<T>::add_vector_conjugate_transpose (const NumericVector<T> &,
 #else
 
 template <typename T>
-void PetscVector<T>::add_vector_conjugate_transpose (const NumericVector<T> & V_in,
+void PetscVector<T>::add_vector_conjugate_transpose (const NumericVector<T> & v_in,
                                                      const SparseMatrix<T> & A_in)
 {
   this->_restore_array();
   // Make sure the data passed in are really of Petsc types
-  const PetscVector<T> * V = cast_ptr<const PetscVector<T> *>(&V_in);
+  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&v_in);
   const PetscMatrix<T> * A = cast_ptr<const PetscMatrix<T> *>(&A_in);
 
-  A->close();
+  // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
+  if (!A->closed())
+    {
+      libmesh_deprecated();
+      libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector_conjugate_transpose(v, A).\n"
+                      "Please update your code, as this warning will become an error in a future release.");
+      const_cast<PetscMatrix<T> *>(A)->close();
+    }
 
   // Store a temporary copy since MatMultHermitianTransposeAdd doesn't seem to work
   // TODO: Find out why MatMultHermitianTransposeAdd doesn't work, might be a PETSc bug?
   UniquePtr< NumericVector<Number> > this_clone = this->clone();
 
   // The const_cast<> is not elegant, but it is required since PETSc
-  // is not const-correct.
-  PetscErrorCode ierr = MatMultHermitianTranspose(const_cast<PetscMatrix<T> *>(A)->mat(), V->_vec, _vec);
+  // expects a non-const Mat.
+  PetscErrorCode ierr = MatMultHermitianTranspose(const_cast<PetscMatrix<T> *>(A)->mat(), v->_vec, _vec);
   LIBMESH_CHKERR(ierr);
 
   // Add the temporary copy to the matvec result
@@ -441,7 +462,7 @@ void PetscVector<T>::abs()
 }
 
 template <typename T>
-T PetscVector<T>::dot (const NumericVector<T> & V) const
+T PetscVector<T>::dot (const NumericVector<T> & v_in) const
 {
   this->_restore_array();
 
@@ -452,7 +473,7 @@ T PetscVector<T>::dot (const NumericVector<T> & V) const
   PetscScalar value=0.;
 
   // Make sure the NumericVector passed in is really a PetscVector
-  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&V);
+  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&v_in);
 
   // 2.3.x (at least) style.  Untested for previous versions.
   ierr = VecDot(this->_vec, v->_vec, &value);
@@ -462,7 +483,7 @@ T PetscVector<T>::dot (const NumericVector<T> & V) const
 }
 
 template <typename T>
-T PetscVector<T>::indefinite_dot (const NumericVector<T> & V) const
+T PetscVector<T>::indefinite_dot (const NumericVector<T> & v_in) const
 {
   this->_restore_array();
 
@@ -473,7 +494,7 @@ T PetscVector<T>::indefinite_dot (const NumericVector<T> & V) const
   PetscScalar value=0.;
 
   // Make sure the NumericVector passed in is really a PetscVector
-  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&V);
+  const PetscVector<T> * v = cast_ptr<const PetscVector<T> *>(&v_in);
 
   // 2.3.x (at least) style.  Untested for previous versions.
   ierr = VecTDot(this->_vec, v->_vec, &value);

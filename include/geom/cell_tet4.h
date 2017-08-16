@@ -61,70 +61,70 @@ public:
   {}
 
   /**
-   * @returns \p TET4.
+   * \returns \p TET4.
    */
   virtual ElemType type () const libmesh_override { return TET4; }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 4; }
 
   /**
-   * @returns 1.
+   * \returns 1.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 1; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge.
    */
   virtual bool is_node_on_edge(const unsigned int n,
                                const unsigned int e) const libmesh_override;
 
   /**
-   * @returns true if the specified child is on the
+   * \returns \p true if the specified child is on the
    * specified side.
    */
   virtual bool is_child_on_side(const unsigned int c,
                                 const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the element map is definitely affine within
+   * \returns \p true if the element map is definitely affine within
    * numerical tolerances.
    */
   virtual bool has_affine_map () const libmesh_override { return true; }
 
   /**
-   * @returns true if the Lagrange shape functions on this element
+   * \returns \p true if the Lagrange shape functions on this element
    * are linear.
    */
   virtual bool is_linear () const libmesh_override { return true; }
 
   /**
-   * @returns FIRST.
+   * \returns FIRST.
    */
   virtual Order default_order() const libmesh_override { return FIRST; }
 
@@ -164,11 +164,12 @@ public:
   virtual Real volume () const libmesh_override;
 
   /**
-   * Returns the min and max *dihedral* angles for the tetrahedron.
-   * Note there are 6 dihedral angles (angles between the planar
+   * \returns The min and max *dihedral* angles for the tetrahedron.
+   *
+   * \note There are 6 dihedral angles (angles between the planar
    * faces) for the Tet4.  Dihedral angles near 180 deg. are generally
-   * bad for interplation.  Small dihedral angles are not necessarily
-   * bad for interplation, but they can effect the stiffness matrix
+   * bad for interpolation.  Small dihedral angles are not necessarily
+   * bad for interpolation, but they can affect the stiffness matrix
    * condition number.
    */
   std::pair<Real, Real> min_and_max_angle() const;
@@ -179,7 +180,7 @@ public:
   using Tet::key;
 
   /**
-   * @returns an id associated with the global node ids of this
+   * \returns An id associated with the global node ids of this
    * element.  The id is not necessarily unique, but should be
    * close.
    */

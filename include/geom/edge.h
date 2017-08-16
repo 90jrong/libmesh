@@ -53,61 +53,61 @@ public:
   }
 
   /**
-   * @returns 1, the dimensionality of the object.
+   * \returns 1, the dimensionality of the object.
    */
   virtual unsigned int dim () const libmesh_override { return 1; }
 
   /**
-   * @returns 2. Every edge is guaranteed to have at least 2 nodes.
+   * \returns 2. Every edge is guaranteed to have at least 2 nodes.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 2; }
 
   /**
-   * @returns 2.
+   * \returns 2.
    */
   virtual unsigned int n_sides() const libmesh_override { return 2; }
 
   /**
-   * @returns 2.  Every edge has exactly two vertices.
+   * \returns 2.  Every edge has exactly two vertices.
    */
   virtual unsigned int n_vertices() const libmesh_override { return 2; }
 
   /**
-   * @returns 0.  All 1D elements have no edges.
+   * \returns 0.  All 1D elements have no edges.
    */
   virtual unsigned int n_edges() const libmesh_override { return 0; }
 
   /**
-   * @returns 0.  All 1D elements have no faces.
+   * \returns 0.  All 1D elements have no faces.
    */
   virtual unsigned int n_faces() const libmesh_override { return 0; }
 
   /**
-   * @returns 2.
+   * \returns 2.
    */
   virtual unsigned int n_children() const libmesh_override { return 2; }
 
   /**
-   * @returns true if the specified child is on the specified side.
+   * \returns \p true if the specified child is on the specified side.
    */
   virtual bool is_child_on_side(const unsigned int c,
                                 const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified edge is on the specified side.
+   * \returns \p true if the specified edge is on the specified side.
    */
   virtual bool is_edge_on_side(const unsigned int,
                                const unsigned int) const libmesh_override
   { return false; }
 
   /**
-   * @returns the side number opposite to \p s (for a tensor product
+   * \returns The side number opposite to \p s (for a tensor product
    * element), or throws an error otherwise.
    */
   virtual unsigned int opposite_side(const unsigned int s) const libmesh_override;
 
   /**
-   * @returns the local node number for the node opposite to node n
+   * \returns The local node number for the node opposite to node n
    * on side \p opposite_side(s) (for a tensor product element), or
    * throws an error otherwise.
    */
@@ -120,7 +120,7 @@ public:
   using Elem::key;
 
   /**
-   * @returns an id associated with the \p s side of this element.
+   * \returns An id associated with the \p s side of this element.
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    */
@@ -128,20 +128,18 @@ public:
   { return this->compute_key(this->node_id(s)); }
 
   /**
-   * Does some range checking and then returns side. side_node is ignored.
+   * \returns \p side after doing some range checking. \p side_node is ignored.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int /*side_node*/) const libmesh_override;
 
   /**
-   * The \p Elem::side() member returns
-   * an auto pointer to a NodeElem for the specified node.
+   * \returns A pointer to a NodeElem for the specified node.
    */
   virtual UniquePtr<Elem> side_ptr (const unsigned int i) libmesh_override;
 
   /**
-   * The \p Elem::side() member returns
-   * a UniquePtr to a NodeElem for the specified node.
+   * \returns A pointer to a NodeElem for the specified node.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
                                           bool proxy) libmesh_override;

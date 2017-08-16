@@ -69,6 +69,13 @@ public:
   FEMContext (const System & sys);
 
   /**
+   * Constructor.  Specify the extra quadrature order instead
+   * of getting it from \p sys.
+   */
+  explicit
+  FEMContext (const System & sys, int extra_quadrature_order);
+
+  /**
    * Destructor.
    */
   virtual ~FEMContext ();
@@ -81,8 +88,8 @@ public:
   /**
    * Lists the boundary ids found on the current side
    *
-   * This function is now deprecated. Instead, use the version that
-   * takes a reference to a std::set.
+   * \deprecated Instead, use the version that takes a reference to a
+   * std::set.
    */
   std::vector<boundary_id_type> side_boundary_ids() const;
 
@@ -92,132 +99,150 @@ public:
   void side_boundary_ids(std::vector<boundary_id_type> & vec_to_fill) const;
 
   /**
-   * Returns the value of the solution variable \p var at the quadrature
-   * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   * \returns The value of the solution variable \p var at the
+   * quadrature point \p qp on the current element interior.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Number interior_value(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the value of the solution variable \p var at the quadrature
+   * \returns The value of the solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API currently is present for backward compatibility.
    */
   Number side_value(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the value of the solution variable \p var at the physical
+   * \returns The value of the solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Number point_value(unsigned int var, const Point & p) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the quadrature
+   * \returns The gradient of the solution variable \p var at the quadrature
    * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient interior_gradient(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the quadrature
+   * \returns The gradient of the solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient side_gradient(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the physical
+   * \returns The gradient of the solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient point_gradient(unsigned int var, const Point & p) const;
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
   /**
-   * Returns the hessian of the solution variable \p var at the quadrature
+   * \returns The hessian of the solution variable \p var at the quadrature
    * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Tensor interior_hessian(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the hessian of the solution variable \p var at the quadrature
+   * \returns The hessian of the solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Tensor side_hessian(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the hessian of the solution variable \p var at the physical
+   * \returns The hessian of the solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API currently present for backward compatibility.
    */
   Tensor point_hessian(unsigned int var, const Point & p) const;
 
 #endif // LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the quadrature
+   * \returns The value of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Number fixed_interior_value(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the quadrature
+   * \returns The value of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Number fixed_side_value(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the physical
+   * \returns The value of the fixed_solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Number fixed_point_value(unsigned int var, const Point & p) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the quadrature
+   * \returns The gradient of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient fixed_interior_gradient(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the quadrature
+   * \returns The gradient of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient fixed_side_gradient(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the physical
+   * \returns The gradient of the fixed_solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Gradient fixed_point_gradient(unsigned int var, const Point & p) const;
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the quadrature
+   * \returns The hessian of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element interior.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Tensor fixed_interior_hessian(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the quadrature
+   * \returns The hessian of the fixed_solution variable \p var at the quadrature
    * point \p qp on the current element side.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Tensor fixed_side_hessian(unsigned int var, unsigned int qp) const;
 
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the physical
+   * \returns The hessian of the fixed_solution variable \p var at the physical
    * point \p p on the current element.
-   * This API currently present for backward compatibility.
+   *
+   * \note This API is currently present for backward compatibility.
    */
   Tensor fixed_point_hessian (unsigned int var, const Point & p) const;
 
@@ -309,8 +334,10 @@ public:
   FEBase * get_edge_fe( unsigned int var ) const;
 
   /**
-   * Returns the value of the solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The value of the solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void interior_value(unsigned int var,
@@ -327,8 +354,10 @@ public:
                        std::vector<OutputType> & interior_values_vector) const;
 
   /**
-   * Returns the value of the solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The value of the solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void side_value(unsigned int var,
@@ -345,8 +374,10 @@ public:
                    std::vector<OutputType> & side_values_vector) const;
 
   /**
-   * Returns the value of the solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The value of the solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -358,8 +389,10 @@ public:
                    const Real tolerance = TOLERANCE) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The gradient of the solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void interior_gradient(unsigned int var, unsigned int qp,
@@ -367,7 +400,9 @@ public:
 
   /**
    * Fills a vector with the gradient of the solution variable \p var at all the quadrature
-   * points in the current element interior. This is the preferred API.
+   * points in the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void interior_gradients(unsigned int var,
@@ -375,8 +410,10 @@ public:
                           std::vector<OutputType> & interior_gradients_vector) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The gradient of the solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void side_gradient(unsigned int var,
@@ -385,7 +422,9 @@ public:
 
   /**
    * Fills a vector with the gradient of the solution variable \p var at all the quadrature
-   * points on the current element side. This is the preferred API.
+   * points on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void side_gradients(unsigned int var,
@@ -393,8 +432,10 @@ public:
                       std::vector<OutputType> & side_gradients_vector) const;
 
   /**
-   * Returns the gradient of the solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The gradient of the solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -407,8 +448,10 @@ public:
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
   /**
-   * Returns the hessian of the solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The hessian of the solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void interior_hessian(unsigned int var,
@@ -426,8 +469,10 @@ public:
                          std::vector<OutputType> & d2u_vals) const;
 
   /**
-   * Returns the hessian of the solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The hessian of the solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void side_hessian(unsigned int var,
@@ -445,8 +490,10 @@ public:
                      std::vector<OutputType> & d2u_vals) const;
 
   /**
-   * Returns the hessian of the solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The hessian of the solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -460,7 +507,7 @@ public:
 #endif // LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
-   * Returns the time derivative (rate) of the solution variable
+   * \returns The time derivative (rate) of the solution variable
    * \p var at the quadrature point \p qp on the current element
    * interior.
    */
@@ -470,7 +517,7 @@ public:
                      OutputType & u) const;
 
   /**
-   * Returns the time derivative (rate) of the solution variable
+   * \returns The time derivative (rate) of the solution variable
    * \p var at the quadrature point \p qp on the current element side.
    */
   template<typename OutputType>
@@ -479,7 +526,7 @@ public:
                  OutputType & u) const;
 
   /**
-   * Returns the time derivative (rate) of the solution variable
+   * \returns The time derivative (rate) of the solution variable
    * \p var at the physical point \p p on the current element.
    */
   template<typename OutputType>
@@ -488,7 +535,7 @@ public:
                   OutputType & u) const;
 
   /**
-   * Returns the second time derivative (acceleration) of the solution variable
+   * \returns The second time derivative (acceleration) of the solution variable
    * \p var at the quadrature point \p qp on the current element
    * interior.
    */
@@ -498,7 +545,7 @@ public:
                       OutputType & u) const;
 
   /**
-   * Returns the second time derivative (acceleration) of the solution variable
+   * \returns The second time derivative (acceleration) of the solution variable
    * \p var at the quadrature point \p qp on the current element side.
    */
   template<typename OutputType>
@@ -507,7 +554,7 @@ public:
                   OutputType & u) const;
 
   /**
-   * Returns the second time derivative (acceleration) of the solution variable
+   * \returns The second time derivative (acceleration) of the solution variable
    * \p var at the physical point \p p on the current element.
    */
   template<typename OutputType>
@@ -516,8 +563,10 @@ public:
                    OutputType & u) const;
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The value of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_interior_value(unsigned int var,
@@ -525,8 +574,10 @@ public:
                             OutputType & u) const;
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The value of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_side_value(unsigned int var,
@@ -534,8 +585,10 @@ public:
                         OutputType & u) const;
 
   /**
-   * Returns the value of the fixed_solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The value of the fixed_solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -547,8 +600,10 @@ public:
                          const Real tolerance = TOLERANCE) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The gradient of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_interior_gradient(unsigned int var,
@@ -556,8 +611,10 @@ public:
                                OutputType & grad_u) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The gradient of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_side_gradient(unsigned int var,
@@ -565,8 +622,10 @@ public:
                            OutputType & grad_u) const;
 
   /**
-   * Returns the gradient of the fixed_solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The gradient of the fixed_solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -579,8 +638,10 @@ public:
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element interior. This is the preferred API.
+   * \returns The hessian of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element interior.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_interior_hessian(unsigned int var,
@@ -588,8 +649,10 @@ public:
                               OutputType & hess_u) const;
 
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the quadrature
-   * point \p qp on the current element side. This is the preferred API.
+   * \returns The hessian of the fixed_solution variable \p var at the quadrature
+   * point \p qp on the current element side.
+   *
+   * \note This is the preferred API.
    */
   template<typename OutputType>
   void fixed_side_hessian(unsigned int var,
@@ -597,8 +660,10 @@ public:
                           OutputType & hess_u) const;
 
   /**
-   * Returns the hessian of the fixed_solution variable \p var at the physical
-   * point \p p on the current element. This is the preferred API.
+   * \returns The hessian of the fixed_solution variable \p var at the physical
+   * point \p p on the current element.
+   *
+   * \note This is the preferred API.
    *
    * Allows evaluation of points within a relative tolerance outside
    * the element.
@@ -612,7 +677,7 @@ public:
 #endif // LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
-   * Returns the curl of the solution variable \p var at the physical
+   * \returns The curl of the solution variable \p var at the physical
    * point \p p on the current element.
    */
   template<typename OutputType>
@@ -621,7 +686,7 @@ public:
                      OutputType & curl_u) const;
 
   /**
-   * Returns the curl of the solution variable \p var at the physical
+   * \returns The curl of the solution variable \p var at the physical
    * point \p p on the current element.
    *
    * Allows evaluation of points within a relative tolerance outside
@@ -634,7 +699,7 @@ public:
                   const Real tolerance = TOLERANCE) const;
 
   /**
-   * Returns the divergence of the solution variable \p var at the physical
+   * \returns The divergence of the solution variable \p var at the physical
    * point \p p on the current element.
    */
   template<typename OutputType>
@@ -833,14 +898,14 @@ public:
   { return this->_dim; }
 
   /**
-   * Returns the dimension of this->_elem. For mixed dimension meshes, this
+   * \returns The dimension of this->_elem. For mixed dimension meshes, this
    * may be different from get_dim().
    */
   unsigned char get_elem_dim() const
   { return _elem_dim; }
 
   /**
-   * @returns set of dimensions of elements present in the mesh at
+   * \returns Set of dimensions of elements present in the mesh at
    * context initialization.
    */
   const std::set<unsigned char> & elem_dimensions() const
@@ -1078,7 +1143,17 @@ protected:
    */
   UniquePtr<QBase> _edge_qrule;
 
+  /**
+   * The extra quadrature order for this context.
+   */
+  int _extra_quadrature_order;
+
 private:
+  /**
+   * Helper function used in constructors to set up internal data.
+   */
+  void init_internal_data(const System & sys);
+
   /**
    * Uses the coordinate data specified by mesh_*_position configuration
    * to set the geometry of \p elem to the value it would take after a fraction

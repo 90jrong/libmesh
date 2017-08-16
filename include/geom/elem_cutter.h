@@ -72,7 +72,7 @@ public:
   ~ElemCutter();
 
   /**
-   * @returns \p true if the element is completely inside the
+   * \returns \p true if the element is completely inside the
    * interface defined implicitly by the vertex values of the signed
    * \p vertex_distance_func.
    */
@@ -80,7 +80,7 @@ public:
                   const std::vector<Real> & vertex_distance_func) const;
 
   /**
-   * @returns \p true if the element is completely outside the
+   * \returns \p true if the element is completely outside the
    * interface defined implicitly by the vertex values of the signed
    * \p vertex_distance_func.
    */
@@ -88,7 +88,7 @@ public:
                    const std::vector<Real> & vertex_distance_func) const;
 
   /**
-   * @returns \p true if the element is cut by the interface defined
+   * \returns \p true if the element is cut by the interface defined
    * implicitly by the vertex values of the signed
    * \p vertex_distance_func.
    */
@@ -108,7 +108,7 @@ public:
                   const std::vector<Real> & vertex_distance_func);
 
   /**
-   * Returns a list of in general element pieces considered inside the
+   * \returns A list of general element pieces considered inside the
    * cutting surface.  These are subelements whose geometric union
    * defines the spatial domain of the inside portion of the cut element.
    */
@@ -116,7 +116,7 @@ public:
   { return _inside_elem; }
 
   /**
-   * Returns a list of in general element pieces considered outside the
+   * \returns A list of general element pieces considered outside the
    * cutting surface.  These are subelements whose geometric union
    * defines the spatial domain of the outside portion of the cut element.
    */

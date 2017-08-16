@@ -60,9 +60,10 @@ public:
   virtual ~Partitioner() {}
 
   /**
-   * Creates a new partitioner of this type and returns it in a \p
-   * UniquePtr.  This is used when copying meshes, and must be
-   * overloaded in the derived classes.
+   * \returns A copy of this partitioner wrapped in a smart pointer.
+   *
+   * This is used when copying meshes, and must be overridden in the
+   * derived classes.
    */
   virtual UniquePtr<Partitioner> clone () const = 0;
 
@@ -70,8 +71,8 @@ public:
    * Partitions the \p MeshBase into \p n parts by setting
    * processor_id() on Nodes and Elems.
    *
-   * NOTE: If you are implementing a new type of Partitioner, you most
-   * likely do *not* want to override the partition() function, see
+   * \note If you are implementing a new type of Partitioner, you most
+   * likely do \e not want to override the partition() function, see
    * instead the protected virtual _do_partition() method below.  The
    * partition() function is responsible for doing a lot of
    * libmesh-internals-specific setup and finalization before and
@@ -88,8 +89,8 @@ public:
    * Partitions the \p MeshBase into \p mesh.n_processors() by setting
    * processor_id() on Nodes and Elems.
    *
-   * NOTE: If you are implementing a new type of Partitioner, you most
-   * likely do *not* want to override the partition() function, see
+   * \note If you are implementing a new type of Partitioner, you most
+   * likely do \e not want to override the partition() function, see
    * instead the protected virtual _do_partition() method below.  The
    * partition() function is responsible for doing a lot of
    * libmesh-internals-specific setup and finalization before and
@@ -186,7 +187,7 @@ protected:
                               MeshBase::element_iterator end);
 
   /**
-   * This is the actual partitioning method which must be overloaded
+   * This is the actual partitioning method which must be overridden
    * in derived classes.  It is called via the public partition()
    * method above by the user.
    */
@@ -194,9 +195,11 @@ protected:
                              const unsigned int n) = 0;
 
   /**
-   * This is the actual re-partitioning method which can be overloaded
-   * in derived classes.  Note that the default behavior is to simply
-   * call the partition function.
+   * This is the actual re-partitioning method which can be overridden
+   * in derived classes.
+   *
+   * \note The default behavior is to simply call the partition
+   * function.
    */
   virtual void _do_repartition (MeshBase & mesh,
                                 const unsigned int n) { this->_do_partition (mesh, n); }

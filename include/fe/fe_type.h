@@ -191,9 +191,6 @@ public:
     family(f)
   {}
 
-
-  //TODO:[BSK] Could these data types all be const?
-  // [RHS] Order can't in the case of p refinement!
   /**
    * The approximation order of the element.
    */
@@ -209,10 +206,11 @@ public:
 
   /**
    * Constructor.  Optionally takes the approximation \p Order
-   * and the finite element family \p FEFamily.  Note that for
-   * non-infinite elements the \p order and \p base order are the
-   * same, as with the \p family and \p base_family.  It must be
-   * so, otherwise what we switch on would change when infinite
+   * and the finite element family \p FEFamily.
+   *
+   * \note For non-infinite elements, the \p order and \p base order
+   * are the same, as with the \p family and \p base_family.  It must
+   * be so, otherwise what we switch on would change when infinite
    * elements are not compiled in.
    */
   FEType(const int        o  = 1,
@@ -305,7 +303,7 @@ public:
   }
 
   /**
-   * @returns the default quadrature order for this \p FEType.  The
+   * \returns The default quadrature order for this \p FEType.  The
    * default quadrature order is calculated assuming a polynomial of
    * degree \p order and is based on integrating the mass matrix for
    * such an element exactly.
@@ -313,7 +311,7 @@ public:
   Order default_quadrature_order () const;
 
   /**
-   * @returns a quadrature rule of appropriate type and order for this \p
+   * \returns A quadrature rule of appropriate type and order for this \p
    * FEType.  The default quadrature rule is based on integrating the mass
    * matrix for such an element exactly.  Higher or lower degree rules can
    * be chosen by changing the extraorder parameter.

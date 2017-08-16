@@ -71,72 +71,74 @@ public:
   {}
 
   /**
-   * @returns 12.  The \p InfPrism12 has 12 nodes.
+   * \returns 12.  The \p InfPrism12 has 12 nodes.
    */
   virtual unsigned int n_nodes() const libmesh_override { return 12; }
 
   /**
-   * @returns \p INFPRISM12.
+   * \returns \p INFPRISM12.
    */
   virtual ElemType type () const libmesh_override { return INFPRISM12; }
 
   /**
-   * @returns 4.
+   * \returns 4.
    */
   virtual unsigned int n_sub_elem() const libmesh_override { return 4; }
 
   /**
-   * @returns true if the specified (local) node number is a vertex.
+   * \returns \p true if the specified (local) node number is a vertex.
    */
   virtual bool is_vertex(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is an edge.
+   * \returns \p true if the specified (local) node number is an edge.
    */
   virtual bool is_edge(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is a face.
+   * \returns \p true if the specified (local) node number is a face.
    */
   virtual bool is_face(const unsigned int i) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const libmesh_override;
 
   /**
-   * @returns true if the specified (local) node number is on the
+   * \returns \p true if the specified (local) node number is on the
    * specified edge.
    */
   virtual bool is_node_on_edge(const unsigned int n,
                                const unsigned int e) const libmesh_override;
 
   /**
-   * @returns SECOND.
+   * \returns SECOND.
    */
   virtual Order default_order() const libmesh_override { return SECOND; }
 
   /**
-   * Does some range checking and then returns InfPrism12::side_nodes_map[side][side_node].
+   * \returns \p InfPrism12::side_nodes_map[side][side_node] after doing some range checking.
    */
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
   /**
-   * Returns a \p TRI6 built coincident with face 0, an \p INFQUAD6
-   * built coincident with faces 1 to 3.  Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns A \p TRI6 built coincident with face 0, or an \p
+   * INFQUAD6 built coincident with faces 1 to 3.
+   *
+   * \note that the \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
                                           bool proxy) libmesh_override;
 
   /**
-   * Returns a \p EDGE3 built coincident with edges 0 to 2, an \p INFEDGE2
-   * built coincident with edges 3 to 5.  Note that the \p UniquePtr<Elem>
-   * takes care of freeing memory.
+   * \returns An \p EDGE3 built coincident with edges 0 to 2, or an \p INFEDGE2
+   * built coincident with edges 3 to 5.
+   *
+   * \note The \p UniquePtr<Elem> takes care of freeing memory.
    */
   virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
@@ -145,21 +147,22 @@ public:
                             std::vector<dof_id_type> & conn) const libmesh_override;
 
   /**
-   * @returns 2 for all \p n.
+   * \returns 2 for all \p n.
    */
   virtual unsigned int n_second_order_adjacent_vertices (const unsigned int) const libmesh_override
   { return 2; }
 
   /**
-   * @returns the element-local number of the  \f$ v^{th} \f$ vertex
+   * \returns The element-local number of the \f$ v^{th} \f$ vertex
    * that defines the \f$ n^{th} \f$ second-order node.
-   * Note that \p n is counted as depicted above, \f$ 6 \le n < 12 \f$.
+   *
+   * \note \p n is counted as depicted above, \f$ 6 \le n < 12 \f$.
    */
   virtual unsigned short int second_order_adjacent_vertex (const unsigned int n,
                                                            const unsigned int v) const libmesh_override;
 
   /**
-   * @returns the child number \p c and element-local index \p v of the
+   * \returns The child number \p c and element-local index \p v of the
    * \f$ n^{th} \f$ second-order node on the parent element.  See
    * elem.h for further details.
    */
