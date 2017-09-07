@@ -130,6 +130,20 @@ public:
   bool has_system (const std::string & name) const;
 
   /**
+   * \returns the map of systems
+   */
+  const std::map<std::string, System *>& systems() const {
+	  return _systems;
+  }
+
+  /**
+   * \returns the map of systems
+   */
+  std::map<std::string, System *>& systems() {
+	  return _systems;
+  }
+
+  /**
    * \returns A constant reference to the system named \p name.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> ("sys");
