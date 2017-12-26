@@ -208,6 +208,37 @@ void DenseMatrix<T>::left_multiply_transpose(const DenseMatrix<T2> & A)
 }
 
 
+template<typename T>
+void DenseMatrix<T>::left_multiply_hermitian_transpose (const DenseMatrix<T> & A) 
+{
+#if   defined (LIBMESH_USE_COMPLEX_NUMBERS)
+  if (A.m() != this->m()) {
+	  libmesh_error_msg("Unknown flag selected or matrices are incompatible for multiplication.");
+  }
+  // because libmesh use a row major matrix storage, so it is not easy to directly use blas. 
+  // I use Eigen instead. 
+  Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > 
+	  mat_A(&(A.get_values()[0]),A.m(),A.n());
+
+  Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > 
+	  mat_B(&(_val[0]),this->m(),this->n());
+
+  unsigned int result_size = A.n() * this->n();
+  std::vector<T> result (result_size);
+  Eigen::Map<typename Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > 
+	  mat_rst(&(result[0]),A.n(),this->n());
+
+  mat_rst.noalias() = mat_A.adjoint()*mat_B;
+  this->_m = A.n();
+  this->_val.swap(result);
+#else
+  this->_multiply_blas(A, LEFT_MULTIPLY_TRANSPOSE);
+#endif
+
+
+}
+
+
 
 template<typename T>
 void DenseMatrix<T>::right_multiply (const DenseMatrixBase<T> & M3)
@@ -505,6 +536,36 @@ void DenseMatrix<T>::vector_mult_transpose (DenseVector<typename CompareTypes<T,
       dest(i) += (*this)(j,i)*arg(j);
 }
 
+
+template<typename T>
+void DenseMatrix<T>::vector_mult_hermitian_transpose (DenseVector<T> & dest,
+                                            const DenseVector<T> & arg) const
+{
+  // Make sure the input sizes are compatible
+  libmesh_assert_equal_to (this->m(), arg.size());
+
+  // Resize and clear dest.
+  // Note: DenseVector::resize() also zeros the vector.
+  dest.resize(this->n());
+
+  // Short-circuit if the matrix is empty
+  if (this->m() == 0)
+    return;
+
+  // call blas
+#if   defined (LIBMESH_USE_COMPLEX_NUMBERS)
+  // because libmesh use a row major matrix storage, so it is not easy to directly use blas. 
+  // I use Eigen instead. 
+  Eigen::Map<typename Eigen::Matrix<T, Eigen::Dynamic, 1> > arg_v(&(dest.get_values()[0]), dest.size());
+  arg_v.noalias() = 
+  (Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > 
+	  (&(_val[0]),this->m(),this->n()) ).adjoint()*
+	  ( Eigen::Map<const typename Eigen::Matrix<T, Eigen::Dynamic, 1> >(&(arg.get_values()[0]), arg.size()) );
+#else
+  this->_matvec_blas(1., 0., dest, arg, /*trans=*/true);
+#endif
+
+}
 
 
 template<typename T>
