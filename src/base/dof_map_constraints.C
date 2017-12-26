@@ -3804,7 +3804,6 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
           std::vector<std::vector<dof_id_type>> dof_row_keys(dof_request_to_fill.size());
 
           std::vector<std::vector<Number>> dof_row_vals(dof_request_to_fill.size());
-          std::vector<std::vector<Real>> dof_row_vals(dof_request_to_fill.size());
           std::vector<Number> dof_row_rhss(dof_request_to_fill.size());
           std::vector<std::vector<Number>>
             dof_adj_rhss(max_qoi_num,
