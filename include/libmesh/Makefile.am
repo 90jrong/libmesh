@@ -133,6 +133,7 @@ BUILT_SOURCES = \
         face_quad4.h \
         face_quad4_shell.h \
         face_quad8.h \
+        face_quad8_shell.h \
         face_quad9.h \
         face_tri.h \
         face_tri3.h \
@@ -211,6 +212,7 @@ BUILT_SOURCES = \
         coupling_matrix.h \
         dense_matrix.h \
         dense_matrix_base.h \
+        dense_matrix_impl.h \
         dense_submatrix.h \
         dense_subvector.h \
         dense_vector.h \
@@ -377,6 +379,7 @@ BUILT_SOURCES = \
         fem_context.h \
         fem_system.h \
         frequency_system.h \
+        generic_projector.h \
         implicit_system.h \
         linear_implicit_system.h \
         newmark_system.h \
@@ -399,6 +402,7 @@ BUILT_SOURCES = \
         error_vector.h \
         hashword.h \
         ignore_warnings.h \
+        int_range.h \
         libmesh_nullptr.h \
         location_maps.h \
         mapvector.h \
@@ -411,9 +415,10 @@ BUILT_SOURCES = \
         plt_loader.h \
         point_locator_base.h \
         point_locator_tree.h \
+        pointer_to_pointer_iter.h \
         pool_allocator.h \
         restore_warnings.h \
-        safe_bool.h \
+        simple_range.h \
         statistics.h \
         string_to_enum.h \
         timestamp.h \
@@ -496,16 +501,6 @@ netcdf.h: $(top_srcdir)/contrib/netcdf/v4/include/netcdf.h
 
   BUILT_SOURCES  += netcdf.h
   DISTCLEANFILES += netcdf.h
-
-endif
-
-if LIBMESH_INSTALL_HINNANT_UNIQUE_PTR
-
-unique_ptr.hpp: $(top_srcdir)/contrib/unique_ptr/unique_ptr.hpp
-	$(AM_V_GEN)rm -f $@ && $(LN_S) $< $@
-
-  BUILT_SOURCES  += unique_ptr.hpp
-  DISTCLEANFILES += unique_ptr.hpp
 
 endif
 
@@ -911,6 +906,9 @@ face_quad4_shell.h: $(top_srcdir)/include/geom/face_quad4_shell.h
 face_quad8.h: $(top_srcdir)/include/geom/face_quad8.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+face_quad8_shell.h: $(top_srcdir)/include/geom/face_quad8_shell.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 face_quad9.h: $(top_srcdir)/include/geom/face_quad9.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1143,6 +1141,9 @@ dense_matrix.h: $(top_srcdir)/include/numerics/dense_matrix.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 dense_matrix_base.h: $(top_srcdir)/include/numerics/dense_matrix_base.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
+dense_matrix_impl.h: $(top_srcdir)/include/numerics/dense_matrix_impl.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 dense_submatrix.h: $(top_srcdir)/include/numerics/dense_submatrix.h
@@ -1643,6 +1644,9 @@ fem_system.h: $(top_srcdir)/include/systems/fem_system.h
 frequency_system.h: $(top_srcdir)/include/systems/frequency_system.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+generic_projector.h: $(top_srcdir)/include/systems/generic_projector.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 implicit_system.h: $(top_srcdir)/include/systems/implicit_system.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1709,6 +1713,9 @@ hashword.h: $(top_srcdir)/include/utils/hashword.h
 ignore_warnings.h: $(top_srcdir)/include/utils/ignore_warnings.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+int_range.h: $(top_srcdir)/include/utils/int_range.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 libmesh_nullptr.h: $(top_srcdir)/include/utils/libmesh_nullptr.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1745,13 +1752,16 @@ point_locator_base.h: $(top_srcdir)/include/utils/point_locator_base.h
 point_locator_tree.h: $(top_srcdir)/include/utils/point_locator_tree.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+pointer_to_pointer_iter.h: $(top_srcdir)/include/utils/pointer_to_pointer_iter.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 pool_allocator.h: $(top_srcdir)/include/utils/pool_allocator.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 restore_warnings.h: $(top_srcdir)/include/utils/restore_warnings.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
-safe_bool.h: $(top_srcdir)/include/utils/safe_bool.h
+simple_range.h: $(top_srcdir)/include/utils/simple_range.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 statistics.h: $(top_srcdir)/include/utils/statistics.h

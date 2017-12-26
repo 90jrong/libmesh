@@ -33,7 +33,7 @@ namespace libMesh
  * with linear pyramids, but as of version 14 will not export
  * quadratic pyramids.  Paraview may support 13-node pyramids, but
  * does not render 14-node pyramids correctly.  So even if this
- * element works in libmesh, we are curently limited in what we can do
+ * element works in libmesh, we are currently limited in what we can do
  * with it outside the library...
  *
  * The node numbering for the pyramid14 is given below:
@@ -144,7 +144,7 @@ public:
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    *
-   * We reimplemenet this method here for the \p Pyramid14 since we can
+   * We reimplement this method here for the \p Pyramid14 since we can
    * use the center node of the base face to provide a perfect (unique)
    * key.
    */
@@ -158,16 +158,16 @@ public:
 
   /**
    * Builds a \p QUAD9 or \p TRI6 coincident with face i.
-   * The \p UniquePtr<Elem> handles the memory aspect.
+   * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
-  virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
-                                          bool proxy) libmesh_override;
+  virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
+                                                bool proxy) libmesh_override;
 
   /**
    * Builds a \p EDGE3 coincident with edge i.
-   * The \p UniquePtr<Elem> handles the memory aspect.
+   * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
-  virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
+  virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
   virtual void connectivity(const unsigned int sc,
                             const IOPackage iop,

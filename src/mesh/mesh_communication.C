@@ -39,7 +39,8 @@
 // C++ Includes
 #include <numeric>
 #include <set>
-
+#include <unordered_set>
+#include <unordered_map>
 
 
 
@@ -205,12 +206,9 @@ void connect_children(const MeshBase & mesh,
     {
       const Elem * elem = *elem_it;
       if (elem->has_children())
-        for (unsigned int c=0; c != elem->n_children(); ++c)
-          {
-            const Elem * child = elem->child_ptr(c);
-            if (child != remote_elem)
-              connected_elements.insert(child);
-          }
+        for (auto & child : elem->child_ref_range())
+          if (&child != remote_elem)
+            connected_elements.insert(&child);
     }
 #endif // LIBMESH_ENABLE_AMR
 }
@@ -303,8 +301,8 @@ void reconnect_nodes (const std::set<const Elem *, CompareElemIdsByLevel> & conn
     {
       const Elem * elem = *elem_it;
 
-      for (unsigned int n=0; n<elem->n_nodes(); n++)
-        connected_nodes.insert(elem->node_ptr(n));
+      for (auto & n : elem->node_ref_range())
+        connected_nodes.insert(&n);
     }
 }
 
@@ -621,22 +619,18 @@ void MeshCommunication::gather_neighboring_elements (DistributedMesh & mesh) con
     std::set<dof_id_type> my_interface_node_set;
 
     // since parent nodes are a subset of children nodes, this should be sufficient
-    MeshBase::const_element_iterator       it     = mesh.active_local_elements_begin();
-    const MeshBase::const_element_iterator it_end = mesh.active_local_elements_end();
-
-    for (; it != it_end; ++it)
+    for (const auto & elem : mesh.active_local_element_ptr_range())
       {
-        const Elem * const elem = *it;
         libmesh_assert(elem);
 
         if (elem->on_boundary()) // denotes *any* side has a NULL neighbor
           {
             my_interface_elements.push_back(elem); // add the element, but only once, even
             // if there are multiple NULL neighbors
-            for (unsigned int s=0; s<elem->n_sides(); s++)
+            for (auto s : elem->side_index_range())
               if (elem->neighbor_ptr(s) == libmesh_nullptr)
                 {
-                  UniquePtr<const Elem> side(elem->build_side_ptr(s));
+                  std::unique_ptr<const Elem> side(elem->build_side_ptr(s));
 
                   for (unsigned int n=0; n<side->n_vertices(); n++)
                     my_interface_node_set.insert (side->node_id(n));
@@ -657,7 +651,7 @@ void MeshCommunication::gather_neighboring_elements (DistributedMesh & mesh) con
   // MPI 2.1 standard seeks to remove this restriction as unnecessary, so in
   // the future we should change this to send the same buffer to each of the
   // adjacent processors. - BSK 11/17/2008
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     my_interface_node_xfer_buffers (n_adjacent_processors, my_interface_node_list);
   std::map<processor_id_type, unsigned char> n_comm_steps;
 
@@ -685,7 +679,7 @@ void MeshCommunication::gather_neighboring_elements (DistributedMesh & mesh) con
 
   std::vector<dof_id_type> common_interface_node_list;
 
-  // we expect two classess of messages -
+  // we expect two classes of messages -
   // (1) incoming interface node lists, to which we will reply with our elements
   //     touching nodes in the list, and
   // (2) replies from the requests we sent off previously.
@@ -823,8 +817,8 @@ void MeshCommunication::gather_neighboring_elements (DistributedMesh & mesh) con
                           elem = family_tree[leaf];
                           elements_to_send.insert (elem);
 
-                          for (unsigned int n=0; n<elem->n_nodes(); n++)
-                            connected_nodes.insert (elem->node_ptr(n));
+                          for (auto & n : elem->node_ref_range())
+                            connected_nodes.insert (&n);
                         }
                     }
                 }
@@ -941,9 +935,7 @@ void MeshCommunication::send_coarse_ghosts(MeshBase & mesh) const
   // coarsen an element will send all the associated ghosted elements
   // to all processors which own any of the coarsened-away-element's
   // siblings.
-  typedef LIBMESH_BEST_UNORDERED_MAP
-    <processor_id_type, std::vector<Elem *> >
-    ghost_map;
+  typedef std::unordered_map<processor_id_type, std::vector<Elem *>> ghost_map;
   ghost_map elements_to_ghost;
 
   const processor_id_type proc_id = mesh.processor_id();
@@ -1001,7 +993,7 @@ void MeshCommunication::send_coarse_ghosts(MeshBase & mesh) const
           const std::vector<Elem *> & elems = it->second;
           libmesh_assert(elems.size());
 
-          // Make some fakey element iterators defining this vector of
+          // Make some fake element iterators defining this vector of
           // elements
           Elem * const * elempp = const_cast<Elem * const *>(&elems[0]);
           Elem * const * elemend = elempp+elems.size();
@@ -1032,9 +1024,8 @@ void MeshCommunication::send_coarse_ghosts(MeshBase & mesh) const
                     {
                       libmesh_assert(elem != remote_elem);
                       elements_to_send.insert(elem);
-                      for (unsigned int n=0, n_nodes = elem->n_nodes();
-                           n != n_nodes; ++n)
-                        nodes_to_send.insert(elem->node_ptr(n));
+                      for (auto & n : elem->node_ref_range())
+                        nodes_to_send.insert(&n);
                       elem = elem->parent();
                     }
                 }
@@ -1292,13 +1283,13 @@ struct SyncNodeIds
   // We only know a Node id() is definitive if we own the Node or if
   // we're told it's definitive.  We keep track of the latter cases by
   // putting ghost node definitive ids into this set.
-  typedef LIBMESH_BEST_UNORDERED_SET<dof_id_type> uset_type;
+  typedef std::unordered_set<dof_id_type> uset_type;
   uset_type definitive_ids;
 
   // We should never be told two different definitive ids for the same
   // node, but let's check on that in debug mode.
 #ifdef DEBUG
-  typedef LIBMESH_BEST_UNORDERED_MAP<dof_id_type, dof_id_type> umap_type;
+  typedef std::unordered_map<dof_id_type, dof_id_type> umap_type;
   umap_type definitive_renumbering;
 #endif
 
@@ -1605,9 +1596,8 @@ struct ElemNodesMaybeNew
     // If this element has remote_elem neighbors then there may have
     // been refinement of those neighbors that affect its nodes'
     // processor_id()
-    unsigned int n_neigh = elem->n_neighbors();
-    for (unsigned int s=0; s != n_neigh; ++s)
-      if (elem->neighbor(s) == remote_elem)
+    for (auto neigh : elem->neighbor_ptr_range())
+      if (neigh == remote_elem)
         return true;
     return false;
   }
@@ -1636,9 +1626,8 @@ struct NodeMaybeNew
     // If this node is on a side with a remote element then there may
     // have been refinement of that element which affects this node's
     // processor_id()
-    unsigned int n_neigh = elem->n_neighbors();
-    for (unsigned int s=0; s != n_neigh; ++s)
-      if (elem->neighbor(s) == remote_elem)
+    for (auto s : elem->side_index_range())
+      if (elem->neighbor_ptr(s) == remote_elem)
         if (elem->is_node_on_side(local_node_num, s))
           return true;
 
@@ -1877,11 +1866,8 @@ MeshCommunication::delete_remote_elements (DistributedMesh & mesh,
     }
 
   // Delete all the nodes we have no reason to save
-  MeshBase::node_iterator node_it  = mesh.nodes_begin(),
-    node_end = mesh.nodes_end();
-  for (node_it = mesh.nodes_begin(); node_it != node_end; ++node_it)
+  for (auto & node : mesh.node_ptr_range())
     {
-      Node * node = *node_it;
       libmesh_assert(node);
       if (!connected_nodes.count(node))
         mesh.delete_node(node);

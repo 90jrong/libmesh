@@ -364,7 +364,9 @@ public:
    * \deprecated Instead, use the version of this function that fills
    * a std::vector.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> boundary_ids (const Node * node) const;
+#endif
 
   /**
    * Fills a user-provided std::vector with the boundary ids associated
@@ -398,8 +400,10 @@ public:
    * \deprecated Instead, use the version of this function that fills
    * a std::vector.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> edge_boundary_ids (const Elem * const elem,
                                                    const unsigned short int edge) const;
+#endif
 
   /**
    * \returns The list of boundary ids associated with the \p edge edge of
@@ -425,8 +429,10 @@ public:
    * \deprecated Instead, use the version of this function that fills
    * a std::vector.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> raw_edge_boundary_ids (const Elem * const elem,
                                                        const unsigned short int edge) const;
+#endif
 
   /**
    * \returns The list of raw boundary ids associated with the \p edge
@@ -496,8 +502,10 @@ public:
    * BoundaryInfo::boundary_ids() or BoundaryInfo::has_boundary_id()
    * instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   boundary_id_type boundary_id (const Elem * const elem,
                                 const unsigned short int side) const;
+#endif
 
   /**
    * \returns The number of boundary ids associated with the \p side
@@ -513,8 +521,10 @@ public:
    * \deprecated Instead, use the version of this function that fills
    * a std::vector.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> boundary_ids (const Elem * const elem,
                                               const unsigned short int side) const;
+#endif
 
   /**
    * \returns The list of boundary ids associated with the \p side side of
@@ -536,8 +546,10 @@ public:
    * \deprecated Instead, use the version of this function that fills
    * a std::vector.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> raw_boundary_ids (const Elem * const elem,
                                                   const unsigned short int side) const;
+#endif
 
   /**
    * \returns The list of raw boundary ids associated with the \p side
@@ -821,7 +833,7 @@ private:
                 boundary_id_type> _boundary_node_id;
 
   /**
-   * Typdef for iterators into the _boundary_node_id container.
+   * Typedef for iterators into the _boundary_node_id container.
    */
   typedef std::multimap<const Node *, boundary_id_type>::const_iterator boundary_node_iter;
 
@@ -837,28 +849,28 @@ private:
    * to boundary ids. This is only relevant in 3D.
    */
   std::multimap<const Elem *,
-                std::pair<unsigned short int, boundary_id_type> >
+                std::pair<unsigned short int, boundary_id_type>>
   _boundary_edge_id;
 
   /**
-   * Typdef for iterators into the _boundary_edge_id container.
+   * Typedef for iterators into the _boundary_edge_id container.
    */
   typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type> >::const_iterator boundary_edge_iter;
+                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_edge_iter;
 
   /**
    * Data structure that maps faces of shell elements
    * to boundary ids. This is only relevant for shell elements.
    */
   std::multimap<const Elem *,
-                std::pair<unsigned short int, boundary_id_type> >
+                std::pair<unsigned short int, boundary_id_type>>
   _boundary_shellface_id;
 
   /**
-   * Typdef for iterators into the _boundary_shellface_id container.
+   * Typedef for iterators into the _boundary_shellface_id container.
    */
   typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type> >::const_iterator boundary_shellface_iter;
+                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_shellface_iter;
 
 
   /**
@@ -866,14 +878,14 @@ private:
    * to boundary ids.
    */
   std::multimap<const Elem *,
-                std::pair<unsigned short int, boundary_id_type> >
+                std::pair<unsigned short int, boundary_id_type>>
   _boundary_side_id;
 
   /**
-   * Typdef for iterators into the _boundary_side_id container.
+   * Typedef for iterators into the _boundary_side_id container.
    */
   typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type> >::const_iterator boundary_side_iter;
+                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_side_iter;
 
   /**
    * Some older compilers don't support erasing from a map with
@@ -881,7 +893,7 @@ private:
    * situations.
    */
   typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type> >::iterator erase_iter;
+                        std::pair<unsigned short int, boundary_id_type>>::iterator erase_iter;
   /**
    * A collection of user-specified boundary ids for sides, edges, nodes,
    * and shell faces.

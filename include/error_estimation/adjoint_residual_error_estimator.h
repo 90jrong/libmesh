@@ -21,7 +21,7 @@
 #define LIBMESH_ADJOINT_RESIDUAL_ERROR_ESTIMATOR_H
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/error_estimator.h"
 #include "libmesh/qoi_set.h"
 
@@ -29,16 +29,10 @@
 #include <cstddef>
 #include <string>
 #include <vector>
-
-// Forward Declarations
-
-
-
+#include <memory>
 
 namespace libMesh
 {
-
-
 /**
  * This class implements a goal oriented error indicator, by weighting
  * residual-based estimates from the primal problem against estimates
@@ -71,13 +65,13 @@ public:
    * Access to the "subestimator" (default: PatchRecovery) to use on
    * the primal/forward solution
    */
-  UniquePtr<ErrorEstimator> & primal_error_estimator() { return _primal_error_estimator; }
+  std::unique_ptr<ErrorEstimator> & primal_error_estimator() { return _primal_error_estimator; }
 
   /**
    * Access to the "subestimator" (default: PatchRecovery) to use on
    * the dual/adjoint solution
    */
-  UniquePtr<ErrorEstimator> & dual_error_estimator() { return _dual_error_estimator; }
+  std::unique_ptr<ErrorEstimator> & dual_error_estimator() { return _dual_error_estimator; }
 
   /**
    * Access to the QoISet (default: weight all QoIs equally) to use
@@ -123,12 +117,12 @@ protected:
   /**
    * An error estimator for the forward problem
    */
-  UniquePtr<ErrorEstimator> _primal_error_estimator;
+  std::unique_ptr<ErrorEstimator> _primal_error_estimator;
 
   /**
    * An error estimator for the adjoint problem
    */
-  UniquePtr<ErrorEstimator> _dual_error_estimator;
+  std::unique_ptr<ErrorEstimator> _dual_error_estimator;
 
   /**
    * A QoISet to handle cases with multiple QoIs available

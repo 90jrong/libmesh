@@ -362,7 +362,7 @@ void Nemesis_IO::read (const std::string & base_filename)
   // Let's get a unique message tag to use for send()/receive()
   Parallel::MessageTag nodes_tag = mesh.comm().get_unique_tag(12345);
 
-  std::vector<std::vector<int> >
+  std::vector<std::vector<int>>
     needed_node_idxs (nemhelper->num_node_cmaps); // the indices we will ask for
 
   std::vector<Parallel::Request>
@@ -466,7 +466,7 @@ void Nemesis_IO::read (const std::string & base_filename)
   // id.  We expect to be asked for the ids of the ones we own, so
   // we need to create a map from the old global id to the new one
   // we are about to create.
-  typedef std::vector<std::pair<unsigned int, unsigned int> > global_idx_mapping_type;
+  typedef std::vector<std::pair<unsigned int, unsigned int>> global_idx_mapping_type;
   global_idx_mapping_type old_global_to_new_global_map;
   old_global_to_new_global_map.reserve (num_nodes_i_must_number // total # i will have
                                         - (my_next_node         // amount i have thus far
@@ -527,7 +527,7 @@ void Nemesis_IO::read (const std::string & base_filename)
 
   // We can now catch incoming requests and process them. for efficiency
   // let's do whatever is available next
-  std::map<unsigned int, std::vector<int> > requested_node_idxs; // the indices asked of us
+  std::map<unsigned int, std::vector<int>> requested_node_idxs; // the indices asked of us
 
   std::vector<Parallel::Request> requested_nodes_requests(nemhelper->num_node_cmaps);
 
@@ -659,7 +659,7 @@ void Nemesis_IO::read (const std::string & base_filename)
                   nemhelper->node_num_map[local_node_idx] = global_node_idx;
 
                   // we are not really going to use my_next_node again, but we can
-                  // keep incrimenting it to track how many nodes we have added
+                  // keep incrementing it to track how many nodes we have added
                   // to the mesh
                   my_next_node++;
                 }
@@ -1096,7 +1096,7 @@ void Nemesis_IO::read (const std::string & base_filename)
   // For each nodeset,
   for (int nodeset=0; nodeset<nemhelper->num_node_sets; nodeset++)
     {
-      // Get the user-defined ID associcated with the nodeset
+      // Get the user-defined ID associated with the nodeset
       int nodeset_id = nemhelper->nodeset_ids[nodeset];
 
       if (_verbose)
@@ -1196,7 +1196,7 @@ void Nemesis_IO::write (const std::string & base_filename)
 
   nemhelper->create(nemesis_filename);
 
-  // Initialize data structures and write some global Nemesis-specifc data, such as
+  // Initialize data structures and write some global Nemesis-specific data, such as
   // communication maps, to file.
   nemhelper->initialize(nemesis_filename,mesh);
 

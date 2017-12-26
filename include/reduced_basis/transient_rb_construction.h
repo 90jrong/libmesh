@@ -261,31 +261,31 @@ public:
   /**
    * The L2 matrix.
    */
-  UniquePtr< SparseMatrix<Number> > L2_matrix;
+  std::unique_ptr<SparseMatrix<Number>> L2_matrix;
 
   /**
    * The L2 matrix without Dirichlet conditions enforced.
    * (This is only computed if store_non_dirichlet_operators == true.)
    */
-  UniquePtr< SparseMatrix<Number> > non_dirichlet_L2_matrix;
+  std::unique_ptr<SparseMatrix<Number>> non_dirichlet_L2_matrix;
 
   /**
    * Vector storing the Q_m matrices from the mass operator
    */
-  std::vector<SparseMatrix<Number> *> M_q_vector;
+  std::vector<std::unique_ptr<SparseMatrix<Number>>> M_q_vector;
 
   /**
    * We sometimes also need a second set of M_q matrices
    * that do not have the Dirichlet boundary conditions
    * enforced.
    */
-  std::vector<SparseMatrix<Number> *> non_dirichlet_M_q_vector;
+  std::vector<std::unique_ptr<SparseMatrix<Number>>> non_dirichlet_M_q_vector;
 
   /**
    * The truth outputs for all time-levels from the
    * most recent truth_solve.
    */
-  std::vector<std::vector<Number> > truth_outputs_all_k;
+  std::vector<std::vector<Number>> truth_outputs_all_k;
 
   /**
    * Boolean flag to indicate whether we are using a non-zero initialization.
@@ -405,7 +405,7 @@ private:
   /**
    * Dense matrix to store the data that we use for the temporal POD.
    */
-  std::vector< NumericVector<Number> * > temporal_data;
+  std::vector<std::unique_ptr<NumericVector<Number>>> temporal_data;
 };
 
 } // namespace libMesh

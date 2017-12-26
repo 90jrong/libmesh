@@ -21,7 +21,7 @@
 #define LIBMESH_FE_TYPE_H
 
 // Local includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/compare_types.h"
 #include "libmesh/libmesh_config.h"
 #include "libmesh/enum_order.h"
@@ -29,6 +29,7 @@
 #include "libmesh/enum_inf_map_type.h"
 
 // C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -72,7 +73,7 @@ public:
   }
 
   /**
-   * Explicity request the order as an int.
+   * Explicitly request the order as an int.
    */
   int get_order() const
   {
@@ -316,8 +317,8 @@ public:
    * matrix for such an element exactly.  Higher or lower degree rules can
    * be chosen by changing the extraorder parameter.
    */
-  UniquePtr<QBase> default_quadrature_rule (const unsigned int dim,
-                                            const int extraorder=0) const;
+  std::unique_ptr<QBase> default_quadrature_rule (const unsigned int dim,
+                                                  const int extraorder=0) const;
 
 
 private:

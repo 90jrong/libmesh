@@ -158,21 +158,13 @@ int main (int argc, char ** argv)
 
   mesh.read(mesh_name_exodus.str());
 
-  {
-    // Add boundary IDs to this mesh so that we can use DirichletBoundary
-    // Each processor should know about each boundary condition it can
-    // see, so we loop over all elements, not just local elements.
-    MeshBase::const_element_iterator       el     = mesh.elements_begin();
-    const MeshBase::const_element_iterator end_el = mesh.elements_end();
-    for ( ; el != end_el; ++el)
-      {
-        const Elem * elem = *el;
-
-        for (unsigned int side=0; side<elem->n_sides(); side++)
-          if (elem->neighbor_ptr (side) == NULL)
-            mesh.get_boundary_info().add_side(elem, side, BOUNDARY_ID);
-      }
-  }
+  // Add boundary IDs to this mesh so that we can use DirichletBoundary
+  // Each processor should know about each boundary condition it can
+  // see, so we loop over all elements, not just local elements.
+  for (const auto & elem : mesh.element_ptr_range())
+    for (auto side : elem->side_index_range())
+      if (elem->neighbor_ptr (side) == NULL)
+        mesh.get_boundary_info().add_side(elem, side, BOUNDARY_ID);
 
   // Print information about the mesh to the screen.
   mesh.print_info();
@@ -316,9 +308,9 @@ void assemble_matrices(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A  Gauss quadrature rule for numerical integration.
   // Use the default quadrature order.
@@ -331,11 +323,11 @@ void assemble_matrices(EquationSystems & es,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -358,15 +350,8 @@ void assemble_matrices(EquationSystems & es,
   // later modify this program to include refinement, we will
   // be safe and will only consider the active elements;
   // hence we use a variant of the active_elem_iterator.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -392,7 +377,7 @@ void assemble_matrices(EquationSystems & es,
       // the numeric integration.
       //
       // We will build the element matrix.  This involves
-      // a double loop to integrate the test funcions (i) against
+      // a double loop to integrate the test functions (i) against
       // the trial functions (j).
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
         for (std::size_t i=0; i<phi.size(); i++)

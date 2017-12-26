@@ -74,16 +74,16 @@ unsigned int Tet::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Tet::side_ptr (const unsigned int i)
+std::unique_ptr<Elem> Tet::side_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_sides());
 
-  Elem * face = new Tri3;
+  std::unique_ptr<Elem> face = libmesh_make_unique<Tri3>();
 
   for (unsigned n=0; n<face->n_nodes(); ++n)
     face->set_node(n) = this->node_ptr(Tet4::side_nodes_map[i][n]);
 
-  return UniquePtr<Elem>(face);
+  return face;
 }
 
 

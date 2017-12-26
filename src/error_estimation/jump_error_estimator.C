@@ -146,8 +146,11 @@ void JumpErrorEstimator::estimate_error (const System & system,
   // pre-request
   for (var=0; var<n_vars; var++)
     {
-      // Possibly skip this variable
-      if (error_norm.weight(var) == 0.0) continue;
+      // Skip variables which aren't part of our norm,
+      // as well as SCALAR variables, which have no jumps
+      if (error_norm.weight(var) == 0.0 ||
+          system.variable_type(var).family == SCALAR)
+        continue;
 
       // FIXME: Need to generalize this to vector-valued elements. [PB]
       FEBase * side_fe = libmesh_nullptr;
@@ -162,8 +165,6 @@ void JumpErrorEstimator::estimate_error (const System & system,
 
           fine_context->get_side_fe( var, side_fe, dim );
 
-          libmesh_assert_not_equal_to(side_fe->get_fe_type().family, SCALAR);
-
           side_fe->get_xyz();
         }
     }
@@ -173,13 +174,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
 
   // Iterate over all the active elements in the mesh
   // that live on this processor.
-  MeshBase::const_element_iterator       elem_it  = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator elem_end = mesh.active_local_elements_end();
-
-  for (; elem_it != elem_end; ++elem_it)
+  for (const auto & e : mesh.active_local_element_ptr_range())
     {
-      // e is necessarily an active element on the local processor
-      const Elem * e = *elem_it;
       const dof_id_type e_id = e->id();
 
 #ifdef LIBMESH_ENABLE_AMR
@@ -193,8 +189,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
       if (!parent || !estimate_parent_error)
         compute_on_parent = false;
       else
-        for (unsigned int c=0; c != parent->n_children(); ++c)
-          if (!parent->child_ptr(c)->active())
+        for (auto & child : parent->child_ref_range())
+          if (!child.active())
             compute_on_parent = false;
 
       if (compute_on_parent &&
@@ -206,7 +202,7 @@ void JumpErrorEstimator::estimate_error (const System & system,
             (*(system.solution), dof_map, parent, Uparent, false);
 
           // Loop over the neighbors of the parent
-          for (unsigned int n_p=0; n_p<parent->n_neighbors(); n_p++)
+          for (auto n_p : parent->side_index_range())
             {
               if (parent->neighbor_ptr(n_p) != libmesh_nullptr) // parent has a neighbor here
                 {
@@ -235,7 +231,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
 
                           // Loop over all significant variables in the system
                           for (var=0; var<n_vars; var++)
-                            if (error_norm.weight(var) != 0.0)
+                            if (error_norm.weight(var) != 0.0 &&
+                                system.variable_type(var).family != SCALAR)
                               {
                                 this->internal_side_integration();
 
@@ -274,7 +271,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
                   bool found_boundary_flux = false;
 
                   for (var=0; var<n_vars; var++)
-                    if (error_norm.weight(var) != 0.0)
+                    if (error_norm.weight(var) != 0.0 &&
+                        system.variable_type(var).family != SCALAR)
                       {
                         if (this->boundary_side_integration())
                           {
@@ -295,7 +293,7 @@ void JumpErrorEstimator::estimate_error (const System & system,
       fine_context->pre_fe_reinit(system, e);
 
       // Loop over the neighbors of element e
-      for (unsigned int n_e=0; n_e<e->n_neighbors(); n_e++)
+      for (auto n_e : e->side_index_range())
         {
           if ((e->neighbor_ptr(n_e) != libmesh_nullptr) ||
               integrate_boundary_sides)
@@ -320,7 +318,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
 
                   // Loop over all significant variables in the system
                   for (var=0; var<n_vars; var++)
-                    if (error_norm.weight(var) != 0.0)
+                    if (error_norm.weight(var) != 0.0 &&
+                        system.variable_type(var).family != SCALAR)
                       {
                         this->internal_side_integration();
 
@@ -339,7 +338,7 @@ void JumpErrorEstimator::estimate_error (const System & system,
                         this->coarse_n_flux_faces_increment();
                     }
                 } // end if (case1 || case2)
-            } // if (e->neigbor(n_e) != libmesh_nullptr)
+            } // if (e->neighbor(n_e) != libmesh_nullptr)
 
           // Otherwise, e is on the boundary.  If it happens to
           // be on a Dirichlet boundary, we need not do anything.
@@ -354,7 +353,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
               bool found_boundary_flux = false;
 
               for (var=0; var<n_vars; var++)
-                if (error_norm.weight(var) != 0.0)
+                if (error_norm.weight(var) != 0.0 &&
+                    system.variable_type(var).family != SCALAR)
                   if (this->boundary_side_integration())
                     {
                       error_per_cell[fine_context->get_elem().id()] +=
@@ -369,7 +369,7 @@ void JumpErrorEstimator::estimate_error (const System & system,
     } // End loop over active local elements
 
 
-  // Each processor has now computed the error contribuions
+  // Each processor has now computed the error contributions
   // for its local elements.  We need to sum the vector
   // and then take the square-root of each component.  Note
   // that we only need to sum if we are running on multiple
@@ -452,7 +452,8 @@ JumpErrorEstimator::reinit_sides ()
 
   // Calculate all coarse element shape functions at those locations
   for (unsigned int v=0; v<n_vars; v++)
-    if (error_norm.weight(v) != 0.0)
+    if (error_norm.weight(v) != 0.0 &&
+        fine_context->get_system().variable_type(v).family != SCALAR)
       {
         coarse_context->get_side_fe( v, fe_coarse, dim );
         fe_coarse->reinit (&coarse_context->get_elem(), &qp_coarse);

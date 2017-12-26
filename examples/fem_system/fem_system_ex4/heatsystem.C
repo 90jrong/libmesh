@@ -38,14 +38,15 @@ void HeatSystem::init_data ()
   // Do the parent's initialization after variables are defined
   FEMSystem::init_data();
 
-  this->time_evolving(0);
+  // The temperature is evolving, with a first-order time derivative
+  this->time_evolving(T_var, 1);
 }
 
 
 
 void HeatSystem::init_context(DiffContext & context)
 {
-  FEMContext & c = libmesh_cast_ref<FEMContext &>(context);
+  FEMContext & c = cast_ref<FEMContext &>(context);
 
   const std::set<unsigned char> & elem_dims =
     c.elem_dimensions();
@@ -72,7 +73,7 @@ void HeatSystem::init_context(DiffContext & context)
 bool HeatSystem::element_time_derivative (bool request_jacobian,
                                           DiffContext & context)
 {
-  FEMContext & c = libmesh_cast_ref<FEMContext &>(context);
+  FEMContext & c = cast_ref<FEMContext &>(context);
 
   const unsigned int mesh_dim =
     c.get_system().get_mesh().mesh_dimension();
@@ -88,9 +89,9 @@ bool HeatSystem::element_time_derivative (bool request_jacobian,
 
   const std::vector<Point> & xyz = fe->get_xyz();
 
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // The number of local degrees of freedom in each variable
   const unsigned int n_T_dofs = c.get_dof_indices(T_var).size();

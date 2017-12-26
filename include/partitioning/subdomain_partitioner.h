@@ -22,6 +22,7 @@
 
 // Local Includes
 #include "libmesh/partitioner.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -35,7 +36,7 @@ namespace libMesh
  * chunks[1] = {3, 7, 8}
  * chunks[2] = {5, 6}
  * then we will call the internal Partitioner three times, once for
- * subodmains 1, 2, and 4, once for subdomains 3, 7, and 8, and once
+ * subdomains 1, 2, and 4, once for subdomains 3, 7, and 8, and once
  * for subdomains 5 and 6.
  *
  * \note This Partitioner may produce highly non-optimal communication
@@ -65,9 +66,9 @@ public:
   /**
    * \returns A copy of this partitioner wrapped in a smart pointer.
    */
-  virtual UniquePtr<Partitioner> clone () const libmesh_override
+  virtual std::unique_ptr<Partitioner> clone () const libmesh_override
   {
-    return UniquePtr<Partitioner>(new SubdomainPartitioner());
+    return libmesh_make_unique<SubdomainPartitioner>();
   }
 
   /**
@@ -76,7 +77,7 @@ public:
    * called once for each entry of chunks, and the resulting
    * partitioning will simply be the union of all these partitionings.
    */
-  std::vector<std::set<subdomain_id_type> > chunks;
+  std::vector<std::set<subdomain_id_type>> chunks;
 
   /**
    * Get a reference to the Partitioner used internally by the
@@ -92,14 +93,14 @@ public:
    * sp.internal_partitioner().reset(new SFCPartitioner);
    * \endcode
    */
-  UniquePtr<Partitioner> & internal_partitioner() { return _internal_partitioner; }
+  std::unique_ptr<Partitioner> & internal_partitioner() { return _internal_partitioner; }
 
 protected:
   /**
    * The internal Partitioner we use. Public access via the
    * internal_partitioner() member function.
    */
-  UniquePtr<Partitioner> _internal_partitioner;
+  std::unique_ptr<Partitioner> _internal_partitioner;
 
   /**
    * Partition the \p MeshBase into \p n subdomains.

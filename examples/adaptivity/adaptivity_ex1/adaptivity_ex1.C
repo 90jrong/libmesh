@@ -211,10 +211,10 @@ void assemble_1D(EquationSystems & es,
   FEType fe_type = dof_map.variable_type(0);
 
   // Build a finite element object of the specified type. The build
-  // function dynamically allocates memory so we use a UniquePtr in this case.
-  // A UniquePtr is a pointer that cleans up after itself. See examples 3 and 4
-  // for more details on UniquePtr.
-  UniquePtr<FEBase> fe(FEBase::build(dim, fe_type));
+  // function dynamically allocates memory so we use a std::unique_ptr in this case.
+  // A std::unique_ptr is a pointer that cleans up after itself. See examples 3 and 4
+  // for more details on std::unique_ptr.
+  std::unique_ptr<FEBase> fe(FEBase::build(dim, fe_type));
 
   // Tell the finite element object to use fifth order Gaussian quadrature
   QGauss qrule(dim, FIFTH);
@@ -227,10 +227,10 @@ void assemble_1D(EquationSystems & es,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // Declare a dense matrix and dense vector to hold the element matrix
   // and right-hand-side contribution
@@ -246,15 +246,8 @@ void assemble_1D(EquationSystems & es,
   // the matrix and right-hand-side contribution from each element. Use a
   // const_element_iterator to loop over the elements. We make
   // el_end const as it is used only for the stopping condition of the loop.
-  MeshBase::const_element_iterator el = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator el_end = mesh.active_local_elements_end();
-
-  // Note that ++el is preferred to el++ when using loops with iterators
-  for ( ; el != el_end; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // It is convenient to store a pointer to the current element
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the current element.
       // These define where in the global matrix and right-hand-side this
       // element will contribute to.
@@ -304,7 +297,7 @@ void assemble_1D(EquationSystems & es,
       // Loop over the sides of this element. For a 1D element, the "sides"
       // are defined as the nodes on each edge of the element, i.e. 1D elements
       // have 2 sides.
-      for (unsigned int s=0; s<elem->n_sides(); s++)
+      for (auto s : elem->side_index_range())
         {
           // If this element has a NULL neighbor, then it is on the edge of the
           // mesh and we need to enforce a boundary condition using the penalty

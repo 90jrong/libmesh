@@ -22,7 +22,7 @@
 
 // Local includes
 #include "libmesh/libmesh_common.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/enum_parallel_type.h"
 #include "libmesh/enum_solver_package.h"
 #include "libmesh/id_types.h"
@@ -36,6 +36,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -58,7 +59,7 @@ template <typename T> class ShellMatrix;
  * \date 2003
  */
 template <typename T>
-class NumericVector : public ReferenceCountedObject<NumericVector<T> >,
+class NumericVector : public ReferenceCountedObject<NumericVector<T>>,
                       public ParallelObject
 {
 public:
@@ -111,7 +112,7 @@ public:
    * \p comm using the linear solver package specified by
    * \p solver_package
    */
-  static UniquePtr<NumericVector<T> >
+  static std::unique_ptr<NumericVector<T>>
   build(const Parallel::Communicator & comm,
         const SolverPackage solver_package = libMesh::default_solver_package());
 
@@ -124,8 +125,10 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * build() method that takes a Parallel::Communicator instead.
    */
-  static UniquePtr<NumericVector<T> >
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  static std::unique_ptr<NumericVector<T>>
   build(const SolverPackage solver_package = libMesh::default_solver_package());
+#endif
 #endif
 
   /**
@@ -173,14 +176,14 @@ public:
    *
    * \note This must be overridden in the derived classes.
    */
-  virtual UniquePtr<NumericVector<T> > zero_clone () const = 0;
+  virtual std::unique_ptr<NumericVector<T>> zero_clone () const = 0;
 
   /**
    * \returns A copy of this vector wrapped in a smart pointer.
    *
    * \note This must be overridden in the derived classes.
    */
-  virtual UniquePtr<NumericVector<T> > clone () const = 0;
+  virtual std::unique_ptr<NumericVector<T>> clone () const = 0;
 
   /**
    * Change the dimension of the vector to \p N. The reserved memory

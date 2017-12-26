@@ -22,7 +22,7 @@
 // libMesh Includes
 #include "libmesh/libmesh_common.h" // libmesh_assert, cast_int
 #include "libmesh/libmesh_logging.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ includes
 #include <cstddef>
@@ -33,6 +33,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -41,6 +42,7 @@ namespace libMesh
 // Macro to identify and debug functions which should only be called in
 // parallel on every processor at once
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 #undef parallel_only
 #ifndef NDEBUG
 #define parallel_only() do {                                            \
@@ -50,6 +52,7 @@ namespace libMesh
     libmesh_assert(CommWorld.verify(__LINE__)); } while (0)
 #else
 #define parallel_only()  ((void) 0)
+#endif
 #endif
 
 #undef libmesh_parallel_only
@@ -65,6 +68,7 @@ namespace libMesh
 // Macro to identify and debug functions which should only be called in
 // parallel on every processor at once
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 #undef parallel_only_on
 #ifndef NDEBUG
 #define parallel_only_on(comm_arg) do {                                 \
@@ -74,6 +78,7 @@ namespace libMesh
     libmesh_assert(CommWorld.verify(__LINE__), comm_arg); } while (0)
 #else
 #define parallel_only_on(comm_arg)  ((void) 0)
+#endif
 #endif
 
 #undef libmesh_parallel_only_on
@@ -417,20 +422,18 @@ class OpFunction
    * attempt to perform a reduction on an unspecialized type will be a
    * compile-time rather than a run-time failure.
    */
-/*
-  static MPI_Op max();
-  static MPI_Op min();
-  static MPI_Op sum();
-  static MPI_Op product();
-  static MPI_Op logical_and();
-  static MPI_Op bitwise_and();
-  static MPI_Op logical_or();
-  static MPI_Op bitwise_or();
-  static MPI_Op logical_xor();
-  static MPI_Op bitwise_xor();
-  static MPI_Op max_loc();
-  static MPI_Op min_loc();
- */
+  // static MPI_Op max();
+  // static MPI_Op min();
+  // static MPI_Op sum();
+  // static MPI_Op product();
+  // static MPI_Op logical_and();
+  // static MPI_Op bitwise_and();
+  // static MPI_Op logical_or();
+  // static MPI_Op bitwise_or();
+  // static MPI_Op logical_xor();
+  // static MPI_Op bitwise_xor();
+  // static MPI_Op max_loc();
+  // static MPI_Op min_loc();
 };
 
 /*
@@ -546,7 +549,7 @@ private:
 
   // Breaking non-blocking sends into multiple requests can require chaining
   // multiple requests into a single Request
-  UniquePtr<Request> _prior_request;
+  std::unique_ptr<Request> _prior_request;
 
   // post_wait_work->first is a vector of work to do after a wait
   // finishes; post_wait_work->second is a reference count so that
@@ -868,7 +871,7 @@ public:
    * Template type must match the object type that will be in
    * the packed range
    *
-   * \param src_processor_id The processor the mssage is expected from or Parallel::any_source
+   * \param src_processor_id The processor the message is expected from or Parallel::any_source
    * \param tag The message tag or Parallel::any_tag
    * \param flag Output.  True if a message exists.  False otherwise.
    */
@@ -1151,7 +1154,7 @@ public:
   template <typename T>
   inline void gather(const unsigned int root_id,
                      const std::basic_string<T> & send,
-                     std::vector<std::basic_string<T> > & recv,
+                     std::vector<std::basic_string<T>> & recv,
                      const bool identical_buffer_sizes=false) const;
 
   /**
@@ -1193,7 +1196,7 @@ public:
    */
   template <typename T>
   inline void allgather(const std::basic_string<T> & send,
-                        std::vector<std::basic_string<T> > & recv,
+                        std::vector<std::basic_string<T>> & recv,
                         const bool identical_buffer_sizes=false) const;
 
   /**
@@ -1228,7 +1231,7 @@ public:
    * AllGather overload for vectors of string types
    */
   template <typename T>
-  inline void allgather(std::vector<std::basic_string<T> > & r,
+  inline void allgather(std::vector<std::basic_string<T>> & r,
                         const bool identical_buffer_sizes = false) const;
 
   //-------------------------------------------------------------------
@@ -1270,7 +1273,7 @@ public:
    * The recv buffer does not have to be sized prior to this operation.
    */
   template <typename T>
-  inline void scatter(const std::vector<std::vector<T> > & data,
+  inline void scatter(const std::vector<std::vector<T>> & data,
                       std::vector<T> & recv,
                       const unsigned int root_id=0,
                       const bool identical_buffer_sizes=false) const;

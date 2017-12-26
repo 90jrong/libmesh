@@ -99,7 +99,7 @@ protected:
     }
 
     // libMesh will renumber, but we numbered according to its scheme
-    // anyway. We do this because when we call uniformly_refine subsequenly,
+    // anyway. We do this because when we call uniformly_refine subsequently,
     // it's going use skip_renumber=false.
     _mesh->prepare_for_use(false /*skip_renumber*/);
   }
@@ -176,7 +176,7 @@ public:
 
   void testPointLocatorTree()
   {
-    UniquePtr<PointLocatorBase> locator = _mesh->sub_point_locator();
+    std::unique_ptr<PointLocatorBase> locator = _mesh->sub_point_locator();
 
     Point top_point(0.5, 0.5);
     const Elem* top_elem = (*locator)(top_point);
@@ -475,7 +475,7 @@ protected:
     }
 
     // libMesh will renumber, but we numbered according to its scheme
-    // anyway. We do this because when we call uniformly_refine subsequenly,
+    // anyway. We do this because when we call uniformly_refine subsequently,
     // it's going use skip_renumber=false.
     _mesh->prepare_for_use(false /*skip_renumber*/);
 

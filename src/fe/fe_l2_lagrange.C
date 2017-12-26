@@ -314,6 +314,7 @@ unsigned int l2_lagrange_n_dofs(const ElemType t, const Order o)
           case QUAD4:
           case QUADSHELL4:
           case QUAD8:
+          case QUADSHELL8:
           case QUAD9:
             return 4;
 
@@ -360,6 +361,7 @@ unsigned int l2_lagrange_n_dofs(const ElemType t, const Order o)
             return 6;
 
           case QUAD8:
+          case QUADSHELL8:
             return 8;
 
           case QUAD9:
@@ -409,9 +411,6 @@ unsigned int l2_lagrange_n_dofs(const ElemType t, const Order o)
     default:
       libmesh_error_msg("ERROR: Invalid Order " << Utility::enum_to_string(o) << " selected for L2_LAGRANGE FE family!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 } // anonymous namespace

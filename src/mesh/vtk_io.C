@@ -365,18 +365,16 @@ void VTKIO::nodes_to_vtk()
   // containers for points and coordinates of points
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkDoubleArray> pcoords = vtkSmartPointer<vtkDoubleArray>::New();
-  // if this grid is to be used in VTK then the dimesion of the points should be 3
+  // if this grid is to be used in VTK then the dimension of the points should be 3
   pcoords->SetNumberOfComponents(LIBMESH_DIM);
   pcoords->Allocate(3*mesh.n_local_nodes());
   points->SetNumberOfPoints(mesh.n_local_nodes()); // it seems that it needs this to prevent a segfault
 
   unsigned int local_node_counter = 0;
 
-  MeshBase::const_node_iterator nd = mesh.local_nodes_begin();
-  MeshBase::const_node_iterator nd_end = mesh.local_nodes_end();
-  for (; nd != nd_end; nd++, ++local_node_counter)
+  for (const auto & node_ptr : mesh.local_node_ptr_range())
     {
-      Node & node = **nd;
+      const Node & node = *node_ptr;
 
       double pnt[3] = {0, 0, 0};
       for (unsigned int i=0; i<LIBMESH_DIM; ++i)
@@ -391,6 +389,7 @@ void VTKIO::nodes_to_vtk()
 #else
       pcoords->InsertNextTuple(pnt);
 #endif
+      ++local_node_counter;
     }
 
   // add coordinates to points
@@ -410,7 +409,6 @@ void VTKIO::cells_to_vtk()
   vtkSmartPointer<vtkIdList> pts = vtkSmartPointer<vtkIdList>::New();
 
   std::vector<int> types(mesh.n_active_local_elem());
-  unsigned active_element_counter = 0;
 
   vtkSmartPointer<vtkIntArray> elem_id = vtkSmartPointer<vtkIntArray>::New();
   elem_id->SetName("libmesh_elem_id");
@@ -424,12 +422,9 @@ void VTKIO::cells_to_vtk()
   elem_proc_id->SetName("processor_id");
   elem_proc_id->SetNumberOfComponents(1);
 
-  MeshBase::const_element_iterator it = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end = mesh.active_local_elements_end();
-  for (; it != end; ++it, ++active_element_counter)
+  unsigned active_element_counter = 0;
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      Elem * elem = *it;
-
       pts->SetNumberOfIds(elem->n_nodes());
 
       // get the connectivity for this element
@@ -471,6 +466,7 @@ void VTKIO::cells_to_vtk()
       elem_id->InsertTuple1(vtkcellid, elem->id());
       subdomain_id->InsertTuple1(vtkcellid, elem->subdomain_id());
       elem_proc_id->InsertTuple1(vtkcellid, elem->processor_id());
+      ++active_element_counter;
     } // end loop over active elements
 
   _vtk_grid->SetCells(&types[0], cells);
@@ -493,7 +489,7 @@ void VTKIO::cells_to_vtk()
 // {
 //   if (MeshOutput<MeshBase>::mesh().processor_id() == 0)
 //     {
-//       std::map<std::string, std::vector<Number> > vecs;
+//       std::map<std::string, std::vector<Number>> vecs;
 //       for (unsigned int i=0; i<es.n_systems(); ++i)
 //         {
 //           const System & sys = es.get_system(i);
@@ -511,7 +507,7 @@ void VTKIO::cells_to_vtk()
 //             }
 //         }
 //
-//       std::map<std::string, std::vector<Number> >::iterator it = vecs.begin();
+//       std::map<std::string, std::vector<Number>>::iterator it = vecs.begin();
 //
 //       for (; it!=vecs.end(); ++it)
 //         {

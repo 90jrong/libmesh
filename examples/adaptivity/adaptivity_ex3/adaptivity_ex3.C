@@ -83,7 +83,7 @@ using namespace libMesh;
 // the linear system for our Laplace problem.  Note that the
 // function will take the EquationSystems object and the
 // name of the system we are assembling as input.  From the
-// EquationSystems object we have acess to the Mesh and
+// EquationSystems object we have access to the Mesh and
 // other objects we might need.
 void assemble_laplace(EquationSystems & es,
                       const std::string & system_name);
@@ -151,6 +151,13 @@ int main(int argc, char ** argv)
 
 #ifdef LIBMESH_HAVE_EXODUS_API
   const bool output_intermediate    = input_file("output_intermediate", false);
+#endif
+
+  // If libmesh is configured without second derivative support, we
+  // can't run this example with Hermite elements and will therefore
+  // fail gracefully.
+#if !defined(LIBMESH_ENABLE_SECOND_DERIVATIVES)
+  libmesh_example_requires(approx_type != "HERMITE", "--enable-second");
 #endif
 
   dim = input_file("dimension", 2);
@@ -647,14 +654,14 @@ void assemble_laplace(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe      (FEBase::build(mesh_dim, fe_type));
-  UniquePtr<FEBase> fe_face (FEBase::build(mesh_dim, fe_type));
+  std::unique_ptr<FEBase> fe      (FEBase::build(mesh_dim, fe_type));
+  std::unique_ptr<FEBase> fe_face (FEBase::build(mesh_dim, fe_type));
 
   // Quadrature rules for numerical integration.
-  UniquePtr<QBase> qrule(fe_type.default_quadrature_rule(mesh_dim));
-  UniquePtr<QBase> qface(fe_type.default_quadrature_rule(mesh_dim-1));
+  std::unique_ptr<QBase> qrule(fe_type.default_quadrature_rule(mesh_dim));
+  std::unique_ptr<QBase> qface(fe_type.default_quadrature_rule(mesh_dim-1));
 
   // Tell the finite element object to use our quadrature rule.
   fe->attach_quadrature_rule      (qrule.get());
@@ -675,12 +682,12 @@ void assemble_laplace(EquationSystems & es,
   // The element shape functions evaluated at the quadrature points.
   // For this simple problem we usually only need them on element
   // boundaries.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-  const std::vector<std::vector<Real> > & psi = fe_face->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & psi = fe_face->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // The XY locations of the quadrature points used for face integration
   const std::vector<Point> & qface_points = fe_face->get_xyz();
@@ -706,19 +713,12 @@ void assemble_laplace(EquationSystems & es,
   // processor to compute its components of the global matrix for
   // active elements while ignoring parent elements which have been
   // refined.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
       // Start logging the shape function initialization.
       // This is done through a simple function call with
       // the name of the event to log.
       perf_log.push("elem init");
-
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
 
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
@@ -749,7 +749,7 @@ void assemble_laplace(EquationSystems & es,
       perf_log.pop("elem init");
 
       // Now we will build the element matrix.  This involves
-      // a double loop to integrate the test funcions (i) against
+      // a double loop to integrate the test functions (i) against
       // the trial functions (j).
       //
       // Now start logging the element matrix computation
@@ -796,7 +796,7 @@ void assemble_laplace(EquationSystems & es,
         // The following loops over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
-        for (unsigned int s=0; s<elem->n_sides(); s++)
+        for (auto s : elem->side_index_range())
           if (elem->neighbor_ptr(s) == libmesh_nullptr)
             {
               fe_face->reinit(elem, s);

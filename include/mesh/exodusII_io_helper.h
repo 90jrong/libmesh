@@ -80,7 +80,7 @@ class MeshBase;
  * implementation details of interfacing with the Exodus binary
  * format.
  *
- * \author Johw W. Peterson
+ * \author John W. Peterson
  * \date 2002
  */
 class ExodusII_IO_Helper : public ParallelObject
@@ -333,6 +333,11 @@ public:
    * Writes the vector of global variables.
    */
   void write_global_values(const std::vector<Real> & values, int timestep);
+
+  /**
+   * Reads the vector of global variables.
+   */
+  void read_global_values(std::vector<Real> & values, int timestep);
 
   /**
    * Sets the underlying value of the boolean flag
@@ -1114,19 +1119,19 @@ public:
    */
 
   /**
-   * Maps the Exodus face numbering for general hexahedrals.
+   * Maps the Exodus face numbering for general hexahedra.
    * Useful for reading sideset information.
    */
   static const int hex_face_map[6];
 
   /**
-   * Maps the Exodus face numbering for 27-noded hexahedrals.
+   * Maps the Exodus face numbering for 27-noded hexahedra.
    * Useful for reading sideset information.
    */
   static const int hex27_face_map[6];
 
   /**
-   * Maps the Exodus face numbering for general tetrahedrals.
+   * Maps the Exodus face numbering for general tetrahedra.
    * Useful for reading sideset information.
    */
   static const int tet_face_map[4];
@@ -1144,19 +1149,19 @@ public:
   static const int pyramid_face_map[5];
 
   /**
-   * Maps the Exodus face numbering for general hexahedrals.
+   * Maps the Exodus face numbering for general hexahedra.
    * Useful for writing sideset information.
    */
   static const int hex_inverse_face_map[6];
 
   /**
-   * Maps the Exodus face numbering for 27-noded hexahedrals.
+   * Maps the Exodus face numbering for 27-noded hexahedra.
    * Useful for writing sideset information.
    */
   static const int hex27_inverse_face_map[6];
 
   /**
-   * Maps the Exodus face numbering for general tetrahedrals.
+   * Maps the Exodus face numbering for general tetrahedra.
    * Useful for writing sideset information.
    */
   static const int tet_inverse_face_map[4];
@@ -1219,7 +1224,7 @@ public:
 
 private:
   // C++ data structures for managing string memory
-  std::vector<std::vector<char> > data_table;
+  std::vector<std::vector<char>> data_table;
   std::vector<char *> data_table_pointers;
 
   size_t counter;

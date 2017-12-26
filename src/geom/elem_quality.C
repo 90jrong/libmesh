@@ -220,7 +220,7 @@ std::string Quality::describe (const ElemQuality q)
 
     case TAPER:
       desc << "Maximum ratio of lengths\n"
-           << "derived from opposited edges.\n"
+           << "derived from opposite edges.\n"
            << '\n'
            << "Suggested ranges:\n"
            << "Quads: (0.7 -> 1)\n"
@@ -350,6 +350,7 @@ std::vector<ElemQuality> Quality::valid(const ElemType t)
     case QUAD4:
     case QUADSHELL4:
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         v.resize(13);

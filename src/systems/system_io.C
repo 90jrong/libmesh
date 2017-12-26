@@ -132,7 +132,7 @@ void System::read_header (Xdr & io,
   //
   //     6.) The name of the variable (string)
   //
-  //     6.1.) Variable subdmains
+  //     6.1.) Variable subdomains
   //
   //     7.) Combined in an FEType:
   //         - The approximation order(s) of the variable
@@ -224,7 +224,7 @@ void System::read_header (Xdr & io,
         // changed for the monomial and xyz finite element families to
         // simplify extension to arbitrary p.  The consequence is that
         // old restart files will not be read correctly.  This is expected
-        // to be an unlikely occurance, but catch it anyway.
+        // to be an unlikely occurence, but catch it anyway.
         if (read_legacy_format)
           if ((type.family == MONOMIAL || type.family == XYZ) &&
               ((type.order.get_order() > 2 && this->get_mesh().mesh_dimension() == 2) ||
@@ -306,6 +306,7 @@ void System::read_header (Xdr & io,
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 void System::read_legacy_data (Xdr & io,
                                const bool read_additional_data)
 {
@@ -357,42 +358,30 @@ void System::read_legacy_data (Xdr & io,
         const unsigned int var = _written_var_indices[data_var];
 
         // First reorder the nodal DOF values
-        {
-          MeshBase::node_iterator
-            it  = this->get_mesh().nodes_begin(),
-            end = this->get_mesh().nodes_end();
+        for (auto & node : this->get_mesh().node_ptr_range())
+          for (unsigned int index=0; index<node->n_comp(sys,var); index++)
+            {
+              libmesh_assert_not_equal_to (node->dof_number(sys, var, index),
+                                           DofObject::invalid_id);
 
-          for (; it != end; ++it)
-            for (unsigned int index=0; index<(*it)->n_comp(sys,var); index++)
-              {
-                libmesh_assert_not_equal_to ((*it)->dof_number(sys, var, index),
-                                             DofObject::invalid_id);
+              libmesh_assert_less (cnt, global_vector.size());
 
-                libmesh_assert_less (cnt, global_vector.size());
-
-                reordered_vector[(*it)->dof_number(sys, var, index)] =
-                  global_vector[cnt++];
-              }
-        }
+              reordered_vector[node->dof_number(sys, var, index)] =
+                global_vector[cnt++];
+            }
 
         // Then reorder the element DOF values
-        {
-          MeshBase::element_iterator
-            it  = this->get_mesh().active_elements_begin(),
-            end = this->get_mesh().active_elements_end();
+        for (auto & elem : this->get_mesh().active_element_ptr_range())
+          for (unsigned int index=0; index<elem->n_comp(sys,var); index++)
+            {
+              libmesh_assert_not_equal_to (elem->dof_number(sys, var, index),
+                                           DofObject::invalid_id);
 
-          for (; it != end; ++it)
-            for (unsigned int index=0; index<(*it)->n_comp(sys,var); index++)
-              {
-                libmesh_assert_not_equal_to ((*it)->dof_number(sys, var, index),
-                                             DofObject::invalid_id);
+              libmesh_assert_less (cnt, global_vector.size());
 
-                libmesh_assert_less (cnt, global_vector.size());
-
-                reordered_vector[(*it)->dof_number(sys, var, index)] =
-                  global_vector[cnt++];
-              }
-        }
+              reordered_vector[elem->dof_number(sys, var, index)] =
+                global_vector[cnt++];
+            }
       }
 
     *(this->solution) = reordered_vector;
@@ -415,7 +404,7 @@ void System::read_legacy_data (Xdr & io,
         libmesh_error_msg
           ("Additional vectors in file do not match system");
 
-      std::map<std::string, NumericVector<Number> * >::iterator
+      std::map<std::string, NumericVector<Number> *>::iterator
         pos = this->_vectors.begin();
 
       for (std::size_t i = 0; i != this->_additional_data_written; ++i)
@@ -459,42 +448,30 @@ void System::read_legacy_data (Xdr & io,
                 {
                   const unsigned int var = _written_var_indices[data_var];
                   // First reorder the nodal DOF values
-                  {
-                    MeshBase::node_iterator
-                      it  = this->get_mesh().nodes_begin(),
-                      end = this->get_mesh().nodes_end();
+                  for (auto & node : this->get_mesh().node_ptr_range())
+                    for (unsigned int index=0; index<node->n_comp(sys,var); index++)
+                      {
+                        libmesh_assert_not_equal_to (node->dof_number(sys, var, index),
+                                                     DofObject::invalid_id);
 
-                    for (; it!=end; ++it)
-                      for (unsigned int index=0; index<(*it)->n_comp(sys,var); index++)
-                        {
-                          libmesh_assert_not_equal_to ((*it)->dof_number(sys, var, index),
-                                                       DofObject::invalid_id);
+                        libmesh_assert_less (cnt, global_vector.size());
 
-                          libmesh_assert_less (cnt, global_vector.size());
-
-                          reordered_vector[(*it)->dof_number(sys, var, index)] =
-                            global_vector[cnt++];
-                        }
-                  }
+                        reordered_vector[node->dof_number(sys, var, index)] =
+                          global_vector[cnt++];
+                      }
 
                   // Then reorder the element DOF values
-                  {
-                    MeshBase::element_iterator
-                      it  = this->get_mesh().active_elements_begin(),
-                      end = this->get_mesh().active_elements_end();
+                  for (auto & elem : this->get_mesh().active_element_ptr_range())
+                    for (unsigned int index=0; index<elem->n_comp(sys,var); index++)
+                      {
+                        libmesh_assert_not_equal_to (elem->dof_number(sys, var, index),
+                                                     DofObject::invalid_id);
 
-                    for (; it!=end; ++it)
-                      for (unsigned int index=0; index<(*it)->n_comp(sys,var); index++)
-                        {
-                          libmesh_assert_not_equal_to ((*it)->dof_number(sys, var, index),
-                                                       DofObject::invalid_id);
+                        libmesh_assert_less (cnt, global_vector.size());
 
-                          libmesh_assert_less (cnt, global_vector.size());
-
-                          reordered_vector[(*it)->dof_number(sys, var, index)] =
-                            global_vector[cnt++];
-                        }
-                  }
+                        reordered_vector[elem->dof_number(sys, var, index)] =
+                          global_vector[cnt++];
+                      }
                 }
 
               // use the overloaded operator=(std::vector) to assign the values
@@ -508,6 +485,7 @@ void System::read_legacy_data (Xdr & io,
         }
     } // end if (_additional_data_written)
 }
+#endif
 
 
 
@@ -655,7 +633,7 @@ void System::read_parallel_data (Xdr & io,
         libmesh_error_msg
           ("Additional vectors in file do not match system");
 
-      std::map<std::string, NumericVector<Number> * >::const_iterator
+      std::map<std::string, NumericVector<Number> *>::const_iterator
         pos = _vectors.begin();
 
       for (std::size_t i = 0; i != this->_additional_data_written; ++i)
@@ -796,7 +774,7 @@ void System::read_serialized_data (Xdr & io,
         libmesh_error_msg
           ("Additional vectors in file do not match system");
 
-      std::map<std::string, NumericVector<Number> * >::const_iterator
+      std::map<std::string, NumericVector<Number> *>::const_iterator
         pos = _vectors.begin();
 
       for (std::size_t i = 0; i != this->_additional_data_written; ++i)
@@ -880,15 +858,15 @@ std::size_t System::read_serialized_blocked_dof_objects (const dof_id_type n_obj
 
   std::size_t n_read_values=0;
 
-  std::vector<std::vector<dof_id_type> > xfer_ids(num_blks);  // The global IDs and # of components for the local objects in all blocks
-  std::vector<std::vector<Number> >      recv_vals(num_blks); // The raw values for the local objects in all blocks
+  std::vector<std::vector<dof_id_type>> xfer_ids(num_blks);  // The global IDs and # of components for the local objects in all blocks
+  std::vector<std::vector<Number>>      recv_vals(num_blks); // The raw values for the local objects in all blocks
   std::vector<Parallel::Request>
     id_requests(num_blks), val_requests(num_blks);
 
   // ------------------------------------------------------
   // First pass - count the number of objects in each block
   // traverse all the objects and figure out which block they
-  // will utlimately live in.
+  // will ultimately live in.
   std::vector<std::size_t>
     xfer_ids_size  (num_blks,0),
     recv_vals_size (num_blks,0);
@@ -973,8 +951,8 @@ std::size_t System::read_serialized_blocked_dof_objects (const dof_id_type n_obj
   // do not exhaust memory on processor 0.
 
   // give these variables scope outside the block to avoid reallocation
-  std::vector<std::vector<dof_id_type> > recv_ids       (this->n_processors());
-  std::vector<std::vector<Number> >      send_vals      (this->n_processors());
+  std::vector<std::vector<dof_id_type>> recv_ids       (this->n_processors());
+  std::vector<std::vector<Number>>      send_vals      (this->n_processors());
   std::vector<Parallel::Request>         reply_requests (this->n_processors());
   std::vector<unsigned int>              obj_val_offsets;          // map to traverse entry-wise rather than processor-wise
   std::vector<Number>                    input_vals;               // The input buffer for the current block
@@ -998,7 +976,7 @@ std::size_t System::read_serialized_blocked_dof_objects (const dof_id_type n_obj
           input_vals.resize(tot_vals_size[blk]);
           input_vals_tmp.resize(tot_vals_size[blk]);
 
-          // a ThreadedIO object to perform asychronous file IO
+          // a ThreadedIO object to perform asynchronous file IO
           ThreadedIO<InValType> threaded_io(io, input_vals_tmp);
           Threads::Thread async_io(threaded_io);
 
@@ -1052,7 +1030,7 @@ std::size_t System::read_serialized_blocked_dof_objects (const dof_id_type n_obj
 #endif
             }
 
-          // We need the offests into the input_vals vector for each object.
+          // We need the offsets into the input_vals vector for each object.
           // fortunately, this is simply the partial sum of the total number
           // of components for each object
           std::partial_sum(obj_val_offsets.begin(), obj_val_offsets.end(),
@@ -1518,7 +1496,7 @@ void System::write_header (Xdr & io,
 
     if (write_additional_data)
       {
-        std::map<std::string, NumericVector<Number> * >::const_iterator
+        std::map<std::string, NumericVector<Number> *>::const_iterator
           vec_pos = this->_vectors.begin();
         unsigned int cnt=0;
 
@@ -1831,7 +1809,7 @@ void System::write_serialized_data (Xdr & io,
   //   // Only write additional vectors if wanted
   //   if (write_additional_data)
   //     {
-  // std::map<std::string, NumericVector<Number> * >::const_iterator
+  // std::map<std::string, NumericVector<Number> *>::const_iterator
   //   pos = _vectors.begin();
 
   // for (; pos != this->_vectors.end(); ++pos)
@@ -1907,15 +1885,15 @@ std::size_t System::write_serialized_blocked_dof_objects (const std::vector<cons
   //     << std::endl;
 
   dof_id_type written_length=0;                                   // The numer of values written.  This will be returned
-  std::vector<std::vector<dof_id_type> > xfer_ids(num_blks);      // The global IDs and # of components for the local objects in all blocks
-  std::vector<std::vector<Number> >      send_vals(num_blks);     // The raw values for the local objects in all blocks
+  std::vector<std::vector<dof_id_type>> xfer_ids(num_blks);      // The global IDs and # of components for the local objects in all blocks
+  std::vector<std::vector<Number>>      send_vals(num_blks);     // The raw values for the local objects in all blocks
   std::vector<Parallel::Request>
     id_requests(num_blks), val_requests(num_blks);                 // send request handle for each block
 
   // ------------------------------------------------------
   // First pass - count the number of objects in each block
   // traverse all the objects and figure out which block they
-  // will utlimately live in.
+  // will ultimately live in.
   std::vector<unsigned int>
     xfer_ids_size  (num_blks,0),
     send_vals_size (num_blks,0);
@@ -2013,14 +1991,14 @@ std::size_t System::write_serialized_blocked_dof_objects (const std::vector<cons
 
   if (this->processor_id() == 0)
     {
-      std::vector<std::vector<dof_id_type> > recv_ids  (this->n_processors());
-      std::vector<std::vector<Number> >      recv_vals (this->n_processors());
+      std::vector<std::vector<dof_id_type>> recv_ids  (this->n_processors());
+      std::vector<std::vector<Number>>      recv_vals (this->n_processors());
       std::vector<unsigned int> obj_val_offsets;          // map to traverse entry-wise rather than processor-wise
       std::vector<Number>       output_vals;              // The output buffer for the current block
 
-      // a ThreadedIO object to perform asychronous file IO
+      // a ThreadedIO object to perform asynchronous file IO
       ThreadedIO<Number> threaded_io(io, output_vals);
-      UniquePtr<Threads::Thread> async_io;
+      std::unique_ptr<Threads::Thread> async_io;
 
       for (unsigned int blk=0; blk<num_blks; blk++)
         {
@@ -2083,7 +2061,7 @@ std::size_t System::write_serialized_blocked_dof_objects (const std::vector<cons
               n_val_recvd_blk += vals.size();
             }
 
-          // We need the offests into the output_vals vector for each object.
+          // We need the offsets into the output_vals vector for each object.
           // fortunately, this is simply the partial sum of the total number
           // of components for each object
           std::partial_sum(obj_val_offsets.begin(), obj_val_offsets.end(),

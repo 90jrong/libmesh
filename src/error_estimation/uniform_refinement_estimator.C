@@ -98,15 +98,15 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
                                                   const System * _system,
                                                   ErrorVector * error_per_cell,
                                                   ErrorMap * errors_per_cell,
-                                                  const std::map<const System *, SystemNorm > * _error_norms,
+                                                  const std::map<const System *, SystemNorm> * _error_norms,
                                                   const std::map<const System *, const NumericVector<Number> *> * solution_vectors,
                                                   bool)
 {
   // Get a vector of the Systems we're going to work on,
   // and set up a error_norms map if necessary
   std::vector<System *> system_list;
-  UniquePtr<std::map<const System *, SystemNorm > > error_norms =
-    UniquePtr<std::map<const System *, SystemNorm > >
+  std::unique_ptr<std::map<const System *, SystemNorm>> error_norms =
+    std::unique_ptr<std::map<const System *, SystemNorm>>
     (new std::map<const System *, SystemNorm>);
 
   if (_es)
@@ -197,21 +197,17 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
     }
 
   // We'll want to back up all coarse grid vectors
-  std::vector<std::map<std::string, NumericVector<Number> *> >
-    coarse_vectors(system_list.size());
-  std::vector<NumericVector<Number> *>
-    coarse_solutions(system_list.size());
-  std::vector<NumericVector<Number> *>
-    coarse_local_solutions(system_list.size());
+  std::vector<std::map<std::string, std::unique_ptr<NumericVector<Number>>>> coarse_vectors(system_list.size());
+  std::vector<std::unique_ptr<NumericVector<Number>>> coarse_solutions(system_list.size());
+  std::vector<std::unique_ptr<NumericVector<Number>>> coarse_local_solutions(system_list.size());
   // And make copies of projected solutions
-  std::vector<NumericVector<Number> *>
-    projected_solutions(system_list.size());
+  std::vector<std::unique_ptr<NumericVector<Number>>> projected_solutions(system_list.size());
 
   // And we'll need to temporarily change solution projection settings
   std::vector<bool> old_projection_settings(system_list.size());
 
   // And it'll be best to avoid any repartitioning
-  UniquePtr<Partitioner> old_partitioner(mesh.partitioner().release());
+  std::unique_ptr<Partitioner> old_partitioner(mesh.partitioner().release());
 
   for (std::size_t i=0; i != system_list.size(); ++i)
     {
@@ -222,9 +218,8 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
                       _error_norms->end());
 
       // Back up the solution vector
-      coarse_solutions[i] = system.solution->clone().release();
-      coarse_local_solutions[i] =
-        system.current_local_solution->clone().release();
+      coarse_solutions[i] = system.solution->clone();
+      coarse_local_solutions[i] = system.current_local_solution->clone();
 
       // Back up all other coarse grid vectors
       for (System::vectors_iterator vec = system.vectors_begin(); vec !=
@@ -233,7 +228,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
           // The (string) name of this vector
           const std::string & var_name = vec->first;
 
-          coarse_vectors[i][var_name] = vec->second->clone().release();
+          coarse_vectors[i][var_name] = vec->second->clone();
         }
 
       // Use a non-standard solution vector if necessary
@@ -289,8 +284,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
 
       // Copy the projected coarse grid solutions, which will be
       // overwritten by solve()
-      //      projected_solutions[i] = system.solution->clone().release();
-      projected_solutions[i] = NumericVector<Number>::build(system.comm()).release();
+      projected_solutions[i] = NumericVector<Number>::build(system.comm());
       projected_solutions[i]->init(system.solution->size(), true, SERIAL);
       system.solution->localize(*projected_solutions[i],
                                 system.get_dof_map().get_send_list());
@@ -473,7 +467,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
       const SystemNorm & system_i_norm =
         _error_norms->find(&system)->second;
 
-      NumericVector<Number> * projected_solution = projected_solutions[sysnum];
+      NumericVector<Number> * projected_solution = projected_solutions[sysnum].get();
 
       // Loop over all the variables in the system
       for (unsigned int var=0; var<n_vars; var++)
@@ -491,18 +485,18 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
           const FEType & fe_type = dof_map.variable_type (var);
 
           // Finite element object for each fine element
-          UniquePtr<FEBase> fe (FEBase::build (dim, fe_type));
+          std::unique_ptr<FEBase> fe (FEBase::build (dim, fe_type));
 
           // Build and attach an appropriate quadrature rule
-          UniquePtr<QBase> qrule = fe_type.default_quadrature_rule(dim);
+          std::unique_ptr<QBase> qrule = fe_type.default_quadrature_rule(dim);
           fe->attach_quadrature_rule (qrule.get());
 
           const std::vector<Real> &  JxW = fe->get_JxW();
-          const std::vector<std::vector<Real> > & phi = fe->get_phi();
-          const std::vector<std::vector<RealGradient> > & dphi =
+          const std::vector<std::vector<Real>> & phi = fe->get_phi();
+          const std::vector<std::vector<RealGradient>> & dphi =
             fe->get_dphi();
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-          const std::vector<std::vector<RealTensor> > & d2phi =
+          const std::vector<std::vector<RealTensor>> & d2phi =
             fe->get_d2phi();
 #endif
 
@@ -511,14 +505,8 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
 
           // Iterate over all the active elements in the fine mesh
           // that live on this processor.
-          MeshBase::const_element_iterator       elem_it  = mesh.active_local_elements_begin();
-          const MeshBase::const_element_iterator elem_end = mesh.active_local_elements_end();
-
-          for (; elem_it != elem_end; ++elem_it)
+          for (const auto & elem : mesh.active_local_element_ptr_range())
             {
-              // e is necessarily an active element on the local processor
-              const Elem * elem = *elem_it;
-
               // Find the element id for the corresponding coarse grid element
               const Elem * coarse = elem;
               dof_id_type e_id = coarse->id();
@@ -561,7 +549,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
 #endif
 
                   // Compute solution values at the current
-                  // quadrature point.  This reqiures a sum
+                  // quadrature point.  This requires a sum
                   // over all the shape functions evaluated
                   // at the quadrature point.
                   for (unsigned int i=0; i<n_sf; i++)
@@ -666,7 +654,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
   // We should be back where we started
   libmesh_assert_equal_to (n_coarse_elem, mesh.n_elem());
 
-  // Each processor has now computed the error contribuions
+  // Each processor has now computed the error contributions
   // for its local elements.  We need to sum the vector
   // and then take the square-root of each component.  Note
   // that we only need to sum if we are running on multiple
@@ -711,10 +699,7 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
 
       // Restore the coarse solution vectors and delete their copies
       *system.solution = *coarse_solutions[i];
-      delete coarse_solutions[i];
       *system.current_local_solution = *coarse_local_solutions[i];
-      delete coarse_local_solutions[i];
-      delete projected_solutions[i];
 
       for (System::vectors_iterator vec = system.vectors_begin(); vec !=
              system.vectors_end(); ++vec)
@@ -725,7 +710,6 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
           system.get_vector(var_name) = *coarse_vectors[i][var_name];
 
           coarse_vectors[i][var_name]->clear();
-          delete coarse_vectors[i][var_name];
         }
     }
 

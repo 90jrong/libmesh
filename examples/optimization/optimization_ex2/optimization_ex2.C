@@ -171,26 +171,21 @@ void AssembleOptimization::assemble_A_and_F()
 
   const DofMap & dof_map = _sys.get_dof_map();
   FEType fe_type = dof_map.variable_type(u_var);
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
   QGauss qrule (dim, fe_type.default_quadrature_order());
   fe->attach_quadrature_rule (&qrule);
 
   const std::vector<Real> & JxW = fe->get_JxW();
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   std::vector<dof_id_type> dof_indices;
 
   DenseMatrix<Number> Ke;
   DenseVector<Number> Fe;
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
-
       dof_map.dof_indices (elem, dof_indices);
 
       const unsigned int n_dofs = dof_indices.size();
@@ -223,7 +218,7 @@ void AssembleOptimization::assemble_A_and_F()
 Number AssembleOptimization::objective (const NumericVector<Number> & soln,
                                         OptimizationSystem & /*sys*/)
 {
-  UniquePtr<NumericVector<Number> > AxU = soln.zero_clone();
+  std::unique_ptr<NumericVector<Number>> AxU = soln.zero_clone();
 
   A_matrix->vector_mult(*AxU, soln);
   Number UTxAxU = AxU->dot(soln);
@@ -283,7 +278,7 @@ void AssembleOptimization::equality_constraints (const NumericVector<Number> & X
 {
   C_eq.zero();
 
-  UniquePtr<NumericVector<Number> > X_localized =
+  std::unique_ptr<NumericVector<Number>> X_localized =
     NumericVector<Number>::build(X.comm());
   X_localized->init(X.size(), false, SERIAL);
   X.localize(*X_localized);
@@ -305,8 +300,8 @@ void AssembleOptimization::equality_constraints_jacobian (const NumericVector<Nu
 {
   C_eq_jac.zero();
 
-  std::vector< std::vector<Number> > constraint_jac_values(3);
-  std::vector< std::vector<dof_id_type> > constraint_jac_indices(3);
+  std::vector<std::vector<Number>> constraint_jac_values(3);
+  std::vector<std::vector<dof_id_type>> constraint_jac_indices(3);
 
   constraint_jac_values[0].resize(1);
   constraint_jac_indices[0].resize(1);
@@ -342,7 +337,7 @@ void AssembleOptimization::inequality_constraints (const NumericVector<Number> &
 {
   C_ineq.zero();
 
-  UniquePtr<NumericVector<Number> > X_localized =
+  std::unique_ptr<NumericVector<Number>> X_localized =
     NumericVector<Number>::build(X.comm());
   X_localized->init(X.size(), false, SERIAL);
   X.localize(*X_localized);
@@ -361,13 +356,13 @@ void AssembleOptimization::inequality_constraints_jacobian (const NumericVector<
 {
   C_ineq_jac.zero();
 
-  UniquePtr<NumericVector<Number> > X_localized =
+  std::unique_ptr<NumericVector<Number>> X_localized =
     NumericVector<Number>::build(X.comm());
   X_localized->init(X.size(), false, SERIAL);
   X.localize(*X_localized);
 
-  std::vector< std::vector<Number> > constraint_jac_values(1);
-  std::vector< std::vector<dof_id_type> > constraint_jac_indices(1);
+  std::vector<std::vector<Number>> constraint_jac_values(1);
+  std::vector<std::vector<dof_id_type>> constraint_jac_indices(1);
 
   constraint_jac_values[0].resize(2);
   constraint_jac_indices[0].resize(2);
@@ -450,7 +445,7 @@ int main (int argc, char ** argv)
     const std::string optimization_solver_type = infile("optimization_solver_type",
                                                         "PETSC_SOLVERS");
     SolverPackage sp = Utility::string_to_enum<SolverPackage>(optimization_solver_type);
-    UniquePtr<OptimizationSolver<Number> > new_solver =
+    std::unique_ptr<OptimizationSolver<Number>> new_solver =
       OptimizationSolver<Number>::build(system, sp);
     system.optimization_solver.reset(new_solver.release());
   }
@@ -491,7 +486,7 @@ int main (int argc, char ** argv)
   assemble_opt.assemble_A_and_F();
 
   {
-    std::vector< std::set<numeric_index_type> > constraint_jac_sparsity;
+    std::vector<std::set<numeric_index_type>> constraint_jac_sparsity;
     std::set<numeric_index_type> sparsity_row;
     sparsity_row.insert(17);
     constraint_jac_sparsity.push_back(sparsity_row);
@@ -509,7 +504,7 @@ int main (int argc, char ** argv)
   }
 
   {
-    std::vector< std::set<numeric_index_type> > constraint_jac_sparsity;
+    std::vector<std::set<numeric_index_type>> constraint_jac_sparsity;
     std::set<numeric_index_type> sparsity_row;
     sparsity_row.insert(200);
     sparsity_row.insert(201);

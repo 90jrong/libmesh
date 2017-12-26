@@ -18,10 +18,13 @@
 #ifndef LIBMESH_CONST_FEM_FUNCTION_H
 #define LIBMESH_CONST_FEM_FUNCTION_H
 
-#include <string>
-
+// libMesh includes
 #include "libmesh/dense_vector.h"
 #include "libmesh/fem_function_base.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
+
+// C++ includes
+#include <string>
 
 namespace libMesh
 {
@@ -45,8 +48,8 @@ public:
 
   ~ConstFEMFunction() {}
 
-  virtual UniquePtr<FEMFunctionBase<Output> > clone () const
-  {return UniquePtr<FEMFunctionBase<Output> >( new ConstFEMFunction(*this) ); }
+  virtual std::unique_ptr<FEMFunctionBase<Output>> clone () const
+  {return libmesh_make_unique<ConstFEMFunction>(*this); }
 
   virtual Output operator() (const FEMContext &,
                              const Point &,

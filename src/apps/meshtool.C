@@ -22,7 +22,7 @@
 #include <fstream>
 #ifdef LIBMESH_HAVE_GETOPT_H
 // GCC 2.95.3 (and maybe others) do not include
-// getopt.h in unistd.h...  Hower IBM xlC has no
+// getopt.h in unistd.h...  However IBM xlC has no
 // getopt.h!  This works around that.
 #include <getopt.h>
 #endif
@@ -109,7 +109,7 @@ void usage(const std::string & progName)
     // <<   "    -L                            Build the script L connectivity matrix \n"
            << "\n"
            << "\n"
-           << " This program is used to convert and partions from/to a variety of\n"
+           << " This program is used to convert and partition from/to a variety of\n"
            << " formats.  File types are inferred from file extensions.  For example,\n"
            << " the command:\n"
            << "\n"
@@ -521,7 +521,7 @@ int main (int argc, char ** argv)
 
                    x_sym, y_sym, z_sym);
 
-  UniquePtr<Mesh> mesh_ptr;
+  std::unique_ptr<Mesh> mesh_ptr;
   if (dim == static_cast<unsigned char>(-1))
     {
       mesh_ptr.reset(new Mesh(init.comm()));
@@ -606,7 +606,7 @@ int main (int argc, char ** argv)
    */
   if (names.size() == 3)
     {
-      // TODO: Read XDR/A mesh file, contstruct an EquationSystems
+      // TODO: Read XDR/A mesh file, construct an EquationSystems
       // object, read XDR/A solution file by calling
       // es.read(file, READ_HEADER|READ_DATA|READ_ADDITIONAL_DATA);
       // then store a localized copy of the solution vector into 'soln'.
@@ -646,13 +646,8 @@ int main (int argc, char ** argv)
                    << ") "
                    << std::endl;
 
-      MeshBase::const_element_iterator it  = mesh.active_elements_begin(),
-        end = mesh.active_elements_end();
-      for (; it != end; ++it)
-        {
-          Elem * e = *it;
-          sv.push_back(e->quality(quality_type));
-        }
+      for (const auto & elem : mesh.active_element_ptr_range())
+        sv.push_back(elem->quality(quality_type));
 
       const unsigned int n_bins = 10;
       libMesh::out << "Avg. shape quality: " << sv.mean() << std::endl;
@@ -793,7 +788,7 @@ int main (int argc, char ** argv)
    */
   if (dist_fact > 0.)
     {
-      libMesh::out << "Distoring the mesh by a factor of "
+      libMesh::out << "Distorting the mesh by a factor of "
                    << dist_fact
                    << std::endl;
 

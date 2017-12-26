@@ -26,16 +26,16 @@
 #include "libmesh/vector_value.h"
 #include "libmesh/enum_elem_type.h"
 #include "libmesh/fe_type.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/fe_map.h"
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+#include "libmesh/tensor_value.h"
+#endif
 
 // C++ includes
 #include <cstddef>
 #include <vector>
-
-#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-#include "libmesh/tensor_value.h"
-#endif
+#include <memory>
 
 namespace libMesh
 {
@@ -112,11 +112,11 @@ public:
   /**
    * Builds a specific finite element type.
    *
-   * \returns A UniquePtr<FEAbstract> to the FE object to prevent
+   * \returns A std::unique_ptr<FEAbstract> to the FE object to prevent
    * memory leaks.
    */
-  static UniquePtr<FEAbstract> build (const unsigned int dim,
-                                      const FEType & type);
+  static std::unique_ptr<FEAbstract> build (const unsigned int dim,
+                                            const FEType & type);
 
   /**
    * This is at the core of this class. Use this for each
@@ -138,7 +138,7 @@ public:
 
   /**
    * Reinitializes all the physical element-dependent data based on
-   * the \p side of the element \p elem.  The \p tolerance paremeter
+   * the \p side of the element \p elem.  The \p tolerance parameter
    * is passed to the involved call to \p inverse_map().  By default the
    * element data are computed at the quadrature points specified by the
    * quadrature rule \p qrule, but any set of points on the reference
@@ -152,7 +152,7 @@ public:
 
   /**
    * Reinitializes all the physical element-dependent data based on
-   * the \p edge of the element \p elem.  The \p tolerance paremeter
+   * the \p edge of the element \p elem.  The \p tolerance parameter
    * is passed to the involved call to \p inverse_map().  By default the
    * element data are computed at the quadrature points specified by the
    * quadrature rule \p qrule, but any set of points on the reference
@@ -216,6 +216,12 @@ public:
 #endif // LIBMESH_ENABLE_NODE_CONSTRAINTS
 
 #endif // LIBMESH_ENABLE_PERIODIC
+
+  /**
+   * \returns the dimension of this FE
+   */
+  unsigned int get_dim() const
+  { return dim; }
 
   /**
    * \returns The \p xyz spatial locations of the quadrature
@@ -362,7 +368,7 @@ public:
   /**
    * \returns The tangent vectors for face integration.
    */
-  const std::vector<std::vector<Point> > & get_tangents() const
+  const std::vector<std::vector<Point>> & get_tangents() const
   { return this->_fe_map->get_tangents(); }
 
   /**
@@ -508,7 +514,7 @@ protected:
    */
   virtual void compute_shape_functions(const Elem *, const std::vector<Point> & ) =0;
 
-  UniquePtr<FEMap> _fe_map;
+  std::unique_ptr<FEMap> _fe_map;
 
 
   /**

@@ -402,9 +402,6 @@ unsigned int FEInterface::n_shape_functions(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_with_vec_switch(n_shape_functions(t, o));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -425,9 +422,6 @@ unsigned int FEInterface::n_dofs(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_with_vec_switch(n_dofs(t, o));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -448,10 +442,17 @@ unsigned int FEInterface::n_dofs_at_node(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_with_vec_switch(n_dofs_at_node(t, o, n));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
+
+
+
+FEInterface::n_dofs_at_node_ptr
+FEInterface::n_dofs_at_node_function(const unsigned int dim,
+                                     const FEType & fe_t)
+{
+  fe_with_vec_switch(n_dofs_at_node);
+}
+
 
 
 
@@ -471,9 +472,6 @@ unsigned int FEInterface::n_dofs_per_elem(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_with_vec_switch(n_dofs_per_elem(t, o));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -488,8 +486,6 @@ void FEInterface::dofs_on_side(const Elem * const elem,
   const Order o = fe_t.order;
 
   void_fe_with_vec_switch(dofs_on_side(elem, o, s, di));
-
-  libmesh_error_msg("We'll never get here!");
 }
 
 
@@ -503,8 +499,6 @@ void FEInterface::dofs_on_edge(const Elem * const elem,
   const Order o = fe_t.order;
 
   void_fe_with_vec_switch(dofs_on_edge(elem, o, e, di));
-
-  libmesh_error_msg("We'll never get here!");
 }
 
 
@@ -544,9 +538,6 @@ Point FEInterface::map(unsigned int dim,
     return ifem_map(dim, fe_t, elem, p);
 #endif
   fe_with_vec_switch(map(elem, p));
-
-  libmesh_error_msg("We'll never get here!");
-  return Point();
 }
 
 
@@ -568,9 +559,6 @@ Point FEInterface::inverse_map (const unsigned int dim,
 #endif
 
   fe_with_vec_switch(inverse_map(elem, p, tolerance, secure));
-
-  libmesh_error_msg("We'll never get here!");
-  return Point();
 }
 
 
@@ -609,8 +597,6 @@ void FEInterface::inverse_map (const unsigned int dim,
 #endif
 
   void_fe_with_vec_switch(inverse_map(elem, physical_points, reference_points, tolerance, secure));
-
-  libmesh_error_msg("We'll never get here!");
 }
 
 
@@ -641,9 +627,6 @@ Real FEInterface::shape(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_switch(shape(t,o,i,p));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 Real FEInterface::shape(const unsigned int dim,
@@ -662,9 +645,6 @@ Real FEInterface::shape(const unsigned int dim,
   const Order o = fe_t.order;
 
   fe_switch(shape(elem,o,i,p));
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 template<>
@@ -678,7 +658,10 @@ void FEInterface::shape<Real>(const unsigned int dim,
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
 
   if (is_InfFE_elem(t))
-    phi = ifem_shape(dim, fe_t, t, i, p);
+    {
+      phi = ifem_shape(dim, fe_t, t, i, p);
+      return;
+    }
 
 #endif
 
@@ -716,8 +699,10 @@ void FEInterface::shape<Real>(const unsigned int dim,
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
 
   if (elem && is_InfFE_elem(elem->type()))
-    phi = ifem_shape(dim, fe_t, elem, i, p);
-
+    {
+      phi = ifem_shape(dim, fe_t, elem, i, p);
+      return;
+    }
 #endif
 
   const Order o = fe_t.order;
@@ -751,6 +736,7 @@ void FEInterface::shape<RealGradient>(const unsigned int dim,
                                       const Point & p,
                                       RealGradient & phi)
 {
+  // This even does not handle infinite elements at all!?
   const Order o = fe_t.order;
 
   switch(dim)
@@ -1040,6 +1026,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 1;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return 2;
         case TET4:
@@ -1077,6 +1064,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUAD4:
         case QUADSHELL4:
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
         case TET4:
         case TET10:
@@ -1111,6 +1099,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 1;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return unlimited;
         case TET4:
@@ -1151,6 +1140,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 1;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return 7;
         case TET4:
@@ -1182,6 +1172,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUAD4:
         case QUADSHELL4:
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
         case TET4:
         case TET10:
@@ -1214,6 +1205,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUAD4:
         case QUADSHELL4:
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
         case TET4:
         case TET10:
@@ -1246,6 +1238,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 3;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return unlimited;
         case TET4:
@@ -1283,6 +1276,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 1;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return unlimited;
         case TET4:
@@ -1320,6 +1314,7 @@ unsigned int FEInterface::max_order(const FEType & fe_t,
         case QUADSHELL4:
           return 1;
         case QUAD8:
+        case QUADSHELL8:
         case QUAD9:
           return unlimited;
         case TET4:

@@ -134,11 +134,11 @@ void DifferentiableSystem::init_data ()
   time_solver->init_data();
 }
 
-UniquePtr<DiffContext> DifferentiableSystem::build_context ()
+std::unique_ptr<DiffContext> DifferentiableSystem::build_context ()
 {
   DiffContext * context = new DiffContext(*this);
   context->set_deltat_pointer( &this->deltat );
-  return UniquePtr<DiffContext>(context);
+  return std::unique_ptr<DiffContext>(context);
 }
 
 
@@ -271,7 +271,7 @@ void DifferentiableSystem::add_dot_var_dirichlet_bcs( unsigned int var_idx,
               if (dbc.f)
                 is_time_evolving_bc = dbc.f->is_time_dependent();
               else if (dbc.f_fem)
-                // We it's a FEMFunctionBase object, it will be implictly
+                // We it's a FEMFunctionBase object, it will be implicitly
                 // time-dependent since it is assumed to depend on the solution.
                 is_time_evolving_bc = true;
               else

@@ -58,14 +58,17 @@
 
 // General libMesh includes
 #include "libmesh/equation_systems.h"
-#include "libmesh/linear_solver.h"
 #include "libmesh/error_vector.h"
+#include "libmesh/factory.h"
+#include "libmesh/linear_solver.h"
 #include "libmesh/mesh.h"
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/newton_solver.h"
 #include "libmesh/numeric_vector.h"
+#include "libmesh/partitioner.h"
 #include "libmesh/steady_solver.h"
 #include "libmesh/system_norm.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // Error Estimator includes
 #include "libmesh/kelly_error_estimator.h"
@@ -180,13 +183,12 @@ void set_system_parameters(LaplaceSystem & system,
   system.print_jacobians      = param.print_jacobians;
 
   // No transient time solver
-  system.time_solver =
-    UniquePtr<TimeSolver>(new SteadySolver(system));
+  system.time_solver = libmesh_make_unique<SteadySolver>(system);
 
   // Nonlinear solver options
   {
     NewtonSolver * solver = new NewtonSolver(system);
-    system.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
+    system.time_solver->diff_solver() = std::unique_ptr<DiffSolver>(solver);
 
     solver->quiet                       = param.solver_quiet;
     solver->verbose                     = param.solver_verbose;
@@ -213,8 +215,8 @@ void set_system_parameters(LaplaceSystem & system,
 
 #ifdef LIBMESH_ENABLE_AMR
 
-UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
-                                                FEMParameters & param)
+std::unique_ptr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
+                                                      FEMParameters & param)
 {
   MeshRefinement * mesh_refinement = new MeshRefinement(mesh);
   mesh_refinement->coarsen_by_parents() = true;
@@ -224,7 +226,7 @@ UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
   mesh_refinement->coarsen_fraction()  = param.coarsen_fraction;
   mesh_refinement->coarsen_threshold() = param.coarsen_threshold;
 
-  return UniquePtr<MeshRefinement>(mesh_refinement);
+  return std::unique_ptr<MeshRefinement>(mesh_refinement);
 }
 
 #endif // LIBMESH_ENABLE_AMR
@@ -236,14 +238,14 @@ UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
 // forward and adjoint weights. The H1 seminorm component of the error is used
 // as dictated by the weak form the Laplace equation.
 
-UniquePtr<ErrorEstimator> build_error_estimator(FEMParameters & param,
-                                                QoISet & qois)
+std::unique_ptr<ErrorEstimator> build_error_estimator(FEMParameters & param,
+                                                      QoISet & qois)
 {
   if (param.indicator_type == "kelly")
     {
       libMesh::out << "Using Kelly Error Estimator" << std::endl;
 
-      return UniquePtr<ErrorEstimator>(new KellyErrorEstimator);
+      return libmesh_make_unique<KellyErrorEstimator>();
     }
   else if (param.indicator_type == "adjoint_residual")
     {
@@ -267,7 +269,7 @@ UniquePtr<ErrorEstimator> build_error_estimator(FEMParameters & param,
       adjoint_residual_estimator->dual_error_estimator()->error_norm.set_type(0, H1_SEMINORM);
       p2->set_patch_reuse(param.patch_reuse);
 
-      return UniquePtr<ErrorEstimator>(adjoint_residual_estimator);
+      return std::unique_ptr<ErrorEstimator>(adjoint_residual_estimator);
     }
   else
     libmesh_error_msg("Unknown indicator_type = " << param.indicator_type);
@@ -296,9 +298,13 @@ int main (int argc, char ** argv)
     if (!i)
       libmesh_error_msg('[' << init.comm().rank() << "] Can't find general.in; exiting early.");
   }
-  GetPot infile("general.in");
 
   // Read in parameters from the input file
+  GetPot infile("general.in");
+
+  // But allow the command line to override it.
+  infile.parse_command_line(argc, argv);
+
   FEMParameters param(init.comm());
   param.read(infile);
 
@@ -309,8 +315,43 @@ int main (int argc, char ** argv)
   // across the default MPI communicator.
   Mesh mesh(init.comm());
 
+  // Give the mesh a non-default partitioner if we can try to do so
+  // safely
+  if (param.mesh_partitioner_type != "Default")
+    {
+#ifndef LIBMESH_HAVE_RTTI
+      libmesh_example_requires(false, "RTTI support");
+#else
+      // Factory failures are *verbose* in parallel; let's silence
+      // cerr temporarily.
+      auto oldbuf = libMesh::err.rdbuf();
+      libMesh::err.rdbuf(libmesh_nullptr);
+      try
+        {
+          // Many partitioners won't work on a distributed Mesh, and
+          // even a currently serialized DistributedMesh won't stay
+          // that way through AMR/C
+          if (!mesh.is_replicated() &&
+              (param.mesh_partitioner_type == "Centroid" ||
+               param.mesh_partitioner_type == "Hilbert" ||
+               param.mesh_partitioner_type == "Morton" ||
+               param.mesh_partitioner_type == "SFCurves" ||
+               param.mesh_partitioner_type == "Metis"))
+            libmesh_example_requires(false, "--disable-parmesh");
+
+          mesh.partitioner() =
+            Factory<Partitioner>::build(param.mesh_partitioner_type);
+        }
+      catch (...)
+        {
+          libmesh_example_requires(false, param.mesh_partitioner_type + " partitioner support");
+        }
+      libMesh::err.rdbuf(oldbuf);
+#endif // LIBMESH_HAVE_RTI
+    }
+
   // And an object to refine it
-  UniquePtr<MeshRefinement> mesh_refinement =
+  std::unique_ptr<MeshRefinement> mesh_refinement =
     build_mesh_refinement(mesh, param);
 
   // And an EquationSystems to run on it
@@ -396,7 +437,7 @@ int main (int argc, char ** argv)
         // solves the resulting system
         system.adjoint_solve();
 
-        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unneccesarily in the error estimator
+        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unnecessarily in the error estimator
         system.set_adjoint_already_solved(true);
 
         // Get a pointer to the solution vector of the adjoint problem for QoI 0
@@ -452,7 +493,7 @@ int main (int argc, char ** argv)
         ErrorVector error;
 
         // Build an error estimator object
-        UniquePtr<ErrorEstimator> error_estimator =
+        std::unique_ptr<ErrorEstimator> error_estimator =
           build_error_estimator(param, qois);
 
         // Estimate the error in each element using the Adjoint Residual or Kelly error estimator
@@ -523,7 +564,7 @@ int main (int argc, char ** argv)
         linear_solver->reuse_preconditioner(param.reuse_preconditioner);
         system.adjoint_solve();
 
-        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unneccesarily in the error estimator
+        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unnecessarily in the error estimator
         system.set_adjoint_already_solved(true);
 
         NumericVector<Number> & dual_solution_0 = system.get_adjoint_solution(0);
@@ -570,8 +611,18 @@ int main (int argc, char ** argv)
                      << std::endl;
 
         // Hard coded asserts to ensure that the actual numbers we are getting are what they should be
-        libmesh_assert_less(std::abs(QoI_0_computed - QoI_0_exact)/std::abs(QoI_0_exact), 4.e-5);
-        libmesh_assert_less(std::abs(QoI_1_computed - QoI_1_exact)/std::abs(QoI_1_exact), 1.e-4);
+        if (param.max_adaptivesteps > 5 && param.coarserefinements > 2)
+          {
+            libmesh_assert_less(std::abs(QoI_0_computed - QoI_0_exact)/std::abs(QoI_0_exact), 4.e-5);
+            libmesh_assert_less(std::abs(QoI_1_computed - QoI_1_exact)/std::abs(QoI_1_exact), 1.e-4);
+          }
+        else
+          {
+            // This seems to be loose enough for the case of 2 coarse
+            // refinements, 4 adaptive steps
+            libmesh_assert_less(std::abs(QoI_0_computed - QoI_0_exact)/std::abs(QoI_0_exact), 4.e-4);
+            libmesh_assert_less(std::abs(QoI_1_computed - QoI_1_exact)/std::abs(QoI_1_exact), 2.e-3);
+          }
       }
   }
 

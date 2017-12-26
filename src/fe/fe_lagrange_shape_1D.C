@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// C++ inlcludes
+// C++ includes
 
 // Local includes
 #include "libmesh/fe.h"
@@ -109,9 +109,6 @@ Real FE<1,LAGRANGE>::shape(const ElemType,
     default:
       libmesh_error_msg("ERROR: Unsupported polynomial order = " << order);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -214,9 +211,6 @@ Real FE<1,LAGRANGE>::shape_deriv(const ElemType,
     default:
       libmesh_error_msg("ERROR: Unsupported polynomial order = " << order);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -303,9 +297,6 @@ Real FE<1,LAGRANGE>::shape_second_deriv(const ElemType,
     default:
       libmesh_error_msg("ERROR: Unsupported polynomial order = " << order);
     } // end switch (order)
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 

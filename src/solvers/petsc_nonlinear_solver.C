@@ -121,10 +121,10 @@ extern "C"
     // if the user has provided both function pointers and objects only the pointer
     // will be used, so catch that as an error
     if (solver->residual && solver->residual_object)
-      libmesh_error_msg("ERROR: cannot specifiy both a function and object to compute the Residual!");
+      libmesh_error_msg("ERROR: cannot specify both a function and object to compute the Residual!");
 
     if (solver->matvec && solver->residual_and_jacobian_object)
-      libmesh_error_msg("ERROR: cannot specifiy both a function and object to compute the combined Residual & Jacobian!");
+      libmesh_error_msg("ERROR: cannot specify both a function and object to compute the combined Residual & Jacobian!");
 
     if (solver->residual != libmesh_nullptr)
       solver->residual(*sys.current_local_solution.get(), R, sys);
@@ -511,7 +511,7 @@ PetscNonlinearSolver<T>::build_mat_null_space(NonlinearImplicitSystem::ComputeVe
                                               MatNullSpace * msp)
 {
   PetscErrorCode ierr;
-  std::vector<NumericVector<Number> * > sp;
+  std::vector<NumericVector<Number> *> sp;
   if (computeSubspaceObject)
     (*computeSubspaceObject)(sp, this->system());
   else

@@ -65,7 +65,7 @@ using namespace libMesh;
 // the linear system for our Biharmonic problem.  Note that the
 // function will take the EquationSystems object and the
 // name of the system we are assembling as input.  From the
-// EquationSystems object we have acess to the Mesh and
+// EquationSystems object we have access to the Mesh and
 // other objects we might need.
 void assemble_biharmonic(EquationSystems & es,
                          const std::string & system_name);
@@ -693,29 +693,29 @@ void assemble_biharmonic(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // Quadrature rule for numerical integration.
   // With 2D triangles, the Clough quadrature rule puts a Gaussian
   // quadrature rule on each of the 3 subelements
-  UniquePtr<QBase> qrule(fe_type.default_quadrature_rule(dim));
+  std::unique_ptr<QBase> qrule(fe_type.default_quadrature_rule(dim));
 
   // Tell the finite element object to use our quadrature rule.
   fe->attach_quadrature_rule (qrule.get());
 
   // Declare a special finite element object for
   // boundary integration.
-  UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
-  // Boundary integration requires another quadraure rule,
+  // Boundary integration requires another quadrature rule,
   // with dimensionality one less than the dimensionality
   // of the element.
   // In 1D, the Clough and Gauss quadrature rules are identical.
-  UniquePtr<QBase> qface(fe_type.default_quadrature_rule(dim-1));
+  std::unique_ptr<QBase> qface(fe_type.default_quadrature_rule(dim-1));
 
-  // Tell the finte element object to use our
+  // Tell the finite element object to use our
   // quadrature rule.
   fe_face->attach_quadrature_rule (qface.get());
 
@@ -731,12 +731,12 @@ void assemble_biharmonic(EquationSystems & es,
   const std::vector<Point> & q_point = fe->get_xyz();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function second derivatives evaluated at the
   // quadrature points.  Note that for the simple biharmonic, shape
   // function first derivatives are unnecessary.
-  const std::vector<std::vector<RealTensor> > & d2phi = fe->get_d2phi();
+  const std::vector<std::vector<RealTensor>> & d2phi = fe->get_d2phi();
 
   // For efficiency we will compute shape function laplacians n times,
   // not n^2
@@ -757,20 +757,12 @@ void assemble_biharmonic(EquationSystems & es,
   // Now we will loop over all the elements in the mesh.  We will
   // compute the element matrix and right-hand-side contribution.  See
   // example 3 for a discussion of the element iterators.
-
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
       // Start logging the shape function initialization.
       // This is done through a simple function call with
       // the name of the event to log.
       perf_log.push("elem init");
-
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
 
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
@@ -800,7 +792,7 @@ void assemble_biharmonic(EquationSystems & es,
       perf_log.pop("elem init");
 
       // Now we will build the element matrix.  This involves
-      // a double loop to integrate laplacians of the test funcions
+      // a double loop to integrate laplacians of the test functions
       // (i) against laplacians of the trial functions (j).
       //
       // This step is why we need the Clough-Tocher elements -
@@ -848,17 +840,17 @@ void assemble_biharmonic(EquationSystems & es,
         // The following loops over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
-        for (unsigned int s=0; s<elem->n_sides(); s++)
+        for (auto s : elem->side_index_range())
           if (elem->neighbor_ptr(s) == libmesh_nullptr)
             {
               // The value of the shape functions at the quadrature
               // points.
-              const std::vector<std::vector<Real> > & phi_face =
+              const std::vector<std::vector<Real>> & phi_face =
                 fe_face->get_phi();
 
               // The value of the shape function derivatives at the
               // quadrature points.
-              const std::vector<std::vector<RealGradient> > & dphi_face =
+              const std::vector<std::vector<RealGradient>> & dphi_face =
                 fe_face->get_dphi();
 
               // The Jacobian * Quadrature Weight at the quadrature
@@ -875,7 +867,7 @@ void assemble_biharmonic(EquationSystems & es,
               // face.
               fe_face->reinit(elem, s);
 
-              // Loop over the face quagrature points for integration.
+              // Loop over the face quadrature points for integration.
               for (unsigned int qp=0; qp<qface->n_points(); qp++)
                 {
                   // The boundary value.

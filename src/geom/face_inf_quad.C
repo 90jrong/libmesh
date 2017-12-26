@@ -73,25 +73,25 @@ unsigned int InfQuad::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> InfQuad::side_ptr (const unsigned int i)
+std::unique_ptr<Elem> InfQuad::side_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_sides());
 
-  // To be returned wrapped in a UniquePtr
-  Elem * edge = libmesh_nullptr;
+  // Return value
+  std::unique_ptr<Elem> edge;
 
   switch (i)
     {
     case 0: // base face
       {
-        edge = new Edge2;
+        edge = libmesh_make_unique<Edge2>();
         break;
       }
 
     case 1: // adjacent to another infinite element
     case 2: // adjacent to another infinite element
       {
-        edge = new InfEdge2;
+        edge = libmesh_make_unique<InfEdge2>();
         break;
       }
 
@@ -103,7 +103,7 @@ UniquePtr<Elem> InfQuad::side_ptr (const unsigned int i)
   for (unsigned n=0; n<edge->n_nodes(); ++n)
     edge->set_node(n) = this->node_ptr(InfQuad4::side_nodes_map[i][n]);
 
-  return UniquePtr<Elem>(edge);
+  return edge;
 }
 
 

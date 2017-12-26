@@ -51,6 +51,14 @@ DofObject::DofObject (const DofObject & dof_obj) :
   _processor_id  (dof_obj._processor_id),
   _idx_buf       (dof_obj._idx_buf)
 {
+  // DO NOT copy old_dof_object, because this isn't a *real* copy
+  // constructor, it's a "copy almost everything" constructor that
+  // is intended to be used solely for internal construction of
+  // old_dof_object, never for a true deep copy where the newly
+  // created object really matches the source object.
+  //
+  // if (dof_obj.old_dof_object)
+  //  this->old_dof_object = new DofObject(*(dof_obj.old_dof_object));
 
   // Check that everything worked
 #ifdef DEBUG
@@ -204,7 +212,7 @@ void DofObject::add_system()
   // cache this value before we screw it up!
   const unsigned int ns_orig = this->n_systems();
 
-  // incriment the number of systems and the offsets for each of
+  // increment the number of systems and the offsets for each of
   // the systems including the new one we just added.
   for (unsigned int i=0; i<ns_orig+1; i++)
     _idx_buf[i]++;
@@ -222,13 +230,13 @@ void DofObject::set_n_vars_per_group(const unsigned int s,
 
   libmesh_assert_less (s, this->n_systems());
 
-  // number of varaible groups for this system - inferred
+  // number of variable groups for this system - inferred
   const unsigned int nvg = cast_int<unsigned int>(nvpg.size());
 
   // BSK - note that for compatibility with the previous implementation
   // calling this method when (nvars == this->n_vars()) requires that
   // we invalidate the DOF indices and set the number of components to 0.
-  // Note this was a bit of a suprise to me - there was no quick return in
+  // Note this was a bit of a surprise to me - there was no quick return in
   // the old method, which caused removal and readdition of the DOF indices
   // even in the case of (nvars == this->n_vars()), resulting in n_comp(s,v)
   // implicitly becoming 0 regardless of any previous value.
@@ -324,7 +332,7 @@ void DofObject::set_n_vars_per_group(const unsigned int s,
   for (unsigned int v=0; v<this->n_vars(s); v++)
     libmesh_assert_equal_to (this->n_comp(s,v), 0);
 
-  // again, all other system sizes shoudl be unchanged!
+  // again, all other system sizes should be unchanged!
   for (unsigned int s_ctr=0; s_ctr<this->n_systems(); s_ctr++)
     if (s_ctr != s)
       libmesh_assert_equal_to (this->n_var_groups(s_ctr), old_system_sizes[s_ctr]);
@@ -521,7 +529,7 @@ void DofObject::unpack_indexing(std::vector<largest_id_type>::const_iterator beg
 
 // FIXME: it'll be tricky getting this to work with 64-bit dof_id_type
 void
-DofObject::pack_indexing(std::back_insert_iterator<std::vector<largest_id_type> > target) const
+DofObject::pack_indexing(std::back_insert_iterator<std::vector<largest_id_type>> target) const
 {
 #ifdef LIBMESH_ENABLE_AMR
   // We might need to pack old_dof_object too

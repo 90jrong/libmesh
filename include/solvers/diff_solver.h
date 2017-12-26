@@ -21,13 +21,14 @@
 #define LIBMESH_DIFF_SOLVER_H
 
 // Local includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/libmesh_common.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/parallel_object.h"
 
 // C++ includes
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -88,7 +89,7 @@ public:
    *
    * \returns A NewtonSolver by default.
    */
-  static UniquePtr<DiffSolver> build(sys_type & s);
+  static std::unique_ptr<DiffSolver> build(sys_type & s);
 
   /**
    * Destructor.
@@ -285,7 +286,7 @@ public:
   /**
    * Pointer to functor which is called right after each linear solve
    */
-  UniquePtr<LinearSolutionMonitor> linear_solution_monitor;
+  std::unique_ptr<LinearSolutionMonitor> linear_solution_monitor;
 
 protected:
 

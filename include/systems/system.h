@@ -21,7 +21,7 @@
 #define LIBMESH_SYSTEM_H
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/elem_range.h"
 #include "libmesh/enum_norm_type.h"
 #include "libmesh/enum_xdr_mode.h"
@@ -39,6 +39,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -55,6 +56,7 @@ class ParameterVector;
 class Point;
 class SensitivityData;
 template <typename T> class NumericVector;
+template <typename T> class SparseMatrix;
 template <typename T> class VectorValue;
 typedef VectorValue<Number> NumberVectorValue;
 typedef NumberVectorValue Gradient;
@@ -87,9 +89,9 @@ public:
           const unsigned int number);
 
   /**
-   * Abstract base class to be used for sysem initialization.
+   * Abstract base class to be used for system initialization.
    * A user class derived from this class may be used to
-   * intialize the system values by attaching an object
+   * initialize the system values by attaching an object
    * with the method \p attach_init_object.
    */
   class Initialization
@@ -111,7 +113,7 @@ public:
 
 
   /**
-   * Abstract base class to be used for sysem assembly.
+   * Abstract base class to be used for system assembly.
    * A user class derived from this class may be used to
    * assemble the system by attaching an object
    * with the method \p attach_assemble_object.
@@ -135,7 +137,7 @@ public:
 
 
   /**
-   * Abstract base class to be used for sysem constraints.
+   * Abstract base class to be used for system constraints.
    * A user class derived from this class may be used to
    * constrain the system by attaching an object
    * with the method \p attach_constraint_object.
@@ -173,7 +175,7 @@ public:
     virtual ~QOI () {}
 
     /**
-     * Quantitiy of interest function.  This function will be called
+     * Quantity of interest function.  This function will be called
      * to compute quantities of interest and must be provided by the
      * user in a derived class.
      */
@@ -197,8 +199,8 @@ public:
     virtual ~QOIDerivative () {}
 
     /**
-     * Quantitiy of interest derivative function. This function will
-     * be called to compute derivatived of quantities of interest and
+     * Quantity of interest derivative function. This function will
+     * be called to compute derivatives of quantities of interest and
      * must be provided by the user in a derived class.
      */
     virtual void qoi_derivative (const QoISet & qoi_indices,
@@ -771,7 +773,7 @@ public:
   /**
    * Adds the additional vector \p vec_name to this system.  All the
    * additional vectors are similarly distributed, like the \p
-   * solution, and inititialized to zero.
+   * solution, and initialized to zero.
    *
    * By default vectors added by add_vector are projected to changed grids by
    * reinit().  To zero them instead (more efficient), pass "false" as the
@@ -1033,7 +1035,7 @@ public:
    * \returns The number of matrices
    * handled by this system.
    *
-   * This will return 0 by default but can be overriden.
+   * This will return 0 by default but can be overridden.
    */
   virtual unsigned int n_matrices () const;
 
@@ -1144,7 +1146,7 @@ public:
   const std::string & variable_name(const unsigned int i) const;
 
   /**
-   * \returns The variable number assoicated with
+   * \returns The variable number associated with
    * the user-specified variable named \p var.
    */
   unsigned short int variable_number (const std::string & var) const;
@@ -1236,8 +1238,10 @@ public:
    * "legacy") XDR format has been deprecated for many years, this
    * capability may soon disappear altogether.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   void read_legacy_data (Xdr & io,
                          const bool read_additional_data=true);
+#endif
 
   /**
    * Reads additional data, namely vectors, for this System.
@@ -1518,7 +1522,7 @@ public:
   /**
    * Data structure to hold solution values.
    */
-  UniquePtr<NumericVector<Number> > solution;
+  std::unique_ptr<NumericVector<Number>> solution;
 
   /**
    * All the values I need to compute my contribution
@@ -1530,7 +1534,7 @@ public:
    * the contents of the \p solution and \p current_local_solution
    * vectors.
    */
-  UniquePtr<NumericVector<Number> > current_local_solution;
+  std::unique_ptr<NumericVector<Number>> current_local_solution;
 
   /**
    * For time-dependent problems, this is the time t at the beginning of
@@ -1654,12 +1658,26 @@ public:
    */
   bool & hide_output() { return _hide_output; }
 
+#ifdef LIBMESH_HAVE_METAPHYSICL
+  /**
+   * This method creates a projection matrix which corresponds to the
+   * operation of project_vector between old and new solution spaces.
+   *
+   * Heterogeneous Dirichlet boundary conditions are *not* taken into
+   * account here; if this matrix is used for prolongation (mesh
+   * refinement) on a side with a heterogeneous BC, the newly created
+   * degrees of freedom on that side will still match the coarse grid
+   * approximation of the BC, not the fine grid approximation.
+   */
+  void projection_matrix (SparseMatrix<Number> & proj_mat) const;
+#endif // LIBMESH_HAVE_METAPHYSICL
+
 protected:
 
   /**
    * Initializes the data for the system.
    *
-   * \note This is called before any user-supplied intitialization
+   * \note This is called before any user-supplied initialization
    * function so that all required storage will be available.
    */
   virtual void init_data ();
@@ -1860,7 +1878,7 @@ private:
    * Data structure describing the relationship between
    * nodes, variables, etc... and degrees of freedom.
    */
-  UniquePtr<DofMap> _dof_map;
+  std::unique_ptr<DofMap> _dof_map;
 
   /**
    * Constant reference to the \p EquationSystems object

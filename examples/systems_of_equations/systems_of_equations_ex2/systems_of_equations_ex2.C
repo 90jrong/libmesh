@@ -176,7 +176,7 @@ int main (int argc, char** argv)
   const Real nonlinear_tolerance       = 1.e-5;
 
   // We also set a standard linear solver flag in the EquationSystems object
-  // which controls the maxiumum number of linear solver iterations allowed.
+  // which controls the maximum number of linear solver iterations allowed.
   equation_systems.parameters.set<unsigned int>("linear solver maximum iterations") = 250;
 
   // Tell the system of equations what the timestep is by using
@@ -190,7 +190,7 @@ int main (int argc, char** argv)
   // The first thing to do is to get a copy of the solution at
   // the current nonlinear iteration.  This value will be used to
   // determine if we can exit the nonlinear loop.
-  UniquePtr<NumericVector<Number> >
+  std::unique_ptr<NumericVector<Number>>
     last_nonlinear_soln (navier_stokes_system.solution->clone());
 
   // Since we are not doing adaptivity, write all solutions to a single Exodus file.
@@ -198,7 +198,7 @@ int main (int argc, char** argv)
 
   for (unsigned int t_step=1; t_step<=n_timesteps; ++t_step)
     {
-      // Incremenet the time counter, set the time step size as
+      // Increment the time counter, set the time step size as
       // a parameter in the EquationSystem.
       navier_stokes_system.time += dt;
 
@@ -364,11 +364,11 @@ void assemble_stokes (EquationSystems & es,
 
   // Build a Finite Element object of the specified type for
   // the velocity variables.
-  UniquePtr<FEBase> fe_vel  (FEBase::build(dim, fe_vel_type));
+  std::unique_ptr<FEBase> fe_vel  (FEBase::build(dim, fe_vel_type));
 
   // Build a Finite Element object of the specified type for
   // the pressure variables.
-  UniquePtr<FEBase> fe_pres (FEBase::build(dim, fe_pres_type));
+  std::unique_ptr<FEBase> fe_pres (FEBase::build(dim, fe_pres_type));
 
   // A Gauss quadrature rule for numerical integration.
   // Let the FEType object decide what order rule is appropriate.
@@ -385,18 +385,18 @@ void assemble_stokes (EquationSystems & es,
   const std::vector<Real> & JxW = fe_vel->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe_vel->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe_vel->get_phi();
 
   // The element shape function gradients for the velocity
   // variables evaluated at the quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe_vel->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe_vel->get_dphi();
 
   // The element shape functions for the pressure variable
   // evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & psi = fe_pres->get_phi();
+  const std::vector<std::vector<Real>> & psi = fe_pres->get_phi();
 
   // The value of the linear shape function gradients at the quadrature points
-  // const std::vector<std::vector<RealGradient> > & dpsi = fe_pres->get_dphi();
+  // const std::vector<std::vector<RealGradient>> & dpsi = fe_pres->get_dphi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -455,15 +455,8 @@ void assemble_stokes (EquationSystems & es,
   // matrix and right-hand-side contribution.  Since the mesh
   // will be refined we want to only consider the ACTIVE elements,
   // hence we use a variant of the active_elem_iterator.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -502,7 +495,7 @@ void assemble_stokes (EquationSystems & es,
       //        | Kpu Kpv Kpp |        | Fp |
       //         -           -          -  -
       //
-      // The DenseSubMatrix.repostition () member takes the
+      // The DenseSubMatrix.reposition () member takes the
       // (row_offset, column_offset, row_size, column_size).
       //
       // Similarly, the DenseSubVector.reposition () member
@@ -642,7 +635,7 @@ void assemble_stokes (EquationSystems & es,
           const Real penalty = 1.e10;
           const unsigned int pressure_node = 0;
           const Real p_value               = 0.0;
-          for (unsigned int c=0; c<elem->n_nodes(); c++)
+          for (auto c : elem->node_index_range())
             if (elem->node_id(c) == pressure_node)
               {
                 Kpp(c,c) += penalty;

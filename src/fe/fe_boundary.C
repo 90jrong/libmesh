@@ -159,7 +159,7 @@ void FE<Dim,T>::reinit(const Elem * elem,
   this->determine_calculations();
 
   // Build the side of interest
-  const UniquePtr<const Elem> side(elem->build_side_ptr(s));
+  const std::unique_ptr<const Elem> side(elem->build_side_ptr(s));
 
   // Find the max p_level to select
   // the right quadrature rule for side integration
@@ -277,7 +277,7 @@ void FE<Dim,T>::edge_reinit(const Elem * elem,
   this->determine_calculations();
 
   // Build the side of interest
-  const UniquePtr<const Elem> edge(elem->build_edge_ptr(e));
+  const std::unique_ptr<const Elem> edge(elem->build_edge_ptr(e));
 
   // Initialize the shape functions at the user-specified
   // points
@@ -394,7 +394,7 @@ void FE<Dim,T>::side_map (const Elem * elem,
   std::vector<Point> refspace_nodes;
   this->get_refspace_nodes(elem->type(), refspace_nodes);
 
-  const std::vector<std::vector<Real> > & psi_map = this->_fe_map->get_psi();
+  const std::vector<std::vector<Real>> & psi_map = this->_fe_map->get_psi();
 
   for (std::size_t i=0; i<psi_map.size(); i++) // sum over the nodes
     {

@@ -40,7 +40,7 @@ class BoundaryMesh : public Mesh
 {
 public:
   /**
-   * Constructor. Initializes dimenstion and processor id.
+   * Constructor. Initializes dimension and processor id.
    */
   explicit
   BoundaryMesh (const Parallel::Communicator & comm_in,
@@ -55,8 +55,10 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * constructor that takes a Parallel::Communicator instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   explicit
   BoundaryMesh (unsigned char dim=1);
+#endif
 #endif
 
   /**

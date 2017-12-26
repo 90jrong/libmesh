@@ -22,6 +22,7 @@
 
 #include "libmesh/libmesh.h" // libMesh::invalid_uint
 #include "libmesh/periodic_boundary.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -62,9 +63,9 @@ Point PeriodicBoundary::get_corresponding_pos(const Point & pt) const
 
 
 
-UniquePtr<PeriodicBoundaryBase> PeriodicBoundary::clone(TransformationType t) const
+std::unique_ptr<PeriodicBoundaryBase> PeriodicBoundary::clone(TransformationType t) const
 {
-  return UniquePtr<PeriodicBoundaryBase>(new PeriodicBoundary(*this, t));
+  return libmesh_make_unique<PeriodicBoundary>(*this, t);
 }
 
 

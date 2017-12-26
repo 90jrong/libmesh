@@ -46,12 +46,12 @@ const unsigned int InfPrism12::side_nodes_map[4][6] =
 
 const unsigned int InfPrism12::edge_nodes_map[6][3] =
   {
-    { 0, 1, 6},  // Side 0
-    { 1, 2, 7},  // Side 1
-    { 0, 2, 8},  // Side 2
-    { 0, 3, 99}, // Side 3
-    { 1, 4, 99}, // Side 4
-    { 2, 5, 99}  // Side 5
+    {0, 1,  6}, // Side 0
+    {1, 2,  7}, // Side 1
+    {0, 2,  8}, // Side 2
+    {0, 3, 99}, // Side 3
+    {1, 4, 99}, // Side 4
+    {2, 5, 99}  // Side 5
   };
 
 
@@ -116,8 +116,8 @@ unsigned int InfPrism12::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
-                                            bool proxy)
+std::unique_ptr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
+                                                  bool proxy)
 {
   libmesh_assert_less (i, this->n_sides());
 
@@ -127,13 +127,13 @@ UniquePtr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
         {
           // base
         case 0:
-          return UniquePtr<Elem>(new Side<Tri6,InfPrism12>(this,i));
+          return libmesh_make_unique<Side<Tri6,InfPrism12>>(this,i);
 
           // ifem sides
         case 1:
         case 2:
         case 3:
-          return UniquePtr<Elem>(new Side<InfQuad6,InfPrism12>(this,i));
+          return libmesh_make_unique<Side<InfQuad6,InfPrism12>>(this,i);
 
         default:
           libmesh_error_msg("Invalid side i = " << i);
@@ -142,14 +142,14 @@ UniquePtr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
 
   else
     {
-      // Create NULL pointer to be initialized, returned later.
-      Elem * face = libmesh_nullptr;
+      // Return value
+      std::unique_ptr<Elem> face;
 
       switch (i)
         {
         case 0: // the triangular face at z=-1, base face
           {
-            face = new Tri6;
+            face = libmesh_make_unique<Tri6>();
             break;
           }
 
@@ -157,7 +157,7 @@ UniquePtr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
         case 2: // the other quad face
         case 3: // the quad face at x=0
           {
-            face = new InfQuad6;
+            face = libmesh_make_unique<InfQuad6>();
             break;
           }
 
@@ -171,22 +171,20 @@ UniquePtr<Elem> InfPrism12::build_side_ptr (const unsigned int i,
       for (unsigned n=0; n<face->n_nodes(); ++n)
         face->set_node(n) = this->node_ptr(InfPrism12::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(face);
+      return face;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 
-UniquePtr<Elem> InfPrism12::build_edge_ptr (const unsigned int i)
+std::unique_ptr<Elem> InfPrism12::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
 
   if (i < 3) // base edges
-    return UniquePtr<Elem>(new SideEdge<Edge3,InfPrism12>(this,i));
+    return libmesh_make_unique<SideEdge<Edge3,InfPrism12>>(this,i);
+
   // infinite edges
-  return UniquePtr<Elem>(new SideEdge<InfEdge2,InfPrism12>(this,i));
+  return libmesh_make_unique<SideEdge<InfEdge2,InfPrism12>>(this,i);
 }
 
 

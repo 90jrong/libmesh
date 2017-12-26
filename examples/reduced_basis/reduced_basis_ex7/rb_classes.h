@@ -20,9 +20,9 @@
 #ifndef RB_CLASSES_H
 #define RB_CLASSES_H
 
+// libMesh includes
 #include "libmesh/rb_construction.h"
 #include "libmesh/fe_base.h"
-#include "libmesh/auto_ptr.h"
 #include "libmesh/rb_evaluation.h"
 
 // local include
@@ -39,7 +39,6 @@ using libMesh::RBConstruction;
 using libMesh::RBEvaluation;
 using libMesh::Real;
 using libMesh::SECOND;
-using libMesh::UniquePtr;
 
 
 // A simple subclass of RBEvaluation, which just needs to specify
@@ -150,7 +149,7 @@ public:
    * i.e. the objects that define how to assemble the set of parameter-independent
    * operators in the affine expansion of the PDE.
    */
-  UniquePtr<AcousticsRBAssemblyExpansion> acoustics_rb_assembly_expansion;
+  std::unique_ptr<AcousticsRBAssemblyExpansion> acoustics_rb_assembly_expansion;
 };
 
 #endif

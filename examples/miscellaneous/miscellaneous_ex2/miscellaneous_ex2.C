@@ -113,9 +113,9 @@ int main (int argc, char ** argv)
   // This example requires at least 2D support.
   libmesh_example_requires(2 <= LIBMESH_DIM, "2D support");
 
-  // Check for proper usage.
-  if (argc < 3)
-    libmesh_error_msg("Usage: " << argv[0] << " -f [frequency]");
+  // Check for proper usage. frequency has two terms:
+  if ( argc <4 )
+    libmesh_error_msg("Usage: " << argv[0] << " -f [real_frequency imag_frequency]");
 
   if (init.comm().size() > 1)
     {
@@ -140,7 +140,12 @@ int main (int argc, char ** argv)
 
   // Get the frequency from argv[2] as a float, solve for 1/3rd, 2/3rd
   // and 1/1th of the given frequency.
-  const Real frequency_in = atof(argv[2]);
+
+  const Number frequency_in (atof(argv[2]), atof(argv[3]));
+
+  // this must work as well, but is deprecated.
+  // const Real frequency_in = atof(argv[2]);
+
   const unsigned int n_frequencies = 3;
 
   // Create a mesh, with dimension to be overridden later, distributed
@@ -203,7 +208,7 @@ int main (int argc, char ** argv)
   // may directly access them. Must be called before the
   // EquationSystems object is initialized.  Will solve for 1/3,
   // 2/3, and 1 times the given frequency.
-  f_system.set_frequencies_by_steps (frequency_in/n_frequencies,
+  f_system.set_frequencies_by_steps (frequency_in/static_cast<Number>(n_frequencies),
                                      frequency_in,
                                      n_frequencies);
 
@@ -330,9 +335,9 @@ void assemble_helmholtz(EquationSystems & es,
 
   // Build a finite element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A 5th-order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, FIFTH);
@@ -344,11 +349,11 @@ void assemble_helmholtz(EquationSystems & es,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // Here we do not assemble directly in the System matrix, but to the
   // additional matrices "stiffness_mass" and "damping".  The same
@@ -369,17 +374,10 @@ void assemble_helmholtz(EquationSystems & es,
 
   // Now we will loop over all the elements in the mesh, and compute
   // the element matrix and right-hand-side contributions.
-  MeshBase::const_element_iterator           el = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
       // Start logging the element initialization.
       START_LOG("elem init", "assemble_helmholtz");
-
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
 
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
@@ -416,7 +414,7 @@ void assemble_helmholtz(EquationSystems & es,
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
         {
           // Now we will build the element matrix.  This involves
-          // a double loop to integrate the test funcions (i) against
+          // a double loop to integrate the test functions (i) against
           // the trial functions (j).
           for (std::size_t i=0; i<phi.size(); i++)
             for (std::size_t j=0; j<phi.size(); j++)
@@ -435,27 +433,27 @@ void assemble_helmholtz(EquationSystems & es,
       // The following loops over the sides of the element.
       // If the element has no neighbor on a side then that
       // side MUST live on a boundary of the domain.
-      for (unsigned int side=0; side<elem->n_sides(); side++)
-        if (elem->neighbor(side) == libmesh_nullptr)
+      for (auto side : elem->side_index_range())
+        if (elem->neighbor_ptr(side) == libmesh_nullptr)
           {
             LOG_SCOPE("damping", "assemble_helmholtz");
 
             // Declare a special finite element object for
             // boundary integration.
-            UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+            std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
-            // Boundary integration requires one quadraure rule,
+            // Boundary integration requires one quadrature rule,
             // with dimensionality one less than the dimensionality
             // of the element.
             QGauss qface(dim-1, SECOND);
 
-            // Tell the finte element object to use our
+            // Tell the finite element object to use our
             // quadrature rule.
             fe_face->attach_quadrature_rule (&qface);
 
             // The value of the shape functions at the quadrature
             // points.
-            const std::vector<std::vector<Real> > & phi_face =
+            const std::vector<std::vector<Real>> & phi_face =
               fe_face->get_phi();
 
             // The Jacobian times the quadrature weight at the quadrature
@@ -467,13 +465,13 @@ void assemble_helmholtz(EquationSystems & es,
             fe_face->reinit(elem, side);
 
             // For the Robin BCs, consider a normal admittance an=1
-            // at some parts of the bounfdary
+            // at some parts of the boundary
             const Real an_value = 1.;
 
             // Loop over the face quadrature points for integration.
             for (unsigned int qp=0; qp<qface.n_points(); qp++)
               {
-                // Element matrix contributrion due to prescribed
+                // Element matrix contribution due to prescribed
                 // admittance boundary conditions.
                 for (std::size_t i=0; i<phi_face.size(); i++)
                   for (std::size_t j=0; j<phi_face.size(); j++)
@@ -519,13 +517,13 @@ void add_M_C_K_helmholtz(EquationSystems & es,
     es.get_system<FrequencySystem> (system_name);
 
   // Get the frequency, fluid density, and sound speed of the current solve.
-  const Real frequency = es.parameters.get<Real> ("current frequency");
+  const Number frequency = es.parameters.get<Number> ("current frequency");
   const Real rho       = es.parameters.get<Real> ("rho");
   const Real speed     = es.parameters.get<Real> ("wave speed");
 
   // Compute angular frequency omega and wave number k
-  const Real omega = 2.0*libMesh::pi*frequency;
-  const Real k     = omega / speed;
+  const Number omega = 2.0*libMesh::pi*frequency;
+  const Number k     = omega / speed;
 
   // Get writable references to the system matrix and vector, where the
   // frequency-dependent system is to be collected.
@@ -541,11 +539,13 @@ void add_M_C_K_helmholtz(EquationSystems & es,
   SparseMatrix<Number> & mass = f_system.get_matrix("mass");
   NumericVector<Number> & freq_indep_rhs = f_system.get_vector("rhs");
 
+  Number unit_i (0,1);
+
   // Compute the scale values for the different operators.
   const Number scale_stiffness (1., 0.);
-  const Number scale_damping (0., omega);
-  const Number scale_mass (-k*k, 0.);
-  const Number scale_rhs (0., -(rho*omega));
+  const Number scale_damping=unit_i*omega; // I is imaginary unit (from complex.h)
+  const Number scale_mass=-k*k;
+  const Number scale_rhs=-unit_i*rho*omega;
 
   // Now simply add the matrices together, store the result
   // in matrix and rhs.  Clear them first.

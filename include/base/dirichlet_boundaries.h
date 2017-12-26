@@ -25,7 +25,7 @@
 #ifdef LIBMESH_ENABLE_DIRICHLET
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/id_types.h"
 #include "libmesh/vector_value.h"
 
@@ -33,6 +33,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -173,11 +174,11 @@ public:
   std::set<boundary_id_type> b;
   std::vector<unsigned int> variables;
 
-  UniquePtr<FunctionBase<Number> > f;
-  UniquePtr<FunctionBase<Gradient> > g;
+  std::unique_ptr<FunctionBase<Number>> f;
+  std::unique_ptr<FunctionBase<Gradient>> g;
 
-  UniquePtr<FEMFunctionBase<Number> > f_fem;
-  UniquePtr<FEMFunctionBase<Gradient> > g_fem;
+  std::unique_ptr<FEMFunctionBase<Number>> f_fem;
+  std::unique_ptr<FEMFunctionBase<Gradient>> g_fem;
 
   const System * f_system;
 };

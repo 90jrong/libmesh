@@ -119,29 +119,22 @@ public:
    * \returns A \p TRI3 built coincident with face 0, or an \p INFQUAD4
    * built coincident with faces 1 to 3.
    *
-   * \note The \p UniquePtr<Elem> takes care of freeing memory.
+   * \note The \p std::unique_ptr<Elem> takes care of freeing memory.
    */
-  virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
-                                          bool proxy) libmesh_override;
+  virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
+                                                bool proxy) libmesh_override;
 
   /**
    * \returns An \p EDGE2 built coincident with edges 0 to 2, an \p INFEDGE2
    * built coincident with edges 3 to 5.
    *
-   * \note that the \p UniquePtr<Elem> takes care of freeing memory.
+   * \note that the \p std::unique_ptr<Elem> takes care of freeing memory.
    */
-  virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
+  virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
   virtual void connectivity(const unsigned int sc,
                             const IOPackage iop,
                             std::vector<dof_id_type> & conn) const libmesh_override;
-
-  /**
-   * \returns \p true when this element contains the point
-   * \p p.  Customized for infinite elements, since knowledge
-   * about the envelope can be helpful.
-   */
-  virtual bool contains_point (const Point & p, Real tol=TOLERANCE) const libmesh_override;
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to

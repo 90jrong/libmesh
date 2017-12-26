@@ -26,10 +26,11 @@
 // libMesh includes
 #include "libmesh/dense_matrix.h"
 #include "libmesh/dense_vector.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/parallel_object.h"
 
 // C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -150,7 +151,7 @@ public:
    * Set the number of basis functions. Useful when reading in
    * stored data.
    */
-  virtual void set_n_basis_functions(unsigned int n_bfs) { basis_functions.resize(n_bfs); }
+  virtual void set_n_basis_functions(unsigned int n_bfs);
 
   /**
    * Clear all the Riesz representors that are used to compute the RB residual
@@ -194,7 +195,7 @@ public:
    * written.
    */
   virtual void write_out_vectors(System & sys,
-                                 std::vector<NumericVector<Number> *> & vectors,
+                                 std::vector<std::unique_ptr<NumericVector<Number>>> & vectors,
                                  const std::string & directory_name = "offline_data",
                                  const std::string & data_name = "bf",
                                  const bool write_binary_basis_functions = true);
@@ -216,19 +217,19 @@ public:
    * that need to be read in.
    */
   void read_in_vectors(System & sys,
-                       std::vector<NumericVector<Number> *> & vectors,
+                       std::vector<std::unique_ptr<NumericVector<Number>>> & vectors,
                        const std::string & directory_name,
                        const std::string & data_name,
                        const bool read_binary_vectors);
 
   /**
    * Performs read_in_vectors for a list of directory names and data names.
-   * Reading in vectors requires us to renumber the dofs in a partition-indepdent
+   * Reading in vectors requires us to renumber the dofs in a partition-independent
    * way. This function only renumbers the dofs once at the start (and reverts
    * it at the end), which can save a lot of work compared to renumbering on every read.
    */
   void read_in_vectors_from_multiple_files(System & sys,
-                                           std::vector<std::vector<NumericVector<Number> *> *> multiple_vectors,
+                                           std::vector<std::vector<std::unique_ptr<NumericVector<Number>>> *> multiple_vectors,
                                            const std::vector<std::string> & multiple_directory_names,
                                            const std::vector<std::string> & multiple_data_names,
                                            const bool read_binary_vectors);
@@ -239,7 +240,7 @@ public:
    * The libMesh vectors storing the finite element coefficients
    * of the RB basis functions.
    */
-  std::vector<NumericVector<Number> *> basis_functions;
+  std::vector<std::unique_ptr<NumericVector<Number>>> basis_functions;
 
   /**
    * The list of parameters selected by the Greedy algorithm in generating
@@ -258,12 +259,12 @@ public:
   /**
    * Dense matrices for the RB computations.
    */
-  std::vector<DenseMatrix<Number> > RB_Aq_vector;
+  std::vector<DenseMatrix<Number>> RB_Aq_vector;
 
   /**
    * Dense vector for the RHS.
    */
-  std::vector<DenseVector<Number> > RB_Fq_vector;
+  std::vector<DenseVector<Number>> RB_Fq_vector;
 
   /**
    * The RB solution vector.
@@ -273,14 +274,14 @@ public:
   /**
    * The vectors storing the RB output vectors.
    */
-  std::vector<std::vector<DenseVector<Number> > > RB_output_vectors;
+  std::vector<std::vector<DenseVector<Number>>> RB_output_vectors;
 
   /**
    * The vectors storing the RB output values and
    * corresponding error bounds.
    */
-  std::vector< Number > RB_outputs;
-  std::vector< Real > RB_output_error_bounds;
+  std::vector<Number > RB_outputs;
+  std::vector<Real > RB_output_error_bounds;
 
   /**
    * Vectors storing the residual representor inner products
@@ -297,8 +298,8 @@ public:
    * on a reduced basis space. The basis independent representors
    * are stored in RBSystem.
    */
-  std::vector< std::vector< std::vector<Number> > > Fq_Aq_representor_innerprods;
-  std::vector< std::vector< std::vector<Number> > > Aq_Aq_representor_innerprods;
+  std::vector<std::vector<std::vector<Number>>> Fq_Aq_representor_innerprods;
+  std::vector<std::vector<std::vector<Number>>> Aq_Aq_representor_innerprods;
 
   /**
    * The vector storing the dual norm inner product terms
@@ -306,7 +307,7 @@ public:
    * These values are independent of a basis, hence they can
    * be copied over directly from an RBSystem.
    */
-  std::vector< std::vector< Number > > output_dual_innerprods;
+  std::vector<std::vector<Number >> output_dual_innerprods;
 
   /**
    * Vector storing the residual representors associated with the
@@ -314,7 +315,7 @@ public:
    * These are basis dependent and hence stored here, whereas
    * the Fq_representors are stored in RBSystem.
    */
-  std::vector< std::vector< NumericVector<Number> *> > Aq_representor;
+  std::vector<std::vector<std::unique_ptr<NumericVector<Number>>>> Aq_representor;
 
   /**
    * Boolean to indicate whether we evaluate a posteriori error bounds
@@ -338,7 +339,7 @@ private:
 
   /**
    * A pointer to to the object that stores the theta expansion.
-   * This is not a UniquePtr since we may want to share it.
+   * This is not a std::unique_ptr since we may want to share it.
    *
    * \note A \p shared_ptr would be a good option here.
    */

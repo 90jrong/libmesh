@@ -132,12 +132,8 @@ void TetGenMeshInterface::pointset_convexhull ()
   // Delete *all* old elements.  Yes, we legally delete elements while
   // iterating over them because no entries from the underlying container
   // are actually erased.
-  {
-    MeshBase::element_iterator       it  = this->_mesh.elements_begin();
-    const MeshBase::element_iterator end = this->_mesh.elements_end();
-    for ( ; it != end; ++it)
-      this->_mesh.delete_elem (*it);
-  }
+  for (auto & elem : this->_mesh.element_ptr_range())
+    this->_mesh.delete_elem (elem);
 
   // We just removed any boundary info associated with element faces
   // or edges, so let's update the boundary id caches.
@@ -205,14 +201,10 @@ void TetGenMeshInterface::triangulate_conformingDelaunayMesh_carvehole  (const s
   // from the convex hull.
   {
     int insertnum = 0;
-    MeshBase::element_iterator it        = this->_mesh.elements_begin();
-    const MeshBase::element_iterator end = this->_mesh.elements_end();
-    for (; it != end ; ++it)
+    for (auto & elem : this->_mesh.element_ptr_range())
       {
         tetgen_wrapper.allocate_facet_polygonlist(insertnum, 1);
         tetgen_wrapper.allocate_polygon_vertexlist(insertnum, 0, 3);
-
-        Elem * elem = *it;
 
         for (unsigned int j=0; j<elem->n_nodes(); ++j)
           {
@@ -365,12 +357,10 @@ void TetGenMeshInterface::fill_pointlist(TetGenWrapper & wrapper)
 
   {
     unsigned index = 0;
-    MeshBase::node_iterator it  = this->_mesh.nodes_begin();
-    const MeshBase::node_iterator end = this->_mesh.nodes_end();
-    for ( ; it != end; ++it)
+    for (auto & node : this->_mesh.node_ptr_range())
       {
-        _sequential_to_libmesh_node_map[index] = (*it)->id();
-        wrapper.set_node(index++, (**it)(0), (**it)(1), (**it)(2));
+        _sequential_to_libmesh_node_map[index] = node->id();
+        wrapper.set_node(index++, (*node)(0), (*node)(1), (*node)(2));
       }
   }
 }
@@ -405,13 +395,8 @@ unsigned TetGenMeshInterface::check_hull_integrity()
   if (_mesh.n_elem() == 0)
     return 3;
 
-  MeshBase::element_iterator it        = this->_mesh.elements_begin();
-  const MeshBase::element_iterator end = this->_mesh.elements_end();
-
-  for (; it != end ; ++it)
+  for (auto & elem : this->_mesh.element_ptr_range())
     {
-      Elem * elem = *it;
-
       // Check for proper element type
       if (elem->type() != TRI3)
         {
@@ -419,9 +404,9 @@ unsigned TetGenMeshInterface::check_hull_integrity()
           return 1;
         }
 
-      for (unsigned int i=0; i<elem->n_neighbors(); ++i)
+      for (auto neigh : elem->neighbor_ptr_range())
         {
-          if (elem->neighbor(i) == libmesh_nullptr)
+          if (neigh == libmesh_nullptr)
             {
               // libmesh_error_msg("ERROR: Non-convex hull, cannot be tetrahedralized.");
               return 2;
@@ -458,13 +443,8 @@ void TetGenMeshInterface::process_hull_integrity_result(unsigned result)
 
 void TetGenMeshInterface::delete_2D_hull_elements()
 {
-  MeshBase::element_iterator it        = this->_mesh.elements_begin();
-  const MeshBase::element_iterator end = this->_mesh.elements_end();
-
-  for (; it != end ; ++it)
+  for (auto & elem : this->_mesh.element_ptr_range())
     {
-      Elem * elem = *it;
-
       // Check for proper element type. Yes, we legally delete elements while
       // iterating over them because no entries from the underlying container
       // are actually erased.

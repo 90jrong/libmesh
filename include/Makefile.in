@@ -106,16 +106,16 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_cxx_rtti.m4 \
 	$(top_srcdir)/m4/config_summary.m4 \
 	$(top_srcdir)/m4/coverage.m4 $(top_srcdir)/m4/cppunit.m4 \
 	$(top_srcdir)/m4/curl.m4 $(top_srcdir)/m4/cxx11.m4 \
-	$(top_srcdir)/m4/demangle.m4 $(top_srcdir)/m4/dlopen.m4 \
-	$(top_srcdir)/m4/eigen.m4 $(top_srcdir)/m4/errno_test.m4 \
-	$(top_srcdir)/m4/exodus.m4 $(top_srcdir)/m4/feexcept.m4 \
-	$(top_srcdir)/m4/fparser.m4 $(top_srcdir)/m4/glpk.m4 \
-	$(top_srcdir)/m4/gmv.m4 $(top_srcdir)/m4/gz.m4 \
-	$(top_srcdir)/m4/hdf5.m4 \
-	$(top_srcdir)/m4/hinnant_unique_ptr.m4 \
+	$(top_srcdir)/m4/cxx17.m4 $(top_srcdir)/m4/demangle.m4 \
+	$(top_srcdir)/m4/dlopen.m4 $(top_srcdir)/m4/eigen.m4 \
+	$(top_srcdir)/m4/errno_test.m4 $(top_srcdir)/m4/exodus.m4 \
+	$(top_srcdir)/m4/feexcept.m4 $(top_srcdir)/m4/fparser.m4 \
+	$(top_srcdir)/m4/glpk.m4 $(top_srcdir)/m4/gmv.m4 \
+	$(top_srcdir)/m4/gz.m4 $(top_srcdir)/m4/hdf5.m4 \
 	$(top_srcdir)/m4/laspack.m4 $(top_srcdir)/m4/libhilbert.m4 \
 	$(top_srcdir)/m4/libmesh_compiler_features.m4 \
 	$(top_srcdir)/m4/libmesh_core_features.m4 \
+	$(top_srcdir)/m4/libmesh_metaphysicl.m4 \
 	$(top_srcdir)/m4/libmesh_method.m4 \
 	$(top_srcdir)/m4/libmesh_optional_packages.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/locale.m4 \
@@ -127,14 +127,14 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_cxx_rtti.m4 \
 	$(top_srcdir)/m4/nlopt.m4 $(top_srcdir)/m4/parmetis.m4 \
 	$(top_srcdir)/m4/petsc.m4 $(top_srcdir)/m4/precision.m4 \
 	$(top_srcdir)/m4/prefix_config.m4 $(top_srcdir)/m4/qhull.m4 \
-	$(top_srcdir)/m4/safe_bool.m4 $(top_srcdir)/m4/sanitize.m4 \
-	$(top_srcdir)/m4/sfc.m4 $(top_srcdir)/m4/slepc.m4 \
-	$(top_srcdir)/m4/sstream.m4 $(top_srcdir)/m4/strstream.m4 \
-	$(top_srcdir)/m4/tbb.m4 $(top_srcdir)/m4/tecio.m4 \
-	$(top_srcdir)/m4/tecplot.m4 $(top_srcdir)/m4/tetgen.m4 \
-	$(top_srcdir)/m4/threads.m4 $(top_srcdir)/m4/triangle.m4 \
-	$(top_srcdir)/m4/trilinos.m4 $(top_srcdir)/m4/unordered.m4 \
-	$(top_srcdir)/m4/vtk.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/sanitize.m4 $(top_srcdir)/m4/sfc.m4 \
+	$(top_srcdir)/m4/slepc.m4 $(top_srcdir)/m4/sstream.m4 \
+	$(top_srcdir)/m4/strstream.m4 $(top_srcdir)/m4/tbb.m4 \
+	$(top_srcdir)/m4/tecio.m4 $(top_srcdir)/m4/tecplot.m4 \
+	$(top_srcdir)/m4/tetgen.m4 $(top_srcdir)/m4/threads.m4 \
+	$(top_srcdir)/m4/triangle.m4 $(top_srcdir)/m4/trilinos.m4 \
+	$(top_srcdir)/m4/unordered.m4 $(top_srcdir)/m4/vtk.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(include_HEADERS) \
@@ -379,6 +379,7 @@ LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
+METAPHYSICL_INCLUDE = @METAPHYSICL_INCLUDE@
 METHOD = @METHOD@
 METHODS = @METHODS@
 METIS_INCLUDE = @METIS_INCLUDE@
@@ -500,6 +501,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 enabledefaultcommworld = @enabledefaultcommworld@
+enabledeprecated = @enabledeprecated@
 enablelegacyincludepaths = @enablelegacyincludepaths@
 enablepetsc = @enablepetsc@
 enableuniqueptr = @enableuniqueptr@
@@ -712,6 +714,7 @@ include_HEADERS = \
         geom/face_quad4.h \
         geom/face_quad4_shell.h \
         geom/face_quad8.h \
+        geom/face_quad8_shell.h \
         geom/face_quad9.h \
         geom/face_tri.h \
         geom/face_tri3.h \
@@ -788,6 +791,7 @@ include_HEADERS = \
         numerics/coupling_matrix.h \
         numerics/dense_matrix.h \
         numerics/dense_matrix_base.h \
+        numerics/dense_matrix_impl.h \
         numerics/dense_submatrix.h \
         numerics/dense_subvector.h \
         numerics/dense_vector.h \
@@ -949,6 +953,7 @@ include_HEADERS = \
         systems/fem_context.h \
         systems/fem_system.h \
         systems/frequency_system.h \
+        systems/generic_projector.h \
         systems/implicit_system.h \
         systems/linear_implicit_system.h \
         systems/newmark_system.h \
@@ -971,6 +976,7 @@ include_HEADERS = \
         utils/error_vector.h \
         utils/hashword.h \
         utils/ignore_warnings.h \
+        utils/int_range.h \
         utils/libmesh_nullptr.h \
         utils/location_maps.h \
         utils/mapvector.h \
@@ -983,9 +989,10 @@ include_HEADERS = \
         utils/plt_loader.h \
         utils/point_locator_base.h \
         utils/point_locator_tree.h \
+        utils/pointer_to_pointer_iter.h \
         utils/pool_allocator.h \
         utils/restore_warnings.h \
-        utils/safe_bool.h \
+        utils/simple_range.h \
         utils/statistics.h \
         utils/string_to_enum.h \
         utils/timestamp.h \

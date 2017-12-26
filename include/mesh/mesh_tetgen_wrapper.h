@@ -21,14 +21,15 @@
 #include "libmesh/libmesh_config.h"
 #ifdef LIBMESH_HAVE_TETGEN
 
-// Local includes
-#include "auto_ptr.h"
+// libMesh includes
+#include "libmesh/auto_ptr.h" // deprecated
 
 // TetGen include file
 #include "tetgen.h"  // Defines REAL and other Tetgen types
 
 // C++ includes
 #include <string>
+#include <memory>
 
 namespace libMesh
 {
@@ -226,7 +227,7 @@ public:
   /**
    * TetGen output structure.
    */
-  UniquePtr<tetgenio> tetgen_output;
+  std::unique_ptr<tetgenio> tetgen_output;
 
   /**
    * TetGen mesh structure (from the TetGen library).

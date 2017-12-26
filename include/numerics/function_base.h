@@ -23,10 +23,11 @@
 // Local Includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/dense_vector.h" // required to instantiate a DenseVector<> below
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ includes
 #include <cstddef>
+#include <memory>
 
 namespace libMesh
 {
@@ -43,7 +44,7 @@ class Point;
  * Use the constructors of the derived classes for creating new
  * objects. The required input of each derived class thwarts the
  * effective use of the commonly used \p build() member.  But
- * afterwards the virtual members allow the convenient and
+ * afterward the virtual members allow the convenient and
  * libMesh-common usage through a \p FunctionBase *.
  *
  * \note For functor objects for vector-valued variables, it is
@@ -92,7 +93,7 @@ public:
    * independent destruction and simultaneous evaluations of the
    * copies in different threads.
    */
-  virtual UniquePtr<FunctionBase<Output> > clone () const = 0;
+  virtual std::unique_ptr<FunctionBase<Output>> clone () const = 0;
 
   /**
    * \returns The scalar function value at coordinate \p p and time \p

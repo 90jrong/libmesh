@@ -211,10 +211,10 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
             (fe_type.order + elem->p_level());
 
           // Finite element object for use in this patch
-          UniquePtr<FEBase> fe (FEBase::build (dim, fe_type));
+          std::unique_ptr<FEBase> fe (FEBase::build (dim, fe_type));
 
           // Build an appropriate Gaussian quadrature rule
-          UniquePtr<QBase> qrule (fe_type.default_quadrature_rule(dim));
+          std::unique_ptr<QBase> qrule (fe_type.default_quadrature_rule(dim));
 
           // Tell the finite element about the quadrature rule.
           fe->attach_quadrature_rule (qrule.get());
@@ -227,7 +227,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
           // getting them unless the requested norm is actually going
           // to use them.
 
-          const std::vector<std::vector<Real> > * phi = libmesh_nullptr;
+          const std::vector<std::vector<Real>> * phi = libmesh_nullptr;
           // If we're using phi to assert the correct dof_indices
           // vector size later, then we'll need to get_phi whether we
           // plan to use it or not.
@@ -237,7 +237,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 #endif
             phi = &(fe->get_phi());
 
-          const std::vector<std::vector<RealGradient> > * dphi = libmesh_nullptr;
+          const std::vector<std::vector<RealGradient>> * dphi = libmesh_nullptr;
           if (error_estimator.error_norm.type(var) == H1_SEMINORM ||
               error_estimator.error_norm.type(var) == H1_X_SEMINORM ||
               error_estimator.error_norm.type(var) == H1_Y_SEMINORM ||
@@ -246,7 +246,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
             dphi = &(fe->get_dphi());
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-          const std::vector<std::vector<RealTensor> > * d2phi = libmesh_nullptr;
+          const std::vector<std::vector<RealTensor>> * d2phi = libmesh_nullptr;
           if (error_estimator.error_norm.type(var) == H2_SEMINORM ||
               error_estimator.error_norm.type(var) == W2_INF_SEMINORM)
             d2phi = &(fe->get_d2phi());
@@ -255,7 +255,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
           // global DOF indices
           std::vector<dof_id_type> dof_indices;
 
-          // Compute the approprite size for the patch projection matrices
+          // Compute the appropriate size for the patch projection matrices
           // and vectors;
           unsigned int matsize = element_order + 1;
           if (dim > 1)

@@ -62,9 +62,6 @@ unsigned int FEInterface::ifem_n_shape_functions(const unsigned int dim,
     default:
       libmesh_error_msg("Unsupported dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -97,9 +94,6 @@ unsigned int FEInterface::ifem_n_dofs(const unsigned int dim,
     default:
       libmesh_error_msg("Unsupported dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -132,9 +126,6 @@ unsigned int FEInterface::ifem_n_dofs_at_node(const unsigned int dim,
     default:
       libmesh_error_msg("Unsupported dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -167,9 +158,6 @@ unsigned int FEInterface::ifem_n_dofs_per_elem(const unsigned int dim,
     default:
       libmesh_error_msg("Unsupported dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -190,7 +178,7 @@ void FEInterface::ifem_nodal_soln(const unsigned int dim,
         switch (fe_t.radial_family)
           {
           case INFINITE_MAP:
-            libmesh_error_msg("ERROR: INFINTE_MAP is not a valid shape family for radial approximation.");
+            libmesh_error_msg("ERROR: INFINITE_MAP is not a valid shape family for radial approximation.");
 
           case JACOBI_20_00:
             {
@@ -268,7 +256,7 @@ void FEInterface::ifem_nodal_soln(const unsigned int dim,
         switch (fe_t.radial_family)
           {
           case INFINITE_MAP:
-            libmesh_error_msg("ERROR: INFINTE_MAP is not a valid shape family for radial approximation.");
+            libmesh_error_msg("ERROR: INFINITE_MAP is not a valid shape family for radial approximation.");
 
           case JACOBI_20_00:
             {
@@ -346,7 +334,7 @@ void FEInterface::ifem_nodal_soln(const unsigned int dim,
         switch (fe_t.radial_family)
           {
           case INFINITE_MAP:
-            libmesh_error_msg("ERROR: INFINTE_MAP is not a valid shape family for radial approximation.");
+            libmesh_error_msg("ERROR: INFINITE_MAP is not a valid shape family for radial approximation.");
 
           case JACOBI_20_00:
             {
@@ -545,10 +533,6 @@ Point FEInterface::ifem_inverse_map (const unsigned int dim,
     default:
       libmesh_error_msg("Invalid dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  Point pt;
-  return pt;
 }
 
 
@@ -718,9 +702,6 @@ Real FEInterface::ifem_shape(const unsigned int dim,
     default:
       libmesh_error_msg("Invalid dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -819,9 +800,6 @@ Real FEInterface::ifem_shape(const unsigned int dim,
     default:
       libmesh_error_msg("Invalid dim = " << dim);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 

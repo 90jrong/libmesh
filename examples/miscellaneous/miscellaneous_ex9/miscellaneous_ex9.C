@@ -217,9 +217,9 @@ void assemble_poisson(EquationSystems & es,
 
   FEType fe_type = dof_map.variable_type(0);
 
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
-  UniquePtr<FEBase> fe_elem_face (FEBase::build(dim, fe_type));
-  UniquePtr<FEBase> fe_neighbor_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_elem_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_neighbor_face (FEBase::build(dim, fe_type));
 
   QGauss qrule (dim, fe_type.default_quadrature_order());
   QGauss qface(dim-1, fe_type.default_quadrature_order());
@@ -229,15 +229,15 @@ void assemble_poisson(EquationSystems & es,
   fe_neighbor_face->attach_quadrature_rule (&qface);
 
   const std::vector<Real> & JxW = fe->get_JxW();
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   const std::vector<Real> & JxW_face = fe_elem_face->get_JxW();
 
   const std::vector<Point> & qface_points = fe_elem_face->get_xyz();
 
-  const std::vector<std::vector<Real> > & phi_face          = fe_elem_face->get_phi();
-  const std::vector<std::vector<Real> > & phi_neighbor_face = fe_neighbor_face->get_phi();
+  const std::vector<std::vector<Real>> & phi_face          = fe_elem_face->get_phi();
+  const std::vector<std::vector<Real>> & phi_neighbor_face = fe_neighbor_face->get_phi();
 
   DenseMatrix<Number> Ke;
   DenseVector<Number> Fe;
@@ -249,13 +249,8 @@ void assemble_poisson(EquationSystems & es,
 
   std::vector<dof_id_type> dof_indices;
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
-
       dof_map.dof_indices (elem, dof_indices);
       const unsigned int n_dofs = dof_indices.size();
 
@@ -272,7 +267,7 @@ void assemble_poisson(EquationSystems & es,
 
       // Boundary flux provides forcing in this example
       {
-        for (unsigned int side=0; side<elem->n_sides(); side++)
+        for (auto side : elem->side_index_range())
           if (elem->neighbor_ptr(side) == libmesh_nullptr)
             {
               if (mesh.get_boundary_info().has_boundary_id (elem, side, MIN_Z_BOUNDARY))
@@ -289,7 +284,7 @@ void assemble_poisson(EquationSystems & es,
 
       // Add boundary terms on the crack
       {
-        for (unsigned int side=0; side<elem->n_sides(); side++)
+        for (auto side : elem->side_index_range())
           if (elem->neighbor_ptr(side) == libmesh_nullptr)
             {
               // Found the lower side of the crack. Assemble terms due to lower and upper in here.

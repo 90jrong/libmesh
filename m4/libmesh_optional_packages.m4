@@ -94,20 +94,6 @@ AC_CONFIG_FILES([contrib/boost/include/Makefile])
 # --------------------------------------------------------------
 
 
-# --------------------------------------------------------------
-# Howard Hinnant's unique_ptr implementation.  Must be tested after
-# Boost and requires a working Boost installation.
-CONFIGURE_HINNANT_UNIQUE_PTR
-AC_CONFIG_FILES([contrib/unique_ptr/Makefile])
-# --------------------------------------------------------------
-
-
-# --------------------------------------------------------------
-# Test whether safe_bool<T> works as intended
-CONFIGURE_SAFE_BOOL
-# --------------------------------------------------------------
-
-
 # -------------------------------------------------------------
 # Petsc -- enabled by default
 # -------------------------------------------------------------
@@ -258,7 +244,7 @@ AC_CONFIG_FILES([contrib/gzstream/Makefile])
 # -------------------------------------------------------------
 AC_ARG_ENABLE(bzip2,
               AS_HELP_STRING([--disable-bzip2],
-                             [build without bzip2 compressed I/O suppport]),
+                             [build without bzip2 compressed I/O support]),
               enablebz2=$enableval,
               enablebz2=$enableoptional)
 
@@ -282,7 +268,7 @@ fi
 # -------------------------------------------------------------
 AC_ARG_ENABLE(xz,
               AS_HELP_STRING([--disable-xz],
-                             [build without xz compressed I/O suppport]),
+                             [build without xz compressed I/O support]),
               enablexz=$enableval,
               enablexz=$enableoptional)
 
@@ -633,6 +619,18 @@ if (test $enablenanoflann = yes); then
 fi
 AM_CONDITIONAL(LIBMESH_ENABLE_NANOFLANN, test x$enablenanoflann = xyes)
 AC_CONFIG_FILES([contrib/nanoflann/Makefile])
+# -------------------------------------------------------------
+
+
+
+# -------------------------------------------------------------
+# MetaPhysicL -- enabled by default
+# -------------------------------------------------------------
+CONFIGURE_METAPHYSICL
+if (test $enablemetaphysicl = yes); then
+  libmesh_contrib_INCLUDES="$METAPHYSICL_INCLUDE $libmesh_contrib_INCLUDES"
+fi
+AM_CONDITIONAL(LIBMESH_ENABLE_METAPHYSICL, test x$enablemetaphysicl = xyes)
 # -------------------------------------------------------------
 
 

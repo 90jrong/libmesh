@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// C++ inlcludes
+// C++ includes
 
 // Local includes
 #include "libmesh/fe.h"
@@ -28,7 +28,7 @@ namespace
 using namespace libMesh;
 
 // Compute the static coefficients for an element
-void hermite_compute_coefs(const Elem * elem, std::vector<std::vector<Real> > & dxdxi
+void hermite_compute_coefs(const Elem * elem, std::vector<std::vector<Real>> & dxdxi
 #ifdef DEBUG
                            , std::vector<Real> & dxdeta, std::vector<Real> & dydxi
 #endif
@@ -81,7 +81,7 @@ void hermite_compute_coefs(const Elem * elem, std::vector<std::vector<Real> > & 
 
 
 Real hermite_bases_2D (std::vector<unsigned int> & bases1D,
-                       const std::vector<std::vector<Real> > & dxdxi,
+                       const std::vector<std::vector<Real>> & dxdxi,
                        const Order & o,
                        unsigned int i)
 {
@@ -205,7 +205,7 @@ Real FE<2,HERMITE>::shape(const Elem * elem,
 {
   libmesh_assert(elem);
 
-  std::vector<std::vector<Real> > dxdxi(2, std::vector<Real>(2, 0));
+  std::vector<std::vector<Real>> dxdxi(2, std::vector<Real>(2, 0));
 
 #ifdef DEBUG
   std::vector<Real> dxdeta(2), dydxi(2);
@@ -226,7 +226,9 @@ Real FE<2,HERMITE>::shape(const Elem * elem,
     case QUAD4:
     case QUADSHELL4:
       libmesh_assert_less (totalorder, 4);
+      libmesh_fallthrough();
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         libmesh_assert_less (i, (totalorder+1u)*(totalorder+1u));
@@ -241,9 +243,6 @@ Real FE<2,HERMITE>::shape(const Elem * elem,
     default:
       libmesh_error_msg("ERROR: Unsupported element type = " << type);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -271,7 +270,7 @@ Real FE<2,HERMITE>::shape_deriv(const Elem * elem,
   libmesh_assert(elem);
   libmesh_assert (j == 0 || j == 1);
 
-  std::vector<std::vector<Real> > dxdxi(2, std::vector<Real>(2, 0));
+  std::vector<std::vector<Real>> dxdxi(2, std::vector<Real>(2, 0));
 
 #ifdef DEBUG
   std::vector<Real> dxdeta(2), dydxi(2);
@@ -292,7 +291,9 @@ Real FE<2,HERMITE>::shape_deriv(const Elem * elem,
     case QUAD4:
     case QUADSHELL4:
       libmesh_assert_less (totalorder, 4);
+      libmesh_fallthrough();
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         libmesh_assert_less (i, (totalorder+1u)*(totalorder+1u));
@@ -318,9 +319,6 @@ Real FE<2,HERMITE>::shape_deriv(const Elem * elem,
     default:
       libmesh_error_msg("ERROR: Unsupported element type = " << type);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -335,7 +333,7 @@ Real FE<2,HERMITE>::shape_second_deriv(const Elem * elem,
   libmesh_assert(elem);
   libmesh_assert (j == 0 || j == 1 || j == 2);
 
-  std::vector<std::vector<Real> > dxdxi(2, std::vector<Real>(2, 0));
+  std::vector<std::vector<Real>> dxdxi(2, std::vector<Real>(2, 0));
 
 #ifdef DEBUG
   std::vector<Real> dxdeta(2), dydxi(2);
@@ -356,7 +354,9 @@ Real FE<2,HERMITE>::shape_second_deriv(const Elem * elem,
     case QUAD4:
     case QUADSHELL4:
       libmesh_assert_less (totalorder, 4);
+      libmesh_fallthrough();
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         libmesh_assert_less (i, (totalorder+1u)*(totalorder+1u));
@@ -386,9 +386,6 @@ Real FE<2,HERMITE>::shape_second_deriv(const Elem * elem,
     default:
       libmesh_error_msg("ERROR: Unsupported element type = " << type);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 } // namespace libMesh

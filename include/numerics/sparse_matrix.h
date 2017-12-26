@@ -24,7 +24,7 @@
 // Local includes
 #include "libmesh/libmesh.h"
 #include "libmesh/libmesh_common.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/id_types.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/parallel_object.h"
@@ -33,6 +33,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -60,7 +61,7 @@ std::ostream & operator << (std::ostream & os, const SparseMatrix<T> & m);
  * \date 2003
  */
 template <typename T>
-class SparseMatrix : public ReferenceCountedObject<SparseMatrix<T> >,
+class SparseMatrix : public ReferenceCountedObject<SparseMatrix<T>>,
                      public ParallelObject
 {
 public:
@@ -89,7 +90,7 @@ public:
    * Builds a \p SparseMatrix<T> using the linear solver package specified by
    * \p solver_package
    */
-  static UniquePtr<SparseMatrix<T> >
+  static std::unique_ptr<SparseMatrix<T>>
   build(const Parallel::Communicator & comm,
         const SolverPackage solver_package = libMesh::default_solver_package());
 
@@ -169,6 +170,13 @@ public:
    * that the values are consistent across processors.
    */
   virtual void close () = 0;
+
+  /**
+   *  For PETSc matrix , this function is similar to close but without shrinking memory.
+   *  This is useful when we want to switch between ADD_VALUES and INSERT_VALUES.
+   *  close should be called before using the matrix.
+   */
+  virtual void flush () { close(); }
 
   /**
    * \returns The row-dimension of the matrix.

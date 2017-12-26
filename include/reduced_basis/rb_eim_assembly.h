@@ -24,10 +24,13 @@
 #include "libmesh/elem_assembly.h"
 
 // libMesh includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/numeric_vector.h"
 #include "libmesh/point.h"
 #include "libmesh/fe.h"
+
+// C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -105,13 +108,13 @@ private:
    * empirical interpolation approximation. This will be a GHOSTED
    * vector to facilitate interpolation in the case of multiple processors.
    */
-  UniquePtr<NumericVector<Number> > _ghosted_basis_function;
+  std::unique_ptr<NumericVector<Number>> _ghosted_basis_function;
 
   /**
    * We store an FE object and an associated quadrature rule.
    */
-  UniquePtr<FEBase> _fe;
-  UniquePtr<QBase> _qrule;
+  std::unique_ptr<FEBase> _fe;
+  std::unique_ptr<QBase> _qrule;
 };
 
 }

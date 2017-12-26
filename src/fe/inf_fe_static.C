@@ -178,6 +178,8 @@ Real InfFE<Dim,T_radial,T_map>::shape(const FEType & fet,
   compute_shape_indices(fet, inf_elem_type, i, i_base, i_radial);
 
   //TODO:[SP/DD]  exp(ikr) is still missing here!
+  // but is it intended?  It would be probably somehow nice, but than it would be Number, not Real !
+  // --> thus it would destroy the interface...
   if (Dim > 1)
     return FEInterface::shape(Dim-1, fet, base_et, i_base, p)
       * InfFE<Dim,T_radial,T_map>::eval(v, o_radial, i_radial)
@@ -215,7 +217,7 @@ Real InfFE<Dim,T_radial,T_map>::shape(const FEType & fet,
 
   const Order o_radial (fet.radial_order);
   const Real v (p(Dim-1));
-  UniquePtr<const Elem> base_el (inf_elem->build_side_ptr(0));
+  std::unique_ptr<const Elem> base_el (inf_elem->build_side_ptr(0));
 
   unsigned int i_base, i_radial;
   compute_shape_indices(fet, inf_elem->type(), i, i_base, i_radial);
@@ -247,7 +249,7 @@ void InfFE<Dim,T_radial,T_map>::compute_data(const FEType & fet,
   const Order        radial_mapping_order (Radial::mapping_order());
   const Point &      p                    (data.p);
   const Real         v                    (p(Dim-1));
-  UniquePtr<const Elem> base_el (inf_elem->build_side_ptr(0));
+  std::unique_ptr<const Elem> base_el (inf_elem->build_side_ptr(0));
 
   /*
    * compute \p interpolated_dist containing the mapping-interpolated
@@ -304,18 +306,18 @@ void InfFE<Dim,T_radial,T_map>::compute_data(const FEType & fet,
 #ifdef LIBMESH_USE_COMPLEX_NUMBERS
 
   // assumption on time-harmonic behavior
-  const short int sign (-1);
+  Number sign_i (0,1.);
 
   // the wave number
-  const Real wavenumber = 2. * libMesh::pi * data.frequency / data.speed;
+  const Number wavenumber = 2. * libMesh::pi * data.frequency / data.speed;
 
   // the exponent for time-harmonic behavior
-  const Real exponent = sign                                                            /* +1. or -1.                */
-    * wavenumber                                                                      /* k                         */
+  const Number exponent = sign_i                                                      /* imaginary unit             */
+    * wavenumber                                                                      /* k  (can be complex)       */
     * interpolated_dist                                                               /* together with next line:  */
     * InfFE<Dim,INFINITE_MAP,T_map>::eval(v, radial_mapping_order, 1);                /* phase(s,t,v)              */
 
-  const Number time_harmonic = Number(cos(exponent), sin(exponent));                    /* e^(sign*i*k*phase(s,t,v)) */
+  const Number time_harmonic = exp(exponent);                                         /* e^(sign*i*k*phase(s,t,v)) */
 
   /*
    * compute \p shape for all dof in the element

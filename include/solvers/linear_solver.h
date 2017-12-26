@@ -30,11 +30,12 @@
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/parallel_object.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ includes
 #include <cstddef>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -55,7 +56,7 @@ class SolverConfiguration;
  * \date 2003
  */
 template <typename T>
-class LinearSolver : public ReferenceCountedObject<LinearSolver<T> >,
+class LinearSolver : public ReferenceCountedObject<LinearSolver<T>>,
                      public ParallelObject
 {
 public:
@@ -75,8 +76,8 @@ public:
    * Builds a \p LinearSolver using the linear solver package specified by
    * \p solver_package
    */
-  static UniquePtr<LinearSolver<T> > build(const libMesh::Parallel::Communicator & comm_in,
-                                           const SolverPackage solver_package = libMesh::default_solver_package());
+  static std::unique_ptr<LinearSolver<T>> build(const libMesh::Parallel::Communicator & comm_in,
+                                                const SolverPackage solver_package = libMesh::default_solver_package());
 
   /**
    * \returns \p true if the data structures are
@@ -266,7 +267,7 @@ protected:
   SolverType _solver_type;
 
   /**
-   * Enum statitng with type of preconditioner to use.
+   * Enum stating with type of preconditioner to use.
    */
   PreconditionerType _preconditioner_type;
 

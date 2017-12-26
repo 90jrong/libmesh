@@ -42,12 +42,12 @@ const unsigned int Tet4::side_nodes_map[4][3] =
 
 const unsigned int Tet4::edge_nodes_map[6][2] =
   {
-    {0, 1}, // Side 0
-    {1, 2}, // Side 1
-    {0, 2}, // Side 2
-    {0, 3}, // Side 3
-    {1, 3}, // Side 4
-    {2, 3}  // Side 5
+    {0, 1}, // Edge 0
+    {1, 2}, // Edge 1
+    {0, 2}, // Edge 2
+    {0, 3}, // Edge 3
+    {1, 3}, // Edge 4
+    {2, 3}  // Edge 5
   };
 
 
@@ -127,35 +127,32 @@ bool Tet4::is_node_on_side(const unsigned int n,
   return false;
 }
 
-UniquePtr<Elem> Tet4::build_side_ptr (const unsigned int i,
-                                      bool proxy)
+std::unique_ptr<Elem> Tet4::build_side_ptr (const unsigned int i,
+                                            bool proxy)
 {
   libmesh_assert_less (i, this->n_sides());
 
   if (proxy)
-    return UniquePtr<Elem>(new Side<Tri3,Tet4>(this,i));
+    return libmesh_make_unique<Side<Tri3,Tet4>>(this,i);
 
   else
     {
-      Elem * face = new Tri3;
+      std::unique_ptr<Elem> face = libmesh_make_unique<Tri3>();
       face->subdomain_id() = this->subdomain_id();
 
       for (unsigned n=0; n<face->n_nodes(); ++n)
         face->set_node(n) = this->node_ptr(Tet4::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(face);
+      return face;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 
-UniquePtr<Elem> Tet4::build_edge_ptr (const unsigned int i)
+std::unique_ptr<Elem> Tet4::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
 
-  return UniquePtr<Elem>(new SideEdge<Edge2,Tet4>(this,i));
+  return libmesh_make_unique<SideEdge<Edge2,Tet4>>(this,i);
 }
 
 
@@ -410,7 +407,7 @@ float Tet4::embedding_matrix (const unsigned int i,
   // libMesh::err << "jp=" << jp << std::endl;
   // libMesh::err << "kp=" << kp << std::endl;
 
-  // Call embedding matrx with permuted indices
+  // Call embedding matrix with permuted indices
   return this->_embedding_matrix[i][jp][kp];
 }
 
@@ -468,7 +465,7 @@ float Tet4::embedding_matrix (const unsigned int i,
 //  value.  */
 //       if (first_05_in_embedding_matrix==libMesh::invalid_uint)
 // {
-//   /* First time, so just remeber this position.  */
+//   /* First time, so just remember this position.  */
 //   first_05_in_embedding_matrix = n;
 // }
 //       else

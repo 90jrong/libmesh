@@ -99,19 +99,11 @@ void EquationSystems::init ()
 
   // Tell all the \p DofObject entities how many systems
   // there are.
-  {
-    MeshBase::node_iterator       node_it  = _mesh.nodes_begin();
-    const MeshBase::node_iterator node_end = _mesh.nodes_end();
+  for (auto & node : _mesh.node_ptr_range())
+    node->set_n_systems(n_sys);
 
-    for ( ; node_it != node_end; ++node_it)
-      (*node_it)->set_n_systems(n_sys);
-
-    MeshBase::element_iterator       elem_it  = _mesh.elements_begin();
-    const MeshBase::element_iterator elem_end = _mesh.elements_end();
-
-    for ( ; elem_it != elem_end; ++elem_it)
-      (*elem_it)->set_n_systems(n_sys);
-  }
+  for (auto & elem : _mesh.element_ptr_range())
+    elem->set_n_systems(n_sys);
 
   for (unsigned int i=0; i != this->n_systems(); ++i)
     this->get_system(i).init();
@@ -125,6 +117,18 @@ void EquationSystems::init ()
 
 
 void EquationSystems::reinit ()
+{
+  const bool mesh_changed = this->reinit_solutions();
+
+  // If the mesh has changed, systems will need to reinitialize their
+  // own data on the new mesh.
+  if (mesh_changed)
+    this->reinit_systems();
+}
+
+
+
+bool EquationSystems::reinit_solutions ()
 {
   parallel_object_only();
 
@@ -141,17 +145,11 @@ void EquationSystems::reinit ()
   if (_added_new_systems)
     {
       // Our DofObjects will need space for the additional systems
-      MeshBase::node_iterator       node_it  = _mesh.nodes_begin();
-      const MeshBase::node_iterator node_end = _mesh.nodes_end();
+      for (auto & node : _mesh.node_ptr_range())
+        node->set_n_systems(n_sys);
 
-      for ( ; node_it != node_end; ++node_it)
-        (*node_it)->set_n_systems(n_sys);
-
-      MeshBase::element_iterator       elem_it  = _mesh.elements_begin();
-      const MeshBase::element_iterator elem_end = _mesh.elements_end();
-
-      for ( ; elem_it != elem_end; ++elem_it)
-        (*elem_it)->set_n_systems(n_sys);
+      for (auto & elem : _mesh.element_ptr_range())
+        elem->set_n_systems(n_sys);
 
       // And any new systems will need initialization
       for (unsigned int i=0; i != n_sys; ++i)
@@ -169,24 +167,12 @@ void EquationSystems::reinit ()
   // there are.
   {
     // All the nodes
-    MeshBase::node_iterator       node_it  = _mesh.nodes_begin();
-    const MeshBase::node_iterator node_end = _mesh.nodes_end();
-
-    for ( ; node_it != node_end; ++node_it)
-      {
-        Node * node = *node_it;
-        node->set_n_systems(this->n_systems());
-      }
+    for (auto & node : _mesh.node_ptr_range())
+      node->set_n_systems(this->n_systems());
 
     // All the elements
-    MeshBase::element_iterator       elem_it  = _mesh.elements_begin();
-    const MeshBase::element_iterator elem_end = _mesh.elements_end();
-
-    for ( ; elem_it != elem_end; ++elem_it)
-      {
-        Elem * elem = *elem_it;
-        elem->set_n_systems(this->n_systems());
-      }
+    for (auto & elem : _mesh.element_ptr_range())
+      elem->set_n_systems(this->n_systems());
   }
 
   // Localize each system's vectors
@@ -276,14 +262,19 @@ void EquationSystems::reinit ()
         }
     }
 
-  // If the mesh has changed, systems will need to create new dof
-  // constraints and update their global solution vectors
-  if (mesh_changed)
-    {
-      for (unsigned int i=0; i != this->n_systems(); ++i)
-        this->get_system(i).reinit();
-    }
+  return mesh_changed;
+
 #endif // #ifdef LIBMESH_ENABLE_AMR
+
+  return false;
+}
+
+
+
+void EquationSystems::reinit_systems()
+{
+  for (unsigned int i=0; i != this->n_systems(); ++i)
+    this->get_system(i).reinit();
 }
 
 
@@ -303,19 +294,11 @@ void EquationSystems::allgather ()
 
   // Tell all the \p DofObject entities how many systems
   // there are.
-  {
-    MeshBase::node_iterator       node_it  = _mesh.nodes_begin();
-    const MeshBase::node_iterator node_end = _mesh.nodes_end();
+  for (auto & node : _mesh.node_ptr_range())
+    node->set_n_systems(n_sys);
 
-    for ( ; node_it != node_end; ++node_it)
-      (*node_it)->set_n_systems(n_sys);
-
-    MeshBase::element_iterator       elem_it  = _mesh.elements_begin();
-    const MeshBase::element_iterator elem_end = _mesh.elements_end();
-
-    for ( ; elem_it != elem_end; ++elem_it)
-      (*elem_it)->set_n_systems(n_sys);
-  }
+  for (auto & elem : _mesh.element_ptr_range())
+    elem->set_n_systems(n_sys);
 
   // And distribute each system's dofs
   for (unsigned int i=0; i != this->n_systems(); ++i)
@@ -431,6 +414,7 @@ System & EquationSystems::add_system (const std::string & sys_type,
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 void EquationSystems::delete_system (const std::string & name)
 {
   libmesh_deprecated();
@@ -442,6 +426,7 @@ void EquationSystems::delete_system (const std::string & name)
 
   _systems.erase (name);
 }
+#endif
 
 
 
@@ -581,90 +566,14 @@ void EquationSystems::build_solution_vector (std::vector<Number> &,
                                              const std::string &,
                                              const std::string &) const
 {
-  //TODO:[BSK] re-implement this from the method below
+  // TODO:[BSK] re-implement this from the method below
   libmesh_not_implemented();
-
-  //   // Get a reference to the named system
-  //   const System & system = this->get_system(system_name);
-
-  //   // Get the number associated with the variable_name we are passed
-  //   const unsigned short int variable_num = system.variable_number(variable_name);
-
-  //   // Get the dimension of the current mesh
-  //   const unsigned int dim = _mesh.mesh_dimension();
-
-  //   // If we're on processor 0, allocate enough memory to hold the solution.
-  //   // Since we're only looking at one variable, there will be one solution value
-  //   // for each node in the mesh.
-  //   if (_mesh.processor_id() == 0)
-  //     soln.resize(_mesh.n_nodes());
-
-  //   // Vector to hold the global solution from all processors
-  //   std::vector<Number> sys_soln;
-
-  //   // Update the global solution from all processors
-  //   system.update_global_solution (sys_soln, 0);
-
-  //   // Temporary vector to store the solution on an individual element.
-  //   std::vector<Number>       elem_soln;
-
-  //   // The FE solution interpolated to the nodes
-  //   std::vector<Number>       nodal_soln;
-
-  //   // The DOF indices for the element
-  //   std::vector<dof_id_type> dof_indices;
-
-  //   // Determine the finite/infinite element type used in this system
-  //   const FEType & fe_type    = system.variable_type(variable_num);
-
-  //   // Define iterators to iterate over all the elements of the mesh
-  //   const_active_elem_iterator       it (_mesh.elements_begin());
-  //   const const_active_elem_iterator end(_mesh.elements_end());
-
-  //   // Loop over elements
-  //   for ( ; it != end; ++it)
-  //     {
-  //       // Convenient shortcut to the element pointer
-  //       const Elem * elem = *it;
-
-  //       // Fill the dof_indices vector for this variable
-  //       system.get_dof_map().dof_indices(elem,
-  //        dof_indices,
-  //        variable_num);
-
-  //       // Resize the element solution vector to fit the
-  //       // dof_indices for this element.
-  //       elem_soln.resize(dof_indices.size());
-
-  //       // Transfer the system solution to the element
-  //       // solution by mapping it through the dof_indices vector.
-  //       for (std::size_t i=0; i<dof_indices.size(); i++)
-  // elem_soln[i] = sys_soln[dof_indices[i]];
-
-  //       // Using the FE interface, compute the nodal_soln
-  //       // for the current elemnt type given the elem_soln
-  //       FEInterface::nodal_soln (dim,
-  //        fe_type,
-  //        elem,
-  //        elem_soln,
-  //        nodal_soln);
-
-  //       // Sanity check -- make sure that there are the same number
-  //       // of entries in the nodal_soln as there are nodes in the
-  //       // element!
-  //       libmesh_assert_equal_to (nodal_soln.size(), elem->n_nodes());
-
-  //       // Copy the nodal solution over into the correct place in
-  //       // the global soln vector which will be returned to the user.
-  //       for (unsigned int n=0; n<elem->n_nodes(); n++)
-  // soln[elem->node_id(n)] = nodal_soln[n];
-  //     }
 }
 
 
 
 
-UniquePtr<NumericVector<Number> >
+std::unique_ptr<NumericVector<Number>>
 EquationSystems::build_parallel_solution_vector(const std::set<std::string> * system_names) const
 {
   LOG_SCOPE("build_parallel_solution_vector()", "EquationSystems");
@@ -715,25 +624,19 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
     nv = n_scalar_vars + dim*n_vector_vars;
   }
 
-  // Get the number of elements that share each node.  We will
-  // compute the average value at each node.  This is particularly
-  // useful for plotting discontinuous data.
-  MeshBase::element_iterator       e_it  = _mesh.active_local_elements_begin();
-  const MeshBase::element_iterator e_end = _mesh.active_local_elements_end();
-
   // Get the number of local nodes
   dof_id_type n_local_nodes = cast_int<dof_id_type>
     (std::distance(_mesh.local_nodes_begin(),
                    _mesh.local_nodes_end()));
 
   // Create a NumericVector to hold the parallel solution
-  UniquePtr<NumericVector<Number> > parallel_soln_ptr = NumericVector<Number>::build(_communicator);
+  std::unique_ptr<NumericVector<Number>> parallel_soln_ptr = NumericVector<Number>::build(_communicator);
   NumericVector<Number> & parallel_soln = *parallel_soln_ptr;
   parallel_soln.init(nn*nv, n_local_nodes*nv, false, PARALLEL);
 
   // Create a NumericVector to hold the "repeat_count" for each node - this is essentially
   // the number of elements contributing to that node's value
-  UniquePtr<NumericVector<Number> > repeat_count_ptr = NumericVector<Number>::build(_communicator);
+  std::unique_ptr<NumericVector<Number>> repeat_count_ptr = NumericVector<Number>::build(_communicator);
   NumericVector<Number> & repeat_count = *repeat_count_ptr;
   repeat_count.init(nn*nv, n_local_nodes*nv, false, PARALLEL);
 
@@ -797,6 +700,7 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
       std::vector<Number>      nodal_soln;  // The FE solution interpolated to the nodes
       std::vector<dof_id_type> dof_indices; // The DOF indices for the finite element
 
+      unsigned var_inc = 0;
       for (unsigned int var=0; var<nv_sys; var++)
         {
           const FEType & fe_type           = system.variable_type(var);
@@ -805,14 +709,9 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
 
           unsigned int n_vec_dim = FEInterface::n_vec_dim( pos->second->get_mesh(), fe_type );
 
-          MeshBase::element_iterator       it       = _mesh.active_local_elements_begin();
-          const MeshBase::element_iterator end_elem = _mesh.active_local_elements_end();
-
-          for ( ; it != end_elem; ++it)
+          for (const auto & elem : _mesh.active_local_element_ptr_range())
             {
-              const Elem * elem = *it;
-
-              if (var_description.active_on_subdomain((*it)->subdomain_id()))
+              if (var_description.active_on_subdomain(elem->subdomain_id()))
                 {
                   dof_map.dof_indices (elem, dof_indices, var);
 
@@ -840,22 +739,23 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
                             {
                               // For vector-valued elements, all components are in nodal_soln. For each
                               // node, the components are stored in order, i.e. node_0 -> s0_x, s0_y, s0_z
-                              parallel_soln.add(nv*(elem->node_id(n)) + (var+d + var_num), nodal_soln[n_vec_dim*n+d]);
+                              parallel_soln.add(nv*(elem->node_id(n)) + (var_inc+d + var_num), nodal_soln[n_vec_dim*n+d]);
 
                               // Increment the repeat count for this position
-                              repeat_count.add(nv*(elem->node_id(n)) + (var+d + var_num), 1);
+                              repeat_count.add(nv*(elem->node_id(n)) + (var_inc+d + var_num), 1);
                             }
                         }
                     }
                 }
               else // If this variable doesn't exist on this subdomain we have to still increment repeat_count so that we won't divide by 0 later:
                 for (unsigned int n=0; n<elem->n_nodes(); n++)
-                  // Only do this if this variable has NO DoFs at this node... it might have some from an ajoining element...
+                  // Only do this if this variable has NO DoFs at this node... it might have some from an adjoining element...
                   if (!elem->node_ptr(n)->n_dofs(sys_num, var))
                     for (unsigned int d=0; d < n_vec_dim; d++)
                       repeat_count.add(nv*(elem->node_id(n)) + (var+d + var_num), 1);
 
             } // end loop over elements
+          var_inc += n_vec_dim;
         } // end loop on variables in this system
 
       var_num += nv_sys_split;
@@ -867,7 +767,7 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
   // Divide to get the average value at the nodes
   parallel_soln /= repeat_count;
 
-  return UniquePtr<NumericVector<Number> >(parallel_soln_ptr.release());
+  return std::unique_ptr<NumericVector<Number>>(parallel_soln_ptr.release());
 }
 
 
@@ -878,7 +778,7 @@ void EquationSystems::build_solution_vector (std::vector<Number> & soln,
   LOG_SCOPE("build_solution_vector()", "EquationSystems");
 
   // Call the parallel implementation
-  UniquePtr<NumericVector<Number> > parallel_soln =
+  std::unique_ptr<NumericVector<Number>> parallel_soln =
     this->build_parallel_solution_vector(system_names);
 
   // Localize the NumericVector into the provided std::vector.
@@ -913,7 +813,7 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
   dof_id_type nv = 0;
 
   // Find the total number of variables to output
-  std::vector<std::vector<unsigned> > do_output(_systems.size());
+  std::vector<std::vector<unsigned>> do_output(_systems.size());
   {
     const_system_iterator       pos = _systems.begin();
     const const_system_iterator end = _systems.end();
@@ -958,7 +858,7 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
     parallel_soln_local_size = div+1;
 
   // Create a NumericVector to hold the parallel solution
-  UniquePtr<NumericVector<Number> > parallel_soln_ptr = NumericVector<Number>::build(_communicator);
+  std::unique_ptr<NumericVector<Number>> parallel_soln_ptr = NumericVector<Number>::build(_communicator);
   NumericVector<Number> & parallel_soln = *parallel_soln_ptr;
   parallel_soln.init(parallel_soln_global_size,
                      parallel_soln_local_size,
@@ -1011,22 +911,15 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
           const Variable & variable = system.variable(var);
           const DofMap & dof_map = system.get_dof_map();
 
-          MeshBase::element_iterator       it       = _mesh.active_local_elements_begin();
-          const MeshBase::element_iterator end_elem = _mesh.active_local_elements_end();
+          for (const auto & elem : _mesh.active_local_element_ptr_range())
+            if (variable.active_on_subdomain(elem->subdomain_id()))
+              {
+                dof_map.dof_indices (elem, dof_indices, var);
 
-          for ( ; it != end_elem; ++it)
-            {
-              const Elem * elem = *it;
+                libmesh_assert_equal_to (1, dof_indices.size());
 
-              if (variable.active_on_subdomain(elem->subdomain_id()))
-                {
-                  dof_map.dof_indices (elem, dof_indices, var);
-
-                  libmesh_assert_equal_to (1, dof_indices.size());
-
-                  parallel_soln.set((ne*var_num)+elem->id(), sys_soln(dof_indices[0]));
-                }
-            }
+                parallel_soln.set((ne*var_num)+elem->id(), sys_soln(dof_indices[0]));
+              }
 
           var_num++;
         } // end loop on variables in this system
@@ -1073,14 +966,8 @@ void EquationSystems::build_discontinuous_solution_vector (std::vector<Number> &
   unsigned int tw=0;
 
   // get the total weight
-  {
-    MeshBase::element_iterator       it  = _mesh.active_elements_begin();
-    const MeshBase::element_iterator end = _mesh.active_elements_end();
-
-    for ( ; it != end; ++it)
-      tw += (*it)->n_nodes();
-  }
-
+  for (const auto & elem : _mesh.active_element_ptr_range())
+    tw += elem->n_nodes();
 
   // Only if we are on processor zero, allocate the storage
   // to hold (number_of_nodes)*(number_of_variables) entries.
@@ -1125,14 +1012,10 @@ void EquationSystems::build_discontinuous_solution_vector (std::vector<Number> &
               {
                 const FEType & fe_type    = system.variable_type(var);
 
-                MeshBase::element_iterator       it       = _mesh.active_elements_begin();
-                const MeshBase::element_iterator end_elem = _mesh.active_elements_end();
-
                 unsigned int nn=0;
 
-                for ( ; it != end_elem; ++it)
+                for (auto & elem : _mesh.active_element_ptr_range())
                   {
-                    const Elem * elem = *it;
                     system.get_dof_map().dof_indices (elem, dof_indices, var);
 
                     elem_soln.resize(dof_indices.size());
@@ -1334,18 +1217,12 @@ std::size_t EquationSystems::n_active_dofs () const
 void EquationSystems::_add_system_to_nodes_and_elems()
 {
   // All the nodes
-  MeshBase::node_iterator       node_it  = _mesh.nodes_begin();
-  const MeshBase::node_iterator node_end = _mesh.nodes_end();
-
-  for ( ; node_it != node_end; ++node_it)
-    (*node_it)->add_system();
+  for (auto & node : _mesh.node_ptr_range())
+    node->add_system();
 
   // All the elements
-  MeshBase::element_iterator       elem_it  = _mesh.elements_begin();
-  const MeshBase::element_iterator elem_end = _mesh.elements_end();
-
-  for ( ; elem_it != elem_end; ++elem_it)
-    (*elem_it)->add_system();
+  for (auto & elem : _mesh.element_ptr_range())
+    elem->add_system();
 }
 
 } // namespace libMesh

@@ -25,8 +25,8 @@ class ContainsPointTest : public CppUnit::TestCase
 {
   /**
    * The goal of this test is to verify proper operation of the contains_point
-   * method that is used extensively in the point locator. This test focusses on
-   * the specializes contains_point implementaion in TRI3.
+   * method that is used extensively in the point locator. This test focuses on
+   * the specializes contains_point implementation in TRI3.
    */
 public:
   CPPUNIT_TEST_SUITE( ContainsPointTest );
@@ -70,7 +70,7 @@ public:
       Node two   (0., 1., 0., 2);
       Node three (0., 0., 1., 3);
 
-      UniquePtr<Elem> elem = Elem::build(TET4);
+      std::unique_ptr<Elem> elem = Elem::build(TET4);
       elem->set_node(0) = &zero;
       elem->set_node(1) = &one;
       elem->set_node(2) = &two;
@@ -103,7 +103,7 @@ public:
       Node two   (0., epsilon, 0., 2);
       Node three (0., 0., 1., 3);
 
-      UniquePtr<Elem> elem = Elem::build(TET4);
+      std::unique_ptr<Elem> elem = Elem::build(TET4);
       elem->set_node(0) = &zero;
       elem->set_node(1) = &one;
       elem->set_node(2) = &two;
@@ -139,7 +139,7 @@ protected:
     Node c(c_in, 2);
 
     // Build the test Elem
-    UniquePtr<Elem> elem = Elem::build(TRI3);
+    std::unique_ptr<Elem> elem = Elem::build(TRI3);
 
     elem->set_node(0) = &a;
     elem->set_node(1) = &b;

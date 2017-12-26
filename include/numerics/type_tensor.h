@@ -242,7 +242,7 @@ public:
   template <typename Scalar>
   typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
-    TypeTensor<typename CompareTypes<T, Scalar>::supertype> >::type
+    TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
   operator * (const Scalar) const;
 
   /**
@@ -261,7 +261,7 @@ public:
   template <typename Scalar>
   typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
-    TypeTensor<typename CompareTypes<T, Scalar>::supertype> >::type
+    TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
   operator / (const Scalar) const;
 
   /**
@@ -325,7 +325,9 @@ public:
    *
    * \deprecated Use the norm() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Real size() const;
+#endif
 
   /**
    * \returns The Frobenius norm of the tensor, i.e. the square-root of
@@ -339,7 +341,9 @@ public:
    *
    * \deprecated Use the norm_sq() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Real size_sq() const;
+#endif
 
   /**
    * \returns The Frobenius norm of the tensor squared, i.e. sum of the
@@ -885,7 +889,7 @@ template <typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeTensor<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
 TypeTensor<T>::operator * (const Scalar factor) const
 {
   typedef typename CompareTypes<T, Scalar>::supertype TS;
@@ -921,7 +925,7 @@ template <typename T, typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeTensor<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
 operator * (const Scalar factor,
             const TypeTensor<T> & t)
 {
@@ -949,7 +953,7 @@ template <typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeTensor<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
 TypeTensor<T>::operator / (const Scalar factor) const
 {
   libmesh_assert_not_equal_to (factor, static_cast<T>(0.));
@@ -1178,6 +1182,7 @@ TypeTensor<T>::contract (const TypeTensor<T2> & t) const
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
 Real TypeTensor<T>::size() const
@@ -1185,6 +1190,7 @@ Real TypeTensor<T>::size() const
   libmesh_deprecated();
   return this->norm();
 }
+#endif
 
 
 
@@ -1247,6 +1253,7 @@ void TypeTensor<T>::zero()
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
 Real TypeTensor<T>::size_sq () const
@@ -1254,6 +1261,7 @@ Real TypeTensor<T>::size_sq () const
   libmesh_deprecated();
   return this->norm_sq();
 }
+#endif
 
 
 

@@ -65,7 +65,7 @@ void NewmarkSolver::advance_timestep ()
       // v_{n+1} = gamma/(beta*Delta t)*(x_{n+1}-x_n)
       //         - ((gamma/beta)-1)*v_n
       //         - (gamma/(2*beta)-1)*(Delta t)*a_n
-      UniquePtr<NumericVector<Number> > new_solution_rate = nonlinear_solution.clone();
+      std::unique_ptr<NumericVector<Number>> new_solution_rate = nonlinear_solution.clone();
       (*new_solution_rate) -= old_nonlinear_soln;
       (*new_solution_rate) *= (_gamma/(_beta*_system.deltat));
       new_solution_rate->add( (1.0-_gamma/_beta), old_solution_rate );
@@ -74,7 +74,7 @@ void NewmarkSolver::advance_timestep ()
       // a_{n+1} = (1/(beta*(Delta t)^2))*(x_{n+1}-x_n)
       //         - 1/(beta*Delta t)*v_n
       //         - (1-1/(2*beta))*a_n
-      UniquePtr<NumericVector<Number> > new_solution_accel = old_solution_accel.clone();
+      std::unique_ptr<NumericVector<Number>> new_solution_accel = old_solution_accel.clone();
       (*new_solution_accel) *=  -(1.0/(2.0*_beta)-1.0);
       new_solution_accel->add( -1.0/(_beta*_system.deltat), old_solution_rate );
       new_solution_accel->add( 1.0/(_beta*_system.deltat*_system.deltat), nonlinear_solution );
@@ -108,7 +108,7 @@ void NewmarkSolver::compute_initial_accel()
   // We need to compute the initial acceleration based off of
   // the initial position and velocity and, thus, acceleration
   // is the unknown in diff_solver and not the displacement. So,
-  // We swap solution and acceleration. NewarkSolver::_general_residual
+  // We swap solution and acceleration. NewmarkSolver::_general_residual
   // will check _is_accel_solve and provide the correct
   // values to the FEMContext assuming this swap was made.
   this->_is_accel_solve = true;
@@ -259,7 +259,7 @@ bool NewmarkSolver::_general_residual (bool request_jacobian,
       request_jacobian = false;
     }
   // Otherwise, the unknowns are the displacements and everything is straight
-  // foward and is what you think it is
+  // forward and is what you think it is
   else
     {
       if (request_jacobian)

@@ -70,7 +70,7 @@ extern "C" {
 // implementations, for example Sun Studio and PGI C++.  However,
 // this necessarily requires breaking the ISO-C++ standard, and is
 // really just a hack.  As such, only do it if we are building the
-// libmesh library itself.  Specifially, *DO NOT* export this to
+// libmesh library itself.  Specifically, *DO NOT* export this to
 // user code or install this header.
 #ifdef LIBMESH_IS_COMPILING_ITSELF
 #  include "libmesh/libmesh_augment_std_namespace.h"
@@ -255,9 +255,9 @@ extern bool warned_about_auto_ptr;
   } while (0)
 
 // the libmesh_stop() macro will stop the code until a SIGCONT signal
-// is recieved.  This is useful, for example, when determining the
+// is received.  This is useful, for example, when determining the
 // memory used by a given operation.  A libmesh_stop() could be
-// instered before and after a questionable operation and the delta
+// inserted before and after a questionable operation and the delta
 // memory can be obtained from a ps or top.  This macro only works for
 // serial cases.
 #define libmesh_stop()                                                  \
@@ -397,7 +397,7 @@ extern bool warned_about_auto_ptr;
 
 #define libmesh_file_error_msg(filename, msg)                           \
   do {                                                                  \
-    libMesh::err << "Error with file `" << filename << "'" << std::endl;\
+    libMesh::err << "Error with file `" << filename << "'" << std::endl; \
     libMesh::MacroFunctions::report_error(__FILE__, __LINE__, LIBMESH_DATE, LIBMESH_TIME); \
     libMesh::err << msg << std::endl;                                   \
     LIBMESH_THROW(libMesh::FileError(filename));                        \
@@ -425,7 +425,7 @@ extern bool warned_about_auto_ptr;
 #define libmesh_example_requires(condition, option)                     \
   do {                                                                  \
     if (!(condition)) {                                                 \
-      libMesh::out << "Configuring libMesh with " #option " is required to run this example." << std::endl; \
+      libMesh::out << "Configuring libMesh with " << option << " is required to run this example." << std::endl; \
       return 77;                                                        \
     } } while (0)
 
@@ -460,8 +460,13 @@ extern bool warned_about_auto_ptr;
 
 // The libmesh_deprecated macro warns that you are using obsoleted code
 #undef libmesh_deprecated
+#ifndef LIBMESH_ENABLE_DEPRECATED
+#define libmesh_deprecated()                                            \
+  libmesh_error_msg("*** Error, This code is deprecated, and likely to be removed in future library versions! ");
+#else
 #define libmesh_deprecated()                                            \
   libmesh_warning("*** Warning, This code is deprecated, and likely to be removed in future library versions! ");
+#endif
 
 // A function template for ignoring unused variables.  This is a way
 // to shut up unused variable compiler warnings on a case by case
@@ -500,6 +505,7 @@ inline Tnew cast_ref(Told & oldvar)
 #endif
 }
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename Tnew, typename Told>
 inline Tnew libmesh_cast_ref(Told & oldvar)
 {
@@ -507,6 +513,7 @@ inline Tnew libmesh_cast_ref(Told & oldvar)
   libmesh_deprecated();
   return cast_ref<Tnew>(oldvar);
 }
+#endif
 
 // We use two different function names to avoid an odd overloading
 // ambiguity bug with icc 10.1.008
@@ -594,6 +601,17 @@ inline Tnew libmesh_cast_int (Told oldvar)
 #define libmesh_final final
 #else
 #define libmesh_final
+#endif
+
+// Define backwards-compatible fallthrough attribute.  We could
+// eventually also add support for other compiler-specific fallthrough
+// attributes.
+#ifdef LIBMESH_HAVE_CXX17_FALLTHROUGH_ATTRIBUTE
+#define libmesh_fallthrough() [[fallthrough]]
+#elif defined(LIBMESH_HAVE_DOUBLE_UNDERSCORE_ATTRIBUTE_FALLTHROUGH)
+#define libmesh_fallthrough() __attribute__((fallthrough))
+#else
+#define libmesh_fallthrough() ((void) 0)
 #endif
 
 } // namespace libMesh

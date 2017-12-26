@@ -82,12 +82,6 @@ public:
   virtual void clear () libmesh_override;
 
   /**
-   * Reinitializes the member data fields associated with
-   * the system, so that, e.g., \p assemble() may be used.
-   */
-  virtual void reinit () libmesh_override;
-
-  /**
    * \returns \p "Transient" prepended to T::system_type().
    * Helps in identifying the system type in an equation
    * system file.
@@ -116,7 +110,7 @@ public:
    * current solution with any ghost values needed from
    * other processors.
    */
-  UniquePtr<NumericVector<Number> > old_local_solution;
+  std::unique_ptr<NumericVector<Number>> old_local_solution;
 
   /**
    * All the values I need to compute my contribution
@@ -124,7 +118,7 @@ public:
    * current solution with any ghost values needed from
    * other processors.
    */
-  UniquePtr<NumericVector<Number> > older_local_solution;
+  std::unique_ptr<NumericVector<Number>> older_local_solution;
 
 
 protected:

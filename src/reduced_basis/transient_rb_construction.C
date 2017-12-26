@@ -71,8 +71,6 @@ TransientRBConstruction::TransientRBConstruction (EquationSystems & es,
   // inner product matrix in this case
   compute_RB_inner_product = true;
 
-  temporal_data.resize(0);
-
   // We should not necessarily exit the greedy due to repeated parameters in
   // the transient case
   exit_on_repeated_greedy_parameters = false;
@@ -91,32 +89,13 @@ void TransientRBConstruction::clear()
   Parent::clear();
 
   // clear the mass matrices
-  for (std::size_t q=0; q<M_q_vector.size(); q++)
-    {
-      delete M_q_vector[q];
-      M_q_vector[q] = libmesh_nullptr;
-    }
+  M_q_vector.clear();
 
   if (store_non_dirichlet_operators)
-    {
-      for (std::size_t q=0; q<non_dirichlet_M_q_vector.size(); q++)
-        {
-          delete non_dirichlet_M_q_vector[q];
-          non_dirichlet_M_q_vector[q] = libmesh_nullptr;
-        }
-    }
+    non_dirichlet_M_q_vector.clear();
 
   // clear the temporal_data
-  for (std::size_t i=0; i<temporal_data.size(); i++)
-    {
-      if (temporal_data[i])
-        {
-          temporal_data[i]->clear();
-          delete temporal_data[i];
-          temporal_data[i] = libmesh_nullptr;
-        }
-    }
-  temporal_data.resize(0);
+  temporal_data.clear();
 }
 
 void TransientRBConstruction::initialize_rb_construction(bool skip_matrix_assembly,
@@ -228,7 +207,7 @@ void TransientRBConstruction::allocate_data_structures()
     for (unsigned int q=0; q<Q_m; q++)
       {
         // Initialize the memory for the matrices
-        M_q_vector[q] = SparseMatrix<Number>::build(this->comm()).release();
+        M_q_vector[q] = SparseMatrix<Number>::build(this->comm());
         dof_map.attach_matrix(*M_q_vector[q]);
         M_q_vector[q]->init();
         M_q_vector[q]->zero();
@@ -245,7 +224,7 @@ void TransientRBConstruction::allocate_data_structures()
         for (unsigned int q=0; q<Q_m; q++)
           {
             // Initialize the memory for the matrices
-            non_dirichlet_M_q_vector[q] = SparseMatrix<Number>::build(this->comm()).release();
+            non_dirichlet_M_q_vector[q] = SparseMatrix<Number>::build(this->comm());
             dof_map.attach_matrix(*non_dirichlet_M_q_vector[q]);
             non_dirichlet_M_q_vector[q]->init();
             non_dirichlet_M_q_vector[q]->zero();
@@ -255,7 +234,7 @@ void TransientRBConstruction::allocate_data_structures()
 
   for (unsigned int i=0; i<n_time_levels; i++)
     {
-      temporal_data[i] = (NumericVector<Number>::build(this->comm()).release());
+      temporal_data[i] = NumericVector<Number>::build(this->comm());
       temporal_data[i]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
     }
 
@@ -288,7 +267,7 @@ void TransientRBConstruction::assemble_affine_expansion(bool skip_matrix_assembl
       // Load the initial condition into the solution vector
       initialize_truth();
 
-      UniquePtr< NumericVector<Number> > temp1 = NumericVector<Number>::build(this->comm());
+      std::unique_ptr<NumericVector<Number>> temp1 = NumericVector<Number>::build(this->comm());
       temp1->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
       // First compute the right-hand side vector for the L2 projection
@@ -318,7 +297,7 @@ SparseMatrix<Number> * TransientRBConstruction::get_M_q(unsigned int q)
   if (q >= trans_theta_expansion.get_n_M_terms())
     libmesh_error_msg("Error: We must have q < Q_m in get_M_q.");
 
-  return M_q_vector[q];
+  return M_q_vector[q].get();
 }
 
 SparseMatrix<Number> * TransientRBConstruction::get_non_dirichlet_M_q(unsigned int q)
@@ -332,7 +311,7 @@ SparseMatrix<Number> * TransientRBConstruction::get_non_dirichlet_M_q(unsigned i
   if (q >= trans_theta_expansion.get_n_M_terms())
     libmesh_error_msg("Error: We must have q < Q_m in get_M_q.");
 
-  return non_dirichlet_M_q_vector[q];
+  return non_dirichlet_M_q_vector[q].get();
 }
 
 void TransientRBConstruction::get_all_matrices(std::map<std::string, SparseMatrix<Number> *> & all_matrices)
@@ -407,7 +386,7 @@ void TransientRBConstruction::mass_matrix_scaled_matvec(Number scalar,
 
   const unsigned int Q_m = trans_theta_expansion.get_n_M_terms();
 
-  UniquePtr< NumericVector<Number> > temp_vec = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> temp_vec = NumericVector<Number>::build(this->comm());
   temp_vec->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
   for (unsigned int q=0; q<Q_m; q++)
@@ -445,7 +424,7 @@ void TransientRBConstruction::truth_assembly()
     add_scaled_mass_matrix(1./dt, matrix);
     mass_matrix_scaled_matvec(1./dt, *rhs, *current_local_solution);
 
-    UniquePtr< NumericVector<Number> > temp_vec = NumericVector<Number>::build(this->comm());
+    std::unique_ptr<NumericVector<Number>> temp_vec = NumericVector<Number>::build(this->comm());
     temp_vec->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
     for (unsigned int q_a=0; q_a<Q_a; q_a++)
@@ -542,7 +521,7 @@ Real TransientRBConstruction::truth_solve(int write_interval)
   const unsigned int n_time_steps = get_n_time_steps();
 
   //   // NumericVector for computing true L2 error
-  //   UniquePtr< NumericVector<Number> > temp = NumericVector<Number>::build();
+  //   std::unique_ptr<NumericVector<Number>> temp = NumericVector<Number>::build();
   //   temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
   // Apply initial condition again.
@@ -666,7 +645,7 @@ Number TransientRBConstruction::set_error_temporal_data()
     {
       unsigned int RB_size = get_rb_evaluation().get_n_basis_functions();
 
-      UniquePtr< NumericVector<Number> > temp = NumericVector<Number>::build(this->comm());
+      std::unique_ptr<NumericVector<Number>> temp = NumericVector<Number>::build(this->comm());
       temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
       // First compute the right-hand side vector for the projection
@@ -758,7 +737,7 @@ void TransientRBConstruction::add_IC_to_RB_space()
   initialize_truth();
 
   // load the new basis function into the basis_functions vector.
-  get_rb_evaluation().basis_functions.push_back( NumericVector<Number>::build(this->comm()).release() );
+  get_rb_evaluation().basis_functions.emplace_back(NumericVector<Number>::build(this->comm()));
   NumericVector<Number> & current_bf = get_rb_evaluation().get_basis_function(get_rb_evaluation().get_n_basis_functions()-1);
   current_bf.init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
   current_bf = *solution;
@@ -877,7 +856,7 @@ void TransientRBConstruction::enrich_RB_space()
   while (true)
     {
       // load the new basis function into the basis_functions vector.
-      get_rb_evaluation().basis_functions.push_back( NumericVector<Number>::build(this->comm()).release() );
+      get_rb_evaluation().basis_functions.emplace_back(NumericVector<Number>::build(this->comm()));
       NumericVector<Number> & current_bf = get_rb_evaluation().get_basis_function(get_rb_evaluation().get_n_basis_functions()-1);
       current_bf.init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
       current_bf.zero();
@@ -996,7 +975,7 @@ void TransientRBConstruction::update_RB_system_matrices()
 
   unsigned int RB_size = get_rb_evaluation().get_n_basis_functions();
 
-  UniquePtr< NumericVector<Number> > temp = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> temp = NumericVector<Number>::build(this->comm());
   temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
   for (unsigned int i=(RB_size-delta_N); i<RB_size; i++)
@@ -1064,7 +1043,7 @@ void TransientRBConstruction::update_residual_terms(bool compute_inner_products)
           // Initialize the vectors when we need them
           if (!trans_rb_eval.M_q_representor[q_m][i])
             {
-              trans_rb_eval.M_q_representor[q_m][i] = (NumericVector<Number>::build(this->comm()).release());
+              trans_rb_eval.M_q_representor[q_m][i] = NumericVector<Number>::build(this->comm());
               trans_rb_eval.M_q_representor[q_m][i]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
             }
 
@@ -1184,10 +1163,10 @@ void TransientRBConstruction::update_RB_initial_condition_all_N()
   // Load the initial condition into the solution vector
   initialize_truth();
 
-  UniquePtr< NumericVector<Number> > temp1 = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> temp1 = NumericVector<Number>::build(this->comm());
   temp1->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
-  UniquePtr< NumericVector<Number> > temp2 = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> temp2 = NumericVector<Number>::build(this->comm());
   temp2->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
 
@@ -1252,16 +1231,16 @@ void TransientRBConstruction::update_RB_initial_condition_all_N()
 //
 //   // Assemble the right-hand side to find the Reisz representor
 //   // of the residual in the X norm
-//   UniquePtr< NumericVector<Number> > RB_sol = NumericVector<Number>::build();
+//   std::unique_ptr<NumericVector<Number>> RB_sol = NumericVector<Number>::build();
 //   RB_sol->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 //   RB_sol->zero();
 //
-//   UniquePtr< NumericVector<Number> > ghosted_temp = NumericVector<Number>::build();
+//   std::unique_ptr<NumericVector<Number>> ghosted_temp = NumericVector<Number>::build();
 //   ghosted_temp->init (this->n_dofs(), this->n_local_dofs(),
 //                       this->get_dof_map().get_send_list(), false,
 //                       GHOSTED);
 //
-//   UniquePtr< NumericVector<Number> > parallel_temp = NumericVector<Number>::build();
+//   std::unique_ptr<NumericVector<Number>> parallel_temp = NumericVector<Number>::build();
 //   parallel_temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 //
 //   // Store current_local_solution, since we don't want to corrupt it
@@ -1414,7 +1393,7 @@ void TransientRBConstruction::read_riesz_representors_from_files(const std::stri
 
         read_serialized_data(aqr_data, false);
 
-        trans_rb_eval.M_q_representor[i][j] = NumericVector<Number>::build(this->comm()).release();
+        trans_rb_eval.M_q_representor[i][j] = NumericVector<Number>::build(this->comm());
         trans_rb_eval.M_q_representor[i][j]->init (n_dofs(), n_local_dofs(),
                                                    false, PARALLEL);
 

@@ -49,11 +49,12 @@ DistributedMesh::DistributedMesh (const Parallel::Communicator & comm_in,
 #endif
 
   // FIXME: give parmetis the communicator!
-  _partitioner = UniquePtr<Partitioner>(new ParmetisPartitioner());
+  _partitioner = libmesh_make_unique<ParmetisPartitioner>();
 }
 
 
 #ifndef LIBMESH_DISABLE_COMMWORLD
+#ifdef LIBMESH_ENABLE_DEPRECATED
 DistributedMesh::DistributedMesh (unsigned char d) :
   UnstructuredMesh (d), _is_serial(true), _is_serial_on_proc_0(true),
   _n_nodes(0), _n_elem(0), _max_node_id(0), _max_elem_id(0),
@@ -72,8 +73,9 @@ DistributedMesh::DistributedMesh (unsigned char d) :
 #endif
 
   // FIXME: give parmetis the communicator!
-  _partitioner = UniquePtr<Partitioner>(new ParmetisPartitioner());
+  _partitioner = libmesh_make_unique<ParmetisPartitioner>();
 }
+#endif
 #endif
 
 
@@ -749,7 +751,7 @@ void DistributedMesh::renumber_node(const dof_id_type old_id,
   // use, then those nodes will exist in _nodes, but may not be
   // locatable via a TopologyMap due to the insufficiency of elements
   // connecting to them.  If local refinement then wants to create a
-  // *new* node in the same location, it will initally get a temporary
+  // *new* node in the same location, it will initially get a temporary
   // id, and then make_node_ids_parallel_consistent() will try to move
   // it to the canonical id.  We need to account for this case to
   // avoid false positives and memory leaks.
@@ -1041,15 +1043,15 @@ DistributedMesh::renumber_dof_objects(mapvector<T *, dof_id_type> & objects)
   // for non-local object ids
 
   // Request sets to send to each processor
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_ids(this->n_processors());
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-  std::vector<std::vector<unique_id_type> >
+  std::vector<std::vector<unique_id_type>>
     requested_unique_ids(this->n_processors());
 #endif
 
-  // We know how many objects live on each processor, so reseve() space for
+  // We know how many objects live on each processor, so reserve() space for
   // each.
   for (processor_id_type p=0; p != this->n_processors(); ++p)
     if (p != this->processor_id())

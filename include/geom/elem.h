@@ -31,8 +31,11 @@
 #include "libmesh/enum_elem_quality.h"
 #include "libmesh/enum_order.h"
 #include "libmesh/enum_io_package.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/multi_predicates.h"
+#include "libmesh/pointer_to_pointer_iter.h"
+#include "libmesh/int_range.h"
+#include "libmesh/simple_range.h"
 #include "libmesh/variant_filter_iterator.h"
 #include "libmesh/hashword.h" // Used in compute_key() functions
 
@@ -43,6 +46,7 @@
 #include <limits.h> // CHAR_BIT
 #include <set>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -134,7 +138,9 @@ public:
    *
    * \deprecated Use the less ambiguously named node_id() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   dof_id_type node (const unsigned int i) const;
+#endif
 
   /**
    * \returns The local id number of global \p Node id \p i,
@@ -178,12 +184,31 @@ public:
    *
    * \deprecated Use the less ambiguously named node_ptr() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Node * get_node (const unsigned int i) const;
+#endif
 
   /**
    * \returns The pointer to local \p Node \p i as a writable reference.
    */
   virtual Node * & set_node (const unsigned int i);
+
+  /**
+   * Nested classes for use iterating over all nodes of an element.
+   */
+  class NodeRefIter;
+  class ConstNodeRefIter;
+
+  /**
+   * Returns a range with all nodes of an element, usable in
+   * range-based for loops.  The exact type of the return value here
+   * may be subject to change in future libMesh releases, but the
+   * iterators will always dereference to produce a reference to a
+   * Node.
+   */
+  SimpleRange<NodeRefIter> node_ref_range();
+
+  SimpleRange<ConstNodeRefIter> node_ref_range() const;
 
   /**
    * \returns The subdomain that this element belongs to.
@@ -264,8 +289,27 @@ public:
   /**
    * \deprecated Use the const-correct neighbor_ptr() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Elem * neighbor (const unsigned int i) const;
+#endif
 
+  /**
+   * Nested "classes" for use iterating over all neighbors of an element.
+   */
+  typedef Elem * const *       NeighborPtrIter;
+  typedef const Elem * const * ConstNeighborPtrIter;
+
+  /**
+   * Returns a range with all neighbors of an element, usable in
+   * range-based for loops.  The exact type of the return value here
+   * may be subject to change in future libMesh releases, but the
+   * iterators will always dereference to produce a pointer to a
+   * neighbor element (or a null pointer, for sides which have no
+   * neighbors).
+   */
+  SimpleRange<NeighborPtrIter> neighbor_ptr_range();
+
+  SimpleRange<ConstNeighborPtrIter> neighbor_ptr_range() const;
 
 #ifdef LIBMESH_ENABLE_PERIODIC
   /**
@@ -526,6 +570,12 @@ public:
   virtual unsigned int n_nodes () const = 0;
 
   /**
+   * \returns An integer range from 0 up to (but not including)
+   * the number of nodes this element contains.
+   */
+  IntRange<unsigned short> node_index_range () const;
+
+  /**
    * \returns The number of nodes the given child of this element
    * contains.  Except in odd cases like pyramid refinement this will
    * be the same as the number of nodes in the parent element.
@@ -547,14 +597,21 @@ public:
   virtual unsigned int n_sides () const = 0;
 
   /**
+   * \returns An integer range from 0 up to (but not including)
+   * the number of sides this element has.
+   */
+  IntRange<unsigned short> side_index_range () const;
+
+  /**
    * \returns The number of neighbors the element that has been derived
    * from this class has.
    *
-   * By default, only face (or edge in 2D) neighbors are stored, so
-   * this method returns n_sides(), however it may be overridden in a
-   * derived class.
+   * Only face (or edge in 2D) neighbors are stored, so this method
+   * returns n_sides().  At one point we intended to allow derived
+   * classes to override this, but too much current libMesh code
+   * assumes n_neighbors==n_sides.
    */
-  virtual unsigned int n_neighbors () const
+  unsigned int n_neighbors () const
   { return this->n_sides(); }
 
   /**
@@ -568,6 +625,12 @@ public:
    * from this class has.
    */
   virtual unsigned int n_edges () const = 0;
+
+  /**
+   * \returns An integer range from 0 up to (but not including)
+   * the number of edges this element has.
+   */
+  IntRange<unsigned short> edge_index_range () const;
 
   /**
    * This array maps the integer representation of the \p ElemType enum
@@ -674,8 +737,8 @@ public:
    * simply calls the virtual non-const version and const_casts the
    * return type.
    */
-  virtual UniquePtr<Elem> side_ptr (unsigned int i) = 0;
-  UniquePtr<const Elem> side_ptr (unsigned int i) const;
+  virtual std::unique_ptr<Elem> side_ptr (unsigned int i) = 0;
+  std::unique_ptr<const Elem> side_ptr (unsigned int i) const;
 
   /**
    * \returns A proxy element coincident with side \p i.
@@ -685,7 +748,9 @@ public:
    * indirectly modify this.  Please use the the const-correct
    * side_ptr() function instead.
    */
-  UniquePtr<Elem> side (const unsigned int i) const;
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  std::unique_ptr<Elem> side (const unsigned int i) const;
+#endif
 
   /**
    * \returns An element coincident with side \p i wrapped in a smart pointer.
@@ -693,7 +758,7 @@ public:
    * The element returned is full-ordered, in contrast to the side
    * method.  For example, calling build_side_ptr(0) on a 20-noded hex
    * will build a 8-noded quadrilateral coincident with face 0 and
-   * pass back the pointer.  A \p UniquePtr<Elem> is returned to
+   * pass back the pointer.  A \p std::unique_ptr<Elem> is returned to
    * prevent a memory leak.  This way the user need not remember to
    * delete the object.
    *
@@ -708,8 +773,8 @@ public:
    * calls the virtual non-const version and const_casts the return
    * type.
    */
-  virtual UniquePtr<Elem> build_side_ptr (const unsigned int i, bool proxy=true) = 0;
-  UniquePtr<const Elem> build_side_ptr (const unsigned int i, bool proxy=true) const;
+  virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i, bool proxy=true) = 0;
+  std::unique_ptr<const Elem> build_side_ptr (const unsigned int i, bool proxy=true) const;
 
   /**
    * \returns A proxy element coincident with side \p i.
@@ -719,7 +784,9 @@ public:
    * indirectly modify this.  Please use the the const-correct
    * build_side_ptr() function instead.
    */
-  UniquePtr<Elem> build_side (const unsigned int i, bool proxy=true) const;
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  std::unique_ptr<Elem> build_side (const unsigned int i, bool proxy=true) const;
+#endif
 
   /**
    * \returns An element coincident with edge \p i wrapped in a smart pointer.
@@ -727,15 +794,15 @@ public:
    * The element returned is full-ordered.  For example, calling
    * build_edge_ptr(0) on a 20-noded hex will build a 3-noded edge
    * coincident with edge 0 and pass back the pointer.  A \p
-   * UniquePtr<Elem> is returned to prevent a memory leak.  This way
+   * std::unique_ptr<Elem> is returned to prevent a memory leak.  This way
    * the user need not remember to delete the object.
    *
    * The const version of this function is non-virtual; it simply
    * calls the virtual non-const version and const_casts the return
    * type.
    */
-  virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) = 0;
-  UniquePtr<const Elem> build_edge_ptr (const unsigned int i) const;
+  virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int i) = 0;
+  std::unique_ptr<const Elem> build_edge_ptr (const unsigned int i) const;
 
   /**
    * Creates an element coincident with edge \p i.
@@ -745,7 +812,9 @@ public:
    * indirectly modify this Elem.  Please use the the const-correct
    * build_edge_ptr() function instead.
    */
-  UniquePtr<Elem> build_edge (const unsigned int i) const;
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  std::unique_ptr<Elem> build_edge (const unsigned int i) const;
+#endif
 
   /**
    * \returns The default approximation order for this element type.
@@ -755,7 +824,7 @@ public:
   virtual Order default_order () const = 0;
 
   /**
-   * \returns The centriod of the element. The centroid is
+   * \returns The centroid of the element. The centroid is
    * computed as the average of all the element vertices.
    *
    * This method is virtual since some derived elements
@@ -932,7 +1001,7 @@ public:
   /**
    * \returns The higher-dimensional Elem for which this Elem is a face.
    *
-   * In some cases it is desireable to extract the boundary (or a subset thereof)
+   * In some cases it is desirable to extract the boundary (or a subset thereof)
    * of a D-dimensional mesh as a (D-1)-dimensional manifold.  In this case
    * we may want to know the 'parent' element from which the manifold elements
    * were extracted.  We can easily do that for the level-0 manifold elements
@@ -1087,8 +1156,27 @@ public:
    * \deprecated Use the more accurately-named and const correct
    * child_ptr() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Elem * child (const unsigned int i) const;
+#endif
 
+  /**
+   * Nested classes for use iterating over all children of a parent
+   * element.
+   */
+  class ChildRefIter;
+  class ConstChildRefIter;
+
+  /**
+   * Returns a range with all children of a parent element, usable in
+   * range-based for loops.  The exact type of the return value here
+   * may be subject to change in future libMesh releases, but the
+   * iterators will always dereference to produce a reference to a
+   * child element.
+   */
+  SimpleRange<ChildRefIter> child_ref_range();
+
+  SimpleRange<ConstChildRefIter> child_ref_range() const;
 
 private:
   /**
@@ -1400,8 +1488,8 @@ public:
   /**
    * \returns An Elem of type \p type wrapped in a smart pointer.
    */
-  static UniquePtr<Elem> build (const ElemType type,
-                                Elem * p=libmesh_nullptr);
+  static std::unique_ptr<Elem> build (const ElemType type,
+                                      Elem * p=libmesh_nullptr);
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -1418,7 +1506,7 @@ public:
    * should bracket node \p n of child \p c.
    */
   virtual
-  const std::vector<std::pair<unsigned char, unsigned char> > &
+  const std::vector<std::pair<unsigned char, unsigned char>> &
   parent_bracketing_nodes(unsigned int c,
                           unsigned int n) const;
 
@@ -1427,7 +1515,7 @@ public:
    * should bracket node \p n of child \p c.
    */
   virtual
-  const std::vector<std::pair<dof_id_type, dof_id_type> >
+  const std::vector<std::pair<dof_id_type, dof_id_type>>
   bracketing_nodes(unsigned int c,
                    unsigned int n) const;
 
@@ -1488,10 +1576,10 @@ protected:
    * default calculation is slow.
    */
   virtual
-  std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char> > > > > &
+  std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> &
   _get_bracketing_node_cache() const
   {
-    static std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char> > > > > c;
+    static std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> c;
     libmesh_error();
     return c;
   }
@@ -1502,10 +1590,10 @@ protected:
    * default calculation is slow.
    */
   virtual
-  std::vector<std::vector<std::vector<signed char> > > &
+  std::vector<std::vector<std::vector<signed char>>> &
   _get_parent_indices_cache() const
   {
-    static std::vector<std::vector<std::vector<signed char> > > c;
+    static std::vector<std::vector<std::vector<signed char>>> c;
     libmesh_error();
     return c;
   }
@@ -1569,6 +1657,61 @@ protected:
   unsigned char _p_level;
 #endif
 };
+
+
+
+// ------------------------------------------------------------
+// Elem helper classes
+//
+class
+Elem::NodeRefIter : public PointerToPointerIter<Node>
+{
+public:
+  NodeRefIter (Node * const * nodepp) : PointerToPointerIter<Node>(nodepp) {}
+};
+
+
+class
+Elem::ConstNodeRefIter : public PointerToPointerIter<const Node>
+{
+public:
+  ConstNodeRefIter (const Node * const * nodepp) : PointerToPointerIter<const Node>(nodepp) {}
+};
+
+
+#ifdef LIBMESH_ENABLE_AMR
+class
+Elem::ChildRefIter : public PointerToPointerIter<Elem>
+{
+public:
+  ChildRefIter (Elem * const * childpp) : PointerToPointerIter<Elem>(childpp) {}
+};
+
+
+class
+Elem::ConstChildRefIter : public PointerToPointerIter<const Elem>
+{
+public:
+  ConstChildRefIter (const Elem * const * childpp) : PointerToPointerIter<const Elem>(childpp) {}
+};
+
+
+inline
+SimpleRange<Elem::ChildRefIter> Elem::child_ref_range()
+{
+  libmesh_assert(_children);
+  return {_children, _children + this->n_children()};
+}
+
+
+inline
+SimpleRange<Elem::ConstChildRefIter> Elem::child_ref_range() const
+{
+  libmesh_assert(_children);
+  return {_children, _children + this->n_children()};
+}
+#endif // LIBMESH_ENABLE_AMR
+
 
 
 
@@ -1697,12 +1840,14 @@ dof_id_type Elem::node_id (const unsigned int i) const
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
 dof_id_type Elem::node (const unsigned int i) const
 {
   libmesh_deprecated();
   return this->node_id(i);
 }
+#endif
 
 
 
@@ -1764,6 +1909,7 @@ Node & Elem::node_ref (const unsigned int i)
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
 Node * Elem::get_node (const unsigned int i) const
 {
@@ -1776,6 +1922,7 @@ Node * Elem::get_node (const unsigned int i) const
   libmesh_deprecated();
   return const_cast<Node *>(this->node_ptr(i));
 }
+#endif
 
 
 
@@ -1837,6 +1984,7 @@ Elem * Elem::neighbor_ptr (unsigned int i)
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
 Elem * Elem::neighbor (const unsigned int i) const
 {
@@ -1845,6 +1993,7 @@ Elem * Elem::neighbor (const unsigned int i) const
   libmesh_deprecated();
   return const_cast<Elem *>(this->neighbor_ptr(i));
 }
+#endif
 
 
 
@@ -1861,8 +2010,8 @@ void Elem::set_neighbor (const unsigned int i, Elem * n)
 inline
 bool Elem::has_neighbor (const Elem * elem) const
 {
-  for (unsigned int n=0; n<this->n_neighbors(); n++)
-    if (this->neighbor_ptr(n) == elem)
+  for (auto n : this->neighbor_ptr_range())
+    if (n == elem)
       return true;
 
   return false;
@@ -1873,10 +2022,9 @@ bool Elem::has_neighbor (const Elem * elem) const
 inline
 Elem * Elem::child_neighbor (Elem * elem)
 {
-  for (unsigned int n=0; n<elem->n_neighbors(); n++)
-    if (elem->neighbor_ptr(n) &&
-        elem->neighbor_ptr(n)->parent() == this)
-      return elem->neighbor_ptr(n);
+  for (auto n : elem->neighbor_ptr_range())
+    if (n && n->parent() == this)
+      return n;
 
   return libmesh_nullptr;
 }
@@ -1886,10 +2034,9 @@ Elem * Elem::child_neighbor (Elem * elem)
 inline
 const Elem * Elem::child_neighbor (const Elem * elem) const
 {
-  for (unsigned int n=0; n<elem->n_neighbors(); n++)
-    if (elem->neighbor_ptr(n) &&
-        elem->neighbor_ptr(n)->parent() == this)
-      return elem->neighbor_ptr(n);
+  for (auto n : elem->neighbor_ptr_range())
+    if (n && n->parent() == this)
+      return n;
 
   return libmesh_nullptr;
 }
@@ -1897,75 +2044,127 @@ const Elem * Elem::child_neighbor (const Elem * elem) const
 
 
 inline
-UniquePtr<const Elem> Elem::side_ptr (unsigned int i) const
+SimpleRange<Elem::NodeRefIter>
+Elem::node_ref_range()
 {
-  // Call the non-const version of this function, return the result as
-  // a UniquePtr<const Elem>.
-  Elem * me = const_cast<Elem *>(this);
-  const Elem * s = const_cast<const Elem *>(me->side_ptr(i).release());
-  return UniquePtr<const Elem>(s);
+  return {_nodes, _nodes+this->n_nodes()};
 }
 
 
 
 inline
-UniquePtr<Elem> Elem::side (const unsigned int i) const
+SimpleRange<Elem::ConstNodeRefIter>
+Elem::node_ref_range() const
+{
+  return {_nodes, _nodes+this->n_nodes()};
+}
+
+
+
+inline
+IntRange<unsigned short>
+Elem::node_index_range() const
+{
+  return {0, cast_int<unsigned short>(this->n_nodes())};
+}
+
+
+
+inline
+IntRange<unsigned short>
+Elem::edge_index_range() const
+{
+  return {0, cast_int<unsigned short>(this->n_edges())};
+}
+
+
+
+inline
+IntRange<unsigned short>
+Elem::side_index_range() const
+{
+  return {0, cast_int<unsigned short>(this->n_sides())};
+}
+
+
+
+
+inline
+std::unique_ptr<const Elem> Elem::side_ptr (unsigned int i) const
+{
+  // Call the non-const version of this function, return the result as
+  // a std::unique_ptr<const Elem>.
+  Elem * me = const_cast<Elem *>(this);
+  const Elem * s = const_cast<const Elem *>(me->side_ptr(i).release());
+  return std::unique_ptr<const Elem>(s);
+}
+
+
+
+#ifdef LIBMESH_ENABLE_DEPRECATED
+inline
+std::unique_ptr<Elem> Elem::side (const unsigned int i) const
 {
   // Call the const version of side_ptr(), and const_cast the result.
   libmesh_deprecated();
   Elem * s = const_cast<Elem *>(this->side_ptr(i).release());
-  return UniquePtr<Elem>(s);
+  return std::unique_ptr<Elem>(s);
 }
+#endif
 
 
 
 inline
-UniquePtr<const Elem>
+std::unique_ptr<const Elem>
 Elem::build_side_ptr (const unsigned int i, bool proxy) const
 {
   // Call the non-const version of this function, return the result as
-  // a UniquePtr<const Elem>.
+  // a std::unique_ptr<const Elem>.
   Elem * me = const_cast<Elem *>(this);
   const Elem * s = const_cast<const Elem *>(me->build_side_ptr(i, proxy).release());
-  return UniquePtr<const Elem>(s);
+  return std::unique_ptr<const Elem>(s);
 }
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
-UniquePtr<Elem>
+std::unique_ptr<Elem>
 Elem::build_side (const unsigned int i, bool proxy) const
 {
   // Call the const version of build_side_ptr(), and const_cast the result.
   libmesh_deprecated();
   Elem * s = const_cast<Elem *>(this->build_side_ptr(i, proxy).release());
-  return UniquePtr<Elem>(s);
+  return std::unique_ptr<Elem>(s);
 }
+#endif
 
 
 
 inline
-UniquePtr<const Elem>
+std::unique_ptr<const Elem>
 Elem::build_edge_ptr (const unsigned int i) const
 {
   // Call the non-const version of this function, return the result as
-  // a UniquePtr<const Elem>.
+  // a std::unique_ptr<const Elem>.
   Elem * me = const_cast<Elem *>(this);
   const Elem * e = const_cast<const Elem *>(me->build_edge_ptr(i).release());
-  return UniquePtr<const Elem>(e);
+  return std::unique_ptr<const Elem>(e);
 }
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
-UniquePtr<Elem>
+std::unique_ptr<Elem>
 Elem::build_edge (const unsigned int i) const
 {
   // Call the const version of build_edge_ptr(), and const_cast the result.
   libmesh_deprecated();
   Elem * e = const_cast<Elem *>(this->build_edge_ptr(i).release());
-  return UniquePtr<Elem>(e);
+  return std::unique_ptr<Elem>(e);
 }
+#endif
 
 
 
@@ -1992,7 +2191,7 @@ unsigned int Elem::which_neighbor_am_i (const Elem * e) const
       libmesh_assert(eparent);
     }
 
-  for (unsigned int s=0; s<this->n_neighbors(); s++)
+  for (unsigned int s=0, n_s = this->n_sides(); s != n_s; ++s)
     if (this->neighbor_ptr(s) == eparent)
       return s;
 
@@ -2114,8 +2313,8 @@ bool Elem::has_ancestor_children() const
   if (_children == libmesh_nullptr)
     return false;
   else
-    for (unsigned int c=0; c != this->n_children(); c++)
-      if (this->child_ptr(c)->has_children())
+    for (auto & c : child_ref_range())
+      if (c.has_children())
         return true;
 #endif
   return false;
@@ -2262,6 +2461,7 @@ Elem * Elem::child_ptr (unsigned int i)
 }
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
 Elem * Elem::child (const unsigned int i) const
 {
@@ -2270,6 +2470,7 @@ Elem * Elem::child (const unsigned int i) const
   libmesh_deprecated();
   return const_cast<Elem *>(this->child_ptr(i));
 }
+#endif
 
 
 
@@ -2289,7 +2490,8 @@ unsigned int Elem::which_child_am_i (const Elem * e) const
   libmesh_assert(e);
   libmesh_assert (this->has_children());
 
-  for (unsigned int c=0; c<this->n_children(); c++)
+  unsigned int nc = this->n_children();
+  for (unsigned int c=0; c != nc; c++)
     if (this->child_ptr(c) == e)
       return c;
 
@@ -2346,9 +2548,9 @@ unsigned int Elem::max_descendant_p_level () const
     return this->p_level();
 
   unsigned int max_p_level = _p_level;
-  for (unsigned int c=0; c != this->n_children(); c++)
+  for (auto & c : child_ref_range())
     max_p_level = std::max(max_p_level,
-                           this->child_ptr(c)->max_descendant_p_level());
+                           c.max_descendant_p_level());
   return max_p_level;
 }
 
@@ -2377,9 +2579,9 @@ void Elem::set_p_level(unsigned int p)
         {
           _p_level = cast_int<unsigned char>(p);
           parent_p_level = cast_int<unsigned char>(p);
-          for (unsigned int c=0; c != this->parent()->n_children(); c++)
+          for (auto & c : this->parent()->child_ref_range())
             parent_p_level = std::min(parent_p_level,
-                                      this->parent()->child_ptr(c)->p_level());
+                                      c.p_level());
 
           // When its children all have a higher p level, the parent's
           // should rise
@@ -2545,7 +2747,7 @@ public:
   // unary op*
   Elem *& operator*() const
   {
-    // Set the UniquePtr
+    // Set the std::unique_ptr
     this->_update_side_ptr();
 
     // Return a reference to _side_ptr
@@ -2570,7 +2772,7 @@ public:
 
   // Consults the parent Elem to determine if the side
   // is a boundary side.  Note: currently side N is a
-  // boundary side if nieghbor N is NULL.  Be careful,
+  // boundary side if neighbor N is NULL.  Be careful,
   // this could possibly change in the future?
   bool side_on_boundary() const
   {
@@ -2582,22 +2784,22 @@ private:
   // This has to be called before dereferencing.
   void _update_side_ptr() const
   {
-    // Construct new side, store in UniquePtr
+    // Construct new side, store in std::unique_ptr
     this->_side = this->_parent->build_side_ptr(this->_side_number);
 
     // Also set our internal naked pointer.  Memory is still owned
-    // by the UniquePtr.
+    // by the std::unique_ptr.
     this->_side_ptr = _side.get();
   }
 
-  // UniquePtr to the actual side, handles memory management for
+  // std::unique_ptr to the actual side, handles memory management for
   // the sides which are created during the course of iteration.
-  mutable UniquePtr<Elem> _side;
+  mutable std::unique_ptr<Elem> _side;
 
   // Raw pointer needed to facilitate passing back to the user a
   // reference to a non-temporary raw pointer in order to conform to
   // the variant_filter_iterator interface.  It points to the same
-  // thing the UniquePtr "_side" above holds.  What happens if the user
+  // thing the std::unique_ptr "_side" above holds.  What happens if the user
   // calls delete on the pointer passed back?  Well, this is an issue
   // which is not addressed by the iterators in libMesh.  Basically it
   // is a bad idea to ever call delete on an iterator from the library.
@@ -2649,25 +2851,40 @@ Elem::side_iterator : variant_filter_iterator<Elem::Predicate, Elem *>
 };
 
 
+
+inline
+SimpleRange<Elem::NeighborPtrIter> Elem::neighbor_ptr_range()
+{
+  return {_elemlinks+1, _elemlinks + 1 + this->n_neighbors()};
+}
+
+
+inline
+SimpleRange<Elem::ConstNeighborPtrIter> Elem::neighbor_ptr_range() const
+{
+  return {_elemlinks+1, _elemlinks + 1 + this->n_neighbors()};
+}
+
+
 } // namespace libMesh
 
 
-// Helper function for default caches in Elem subclases
+// Helper function for default caches in Elem subclasses
 
 #define LIBMESH_ENABLE_TOPOLOGY_CACHES                                  \
   virtual                                                               \
-  std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char> > > > > & \
+  std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> & \
   _get_bracketing_node_cache() const libmesh_override                   \
   {                                                                     \
-    static std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char> > > > > c; \
+    static std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> c; \
     return c;                                                           \
   }                                                                     \
                                                                         \
   virtual                                                               \
-  std::vector<std::vector<std::vector<signed char> > > &                \
+  std::vector<std::vector<std::vector<signed char>>> &                  \
   _get_parent_indices_cache() const libmesh_override                    \
   {                                                                     \
-    static std::vector<std::vector<std::vector<signed char> > > c;      \
+    static std::vector<std::vector<std::vector<signed char>>> c;        \
     return c;                                                           \
   }
 

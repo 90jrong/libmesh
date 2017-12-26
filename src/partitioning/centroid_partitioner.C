@@ -26,7 +26,7 @@ namespace libMesh
 {
 
 
-void CentroidPartitioner::partition_range(MeshBase & /*mesh*/,
+void CentroidPartitioner::partition_range(MeshBase & mesh,
                                           MeshBase::element_iterator it,
                                           MeshBase::element_iterator end,
                                           unsigned int n)
@@ -38,9 +38,13 @@ void CentroidPartitioner::partition_range(MeshBase & /*mesh*/,
       return;
     }
 
+  // We don't yet support distributed meshes with this Partitioner
+  if (!mesh.is_serial())
+    libmesh_not_implemented();
+
   // Compute the element centroids.  Note: we used to skip this step
   // if the number of elements was unchanged from the last call, but
-  // that doesn't account for elements that have moved alot since the
+  // that doesn't account for elements that have moved a lot since the
   // last time the Partitioner was called...
   this->compute_centroids (it, end);
 

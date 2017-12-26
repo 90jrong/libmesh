@@ -41,6 +41,7 @@ void QGauss::init_2D(const ElemType type_in,
     case QUAD4:
     case QUADSHELL4:
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         // We compute the 2D quadrature rule as a tensor
@@ -1097,7 +1098,7 @@ void QGauss::init_2D(const ElemType type_in,
             // http://people.scs.fsu.edu/~burkardt/f_src/wandzura/wandzura.f90
           case TWENTIETH:
             {
-              // The equivalent concial product rule would have 121 points
+              // The equivalent conical product rule would have 121 points
               _points.resize (85);
               _weights.resize(85);
 
@@ -1151,7 +1152,7 @@ void QGauss::init_2D(const ElemType type_in,
           case TWENTYFOURTH:
           case TWENTYFIFTH:
             {
-              // The equivalent concial product rule would have 169 points
+              // The equivalent conical product rule would have 169 points
               _points.resize (126);
               _weights.resize(126);
 
@@ -1212,7 +1213,7 @@ void QGauss::init_2D(const ElemType type_in,
           case TWENTYNINTH:
           case THIRTIETH:
             {
-              // The equivalent concial product rule would have 256 points
+              // The equivalent conical product rule would have 256 points
               _points.resize (175);
               _weights.resize(175);
 

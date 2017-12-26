@@ -134,17 +134,14 @@ int main(int argc, char ** argv)
         oldbcid = BoundaryInfo::invalid_id;
     }
 
-  UniquePtr<FEBase> fe = FEBase::build(dim, FEType(FIRST,LAGRANGE));
+  std::unique_ptr<FEBase> fe = FEBase::build(dim, FEType(FIRST,LAGRANGE));
   QGauss qface(dim-1, CONSTANT);
   fe->attach_quadrature_rule(&qface);
   const std::vector<Point> & face_points = fe->get_xyz();
   const std::vector<Point> & face_normals = fe->get_normals();
 
-  MeshBase::element_iterator           el = mesh.elements_begin();
-  const MeshBase::element_iterator end_el = mesh.elements_end();
-  for (; el != end_el; ++el)
+  for (auto & elem : mesh.element_ptr_range())
     {
-      Elem * elem = *el;
       unsigned int n_sides = elem->n_sides();
 
       // Container to catch ids handed back from BoundaryInfo

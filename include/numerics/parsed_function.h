@@ -27,6 +27,7 @@
 #include "libmesh/dense_vector.h"
 #include "libmesh/vector_value.h"
 #include "libmesh/point.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // FParser includes
 #include "libmesh/fparser_ad.hh"
@@ -97,7 +98,7 @@ public:
    */
   virtual Output & getVarAddress(const std::string & variable_name);
 
-  virtual UniquePtr<FunctionBase<Output> > clone() const libmesh_override;
+  virtual std::unique_ptr<FunctionBase<Output>> clone() const libmesh_override;
 
   /**
    * \returns The value of an inline variable.
@@ -155,18 +156,18 @@ private:
 
   std::string _expression;
   std::vector<std::string> _subexpressions;
-  std::vector<FunctionParserADBase<Output> > parsers;
+  std::vector<FunctionParserADBase<Output>> parsers;
   std::vector<Output> _spacetime;
 
   // derivative functions
-  std::vector<FunctionParserADBase<Output> > dx_parsers;
+  std::vector<FunctionParserADBase<Output>> dx_parsers;
 #if LIBMESH_DIM > 1
-  std::vector<FunctionParserADBase<Output> > dy_parsers;
+  std::vector<FunctionParserADBase<Output>> dy_parsers;
 #endif
 #if LIBMESH_DIM > 2
-  std::vector<FunctionParserADBase<Output> > dz_parsers;
+  std::vector<FunctionParserADBase<Output>> dz_parsers;
 #endif
-  std::vector<FunctionParserADBase<Output> > dt_parsers;
+  std::vector<FunctionParserADBase<Output>> dt_parsers;
   bool _valid_derivatives;
 
   // Variables/values that can be parsed and handled by the function parser
@@ -326,11 +327,12 @@ ParsedFunction<Output,OutputGradient>::getVarAddress (const std::string & variab
 
 template <typename Output, typename OutputGradient>
 inline
-UniquePtr<FunctionBase<Output> >
+std::unique_ptr<FunctionBase<Output>>
 ParsedFunction<Output,OutputGradient>::clone() const
 {
-  return UniquePtr<FunctionBase<Output> >
-    (new ParsedFunction(_expression, &_additional_vars, &_initial_vals));
+  return libmesh_make_unique<ParsedFunction>(_expression,
+                                             &_additional_vars,
+                                             &_initial_vals);
 }
 
 template <typename Output, typename OutputGradient>
@@ -706,9 +708,9 @@ public:
   virtual void init() {}
   virtual void clear() {}
   virtual Output & getVarAddress(const std::string & /*variable_name*/) { return _dummy; }
-  virtual UniquePtr<FunctionBase<Output> > clone() const
+  virtual std::unique_ptr<FunctionBase<Output>> clone() const
   {
-    return UniquePtr<FunctionBase<Output> > (new ParsedFunction<Output>(""));
+    return libmesh_make_unique<ParsedFunction<Output>>("");
   }
 private:
   Output _dummy;

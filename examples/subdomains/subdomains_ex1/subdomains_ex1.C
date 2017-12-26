@@ -82,7 +82,7 @@ using namespace libMesh;
 // the linear system for our Poisson problem.  Note that the
 // function will take the EquationSystems object and the
 // name of the system we are assembling as input.  From the
-// EquationSystems object we have acess to the Mesh and
+// EquationSystems object we have access to the Mesh and
 // other objects we might need.
 void assemble_poisson(EquationSystems & es,
                       const std::string & system_name);
@@ -95,7 +95,7 @@ Real exact_solution (const Real x,
 // Begin the main program.
 int main (int argc, char ** argv)
 {
-  // Initialize libMesh and any dependent libaries, like in example 2.
+  // Initialize libMesh and any dependent libraries, like in example 2.
   LibMeshInit init (argc, argv);
 
   // Only our PETSc interface currently supports solves restricted to
@@ -206,7 +206,7 @@ int main (int argc, char ** argv)
     }
 
 
-  // To demonstate solving on a subdomain, we will solve only on the
+  // To demonstrate solving on a subdomain, we will solve only on the
   // interior of a circle (ball in 3d) with radius 0.8.  So show that
   // this also works well on locally refined meshes, we refine once
   // all elements that are located on the boundary of this circle (or
@@ -216,43 +216,28 @@ int main (int argc, char ** argv)
     MeshRefinement meshRefinement(mesh);
 
     // Loop over all elements.
-    MeshBase::element_iterator       elem_it  = mesh.elements_begin();
-    const MeshBase::element_iterator elem_end = mesh.elements_end();
-    for (; elem_it != elem_end; ++elem_it)
-      {
-        Elem * elem = *elem_it;
-        if (elem->active())
-          {
-            // Just check whether the current element has at least one
-            // node inside and one node outside the circle.
-            bool node_in = false;
-            bool node_out = false;
-            for (unsigned int i=0; i<elem->n_nodes(); i++)
-              {
-                double d = elem->point(i).norm();
-                if (d<0.8)
-                  {
-                    node_in = true;
-                  }
-                else
-                  {
-                    node_out = true;
-                  }
-              }
-            if (node_in && node_out)
-              {
-                elem->set_refinement_flag(Elem::REFINE);
-              }
-            else
-              {
-                elem->set_refinement_flag(Elem::DO_NOTHING);
-              }
-          }
-        else
-          {
-            elem->set_refinement_flag(Elem::INACTIVE);
-          }
-      }
+    for (auto & elem : mesh.element_ptr_range())
+      if (elem->active())
+        {
+          // Just check whether the current element has at least one
+          // node inside and one node outside the circle.
+          bool node_in = false;
+          bool node_out = false;
+          for (auto & n : elem->node_ref_range())
+            {
+              double d = n.norm();
+              if (d<0.8)
+                node_in = true;
+              else
+                node_out = true;
+            }
+          if (node_in && node_out)
+            elem->set_refinement_flag(Elem::REFINE);
+          else
+            elem->set_refinement_flag(Elem::DO_NOTHING);
+        }
+      else
+        elem->set_refinement_flag(Elem::INACTIVE);
 
     // Now actually refine.
     meshRefinement.refine_elements();
@@ -263,20 +248,12 @@ int main (int argc, char ** argv)
 
   // Now set the subdomain_id of all elements whose centroid is inside
   // the circle to 1.
-  {
-    // Loop over all elements.
-    MeshBase::element_iterator       elem_it  = mesh.elements_begin();
-    const MeshBase::element_iterator elem_end = mesh.elements_end();
-    for (; elem_it != elem_end; ++elem_it)
-      {
-        Elem * elem = *elem_it;
-        double d = elem->centroid().norm();
-        if (d<0.8)
-          {
-            elem->subdomain_id() = 1;
-          }
-      }
-  }
+  for (auto elem : mesh.element_ptr_range())
+    {
+      double d = elem->centroid().norm();
+      if (d < 0.8)
+        elem->subdomain_id() = 1;
+    }
 
   // Create an equation systems object.
   EquationSystems equation_systems (mesh);
@@ -383,9 +360,9 @@ void assemble_poisson(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A 5th order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, FIFTH);
@@ -395,14 +372,14 @@ void assemble_poisson(EquationSystems & es,
 
   // Declare a special finite element object for
   // boundary integration.
-  UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
-  // Boundary integration requires one quadraure rule,
+  // Boundary integration requires one quadrature rule,
   // with dimensionality one less than the dimensionality
   // of the element.
   QGauss qface(dim-1, FIFTH);
 
-  // Tell the finte element object to use our
+  // Tell the finite element object to use our
   // quadrature rule.
   fe_face->attach_quadrature_rule (&qface);
 
@@ -418,11 +395,11 @@ void assemble_poisson(EquationSystems & es,
   const std::vector<Point> & q_point = fe->get_xyz();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // Define data structures to contain the element matrix
   // and right-hand-side vector contribution.  Following
@@ -440,15 +417,8 @@ void assemble_poisson(EquationSystems & es,
   // We will compute the element matrix and right-hand-side
   // contribution.  See example 3 for a discussion of the
   // element iterators.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Elements with subdomain_id other than 1 are not in the active
       // subdomain.  We don't assemble anything for them.
       if (elem->subdomain_id()==1)
@@ -487,12 +457,12 @@ void assemble_poisson(EquationSystems & es,
           perf_log.pop("elem init");
 
           // Now we will build the element matrix.  This involves
-          // a double loop to integrate the test funcions (i) against
+          // a double loop to integrate the test functions (i) against
           // the trial functions (j).
           //
           // We have split the numeric integration into two loops
           // so that we can log the matrix and right-hand-side
-          // computation seperately.
+          // computation separately.
           //
           // Now start logging the element matrix computation
           perf_log.push ("Ke");
@@ -592,7 +562,7 @@ void assemble_poisson(EquationSystems & es,
             // neighbor, check that neighbor's subdomain_id; if that
             // is different from 1, the side is also located on the
             // boundary.
-            for (unsigned int side=0; side<elem->n_sides(); side++)
+            for (auto side : elem->side_index_range())
               if ((elem->neighbor_ptr(side) == libmesh_nullptr) ||
                   (elem->neighbor_ptr(side)->subdomain_id()!=1))
                 {
@@ -603,7 +573,7 @@ void assemble_poisson(EquationSystems & es,
 
                   // The value of the shape functions at the quadrature
                   // points.
-                  const std::vector<std::vector<Real> > & phi_face = fe_face->get_phi();
+                  const std::vector<std::vector<Real>> & phi_face = fe_face->get_phi();
 
                   // The Jacobian * Quadrature Weight at the quadrature
                   // points on the face.

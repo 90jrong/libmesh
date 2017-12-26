@@ -70,6 +70,7 @@
 #include "libmesh/numeric_vector.h"
 #include "libmesh/steady_solver.h"
 #include "libmesh/system_norm.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // Sensitivity Calculation related includes
 #include "libmesh/parameter_vector.h"
@@ -185,13 +186,12 @@ void set_system_parameters(LaplaceSystem & system, FEMParameters & param)
   system.print_jacobians      = param.print_jacobians;
 
   // No transient time solver
-  system.time_solver =
-    UniquePtr<TimeSolver>(new SteadySolver(system));
+  system.time_solver = libmesh_make_unique<SteadySolver>(system);
 
   // Nonlinear solver options
   {
     NewtonSolver * solver = new NewtonSolver(system);
-    system.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
+    system.time_solver->diff_solver() = std::unique_ptr<DiffSolver>(solver);
 
     solver->quiet                       = param.solver_quiet;
     solver->max_nonlinear_iterations    = param.max_nonlinear_iterations;
@@ -217,8 +217,8 @@ void set_system_parameters(LaplaceSystem & system, FEMParameters & param)
 
 #ifdef LIBMESH_ENABLE_AMR
 
-UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
-                                                FEMParameters & param)
+std::unique_ptr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
+                                                      FEMParameters & param)
 {
   MeshRefinement * mesh_refinement = new MeshRefinement(mesh);
   mesh_refinement->coarsen_by_parents() = true;
@@ -228,7 +228,7 @@ UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
   mesh_refinement->coarsen_fraction()  = param.coarsen_fraction;
   mesh_refinement->coarsen_threshold() = param.coarsen_threshold;
 
-  return UniquePtr<MeshRefinement>(mesh_refinement);
+  return std::unique_ptr<MeshRefinement>(mesh_refinement);
 }
 
 #endif // LIBMESH_ENABLE_AMR
@@ -240,13 +240,13 @@ UniquePtr<MeshRefinement> build_mesh_refinement(MeshBase & mesh,
 // forward and adjoint weights. The H1 seminorm component of the error is used
 // as dictated by the weak form the Laplace equation.
 
-UniquePtr<ErrorEstimator> build_error_estimator(FEMParameters & param)
+std::unique_ptr<ErrorEstimator> build_error_estimator(FEMParameters & param)
 {
   if (param.indicator_type == "kelly")
     {
       libMesh::out << "Using Kelly Error Estimator" << std::endl;
 
-      return UniquePtr<ErrorEstimator>(new KellyErrorEstimator);
+      return libmesh_make_unique<KellyErrorEstimator>();
     }
   else if (param.indicator_type == "adjoint_residual")
     {
@@ -266,7 +266,7 @@ UniquePtr<ErrorEstimator> build_error_estimator(FEMParameters & param)
 
       adjoint_residual_estimator->dual_error_estimator()->error_norm.set_type(0, H1_SEMINORM);
 
-      return UniquePtr<ErrorEstimator>(adjoint_residual_estimator);
+      return std::unique_ptr<ErrorEstimator>(adjoint_residual_estimator);
     }
   else
     libmesh_error_msg("Unknown indicator_type = " << param.indicator_type);
@@ -309,7 +309,7 @@ int main (int argc, char ** argv)
   Mesh mesh(init.comm());
 
   // And an object to refine it
-  UniquePtr<MeshRefinement> mesh_refinement =
+  std::unique_ptr<MeshRefinement> mesh_refinement =
     build_mesh_refinement(mesh, param);
 
   // And an EquationSystems to run on it
@@ -394,7 +394,7 @@ int main (int argc, char ** argv)
         // Compute the sensitivities
         system.adjoint_qoi_parameter_sensitivity(qois, system.get_parameter_vector(), sensitivities);
 
-        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unneccesarily in the error estimator
+        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unnecessarily in the error estimator
         system.set_adjoint_already_solved(true);
 
         GetPot infile_l_shaped("l-shaped.in");
@@ -459,7 +459,7 @@ int main (int argc, char ** argv)
             ErrorVector error;
 
             // Build an error estimator object
-            UniquePtr<ErrorEstimator> error_estimator =
+            std::unique_ptr<ErrorEstimator> error_estimator =
               build_error_estimator(param);
 
             // Estimate the error in each element using the Adjoint Residual or Kelly error estimator
@@ -476,7 +476,7 @@ int main (int argc, char ** argv)
             ErrorVector error;
 
             // Build an error estimator object
-            UniquePtr<ErrorEstimator> error_estimator =
+            std::unique_ptr<ErrorEstimator> error_estimator =
               build_error_estimator(param);
 
             // Estimate the error in each element using the Adjoint Residual or Kelly error estimator
@@ -523,7 +523,7 @@ int main (int argc, char ** argv)
 
         system.adjoint_qoi_parameter_sensitivity(qois, system.get_parameter_vector(), sensitivities);
 
-        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unneccesarily in the error estimator
+        // Now that we have solved the adjoint, set the adjoint_already_solved boolean to true, so we dont solve unnecessarily in the error estimator
         system.set_adjoint_already_solved(true);
 
         GetPot infile_l_shaped("l-shaped.in");

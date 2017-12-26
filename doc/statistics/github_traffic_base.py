@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import csv
 
 # Import stuff for working with dates
 from datetime import datetime
@@ -58,15 +57,13 @@ class PlotData(object):
 
   # Function which plots the two datasets on a single plot with two y axes.
   def plot_data(self):
-    # Read the data from the CSV file.
-    date_strings = []
-    data_column2 = []
-    data_column3 = []
-    with open(self.data_file, 'r') as f:
-      for row in csv.reader(f):
-        date_strings.append(row[0])
-        data_column2.append(int(row[1]))
-        data_column3.append(int(row[2]))
+    # Read the data from the CSV file. "|S11" refers to an 11 character string.
+    # When you specify the dtype argument, the data is read into a structured
+    # array and the columns can be accessed with the 'f0', 'f1', etc. names.
+    data = np.genfromtxt(self.data_file, delimiter=',', dtype=("|S11", int, int))
+    date_strings = data['f0']
+    data_column2 = data['f1']
+    data_column3 = data['f2']
 
     # Convert date strings into numbers.
     date_nums = []
@@ -91,9 +88,15 @@ class PlotData(object):
     # Get a reference to the figure
     fig = plt.figure()
 
+    # The colors used come from sns.color_palette("muted").as_hex() They
+    # are the "same basic order of hues as the default matplotlib color
+    # cycle but more attractive colors."
+    muted_dark_blue = u'#4878cf'
+    muted_green = u'#6acc65'
+
     # 111 is equivalent to Matlab's subplot(1,1,1) command
     ax1 = fig.add_subplot(111)
-    ax1.plot(x_axis, weekly_column2, 'bo-')
+    ax1.plot(x_axis, weekly_column2, color=muted_dark_blue, marker='o', linestyle='-', markersize=3)
     ax1.set_ylabel(self.left_axis_label + ' (blue circles)')
 
     # Choose the number of labels to create, then use linspace to create
@@ -107,7 +110,7 @@ class PlotData(object):
 
     # Plot the weekly column 3 data.
     ax2 = ax1.twinx()
-    ax2.plot(x_axis, weekly_column3, 'gs--')
+    ax2.plot(x_axis, weekly_column3, color=muted_green, marker='s', linestyle='-', markersize=3)
     ax2.set_ylabel(self.right_axis_label + ' (green squares)')
 
     # Add title
@@ -163,7 +166,7 @@ class PlotData(object):
 
     # 111 is equivalent to Matlab's subplot(1,1,1) command
     ax1 = fig.add_subplot(111)
-    ax1.plot(x_axis, monthly_column2, 'bo-')
+    ax1.plot(x_axis, monthly_column2, color=muted_dark_blue, marker='o', linestyle='-')
     ax1.set_ylabel(self.left_axis_label + ' (blue circles)')
 
     # Place an x-axis tick mark every x_step months.  As we get more data,
@@ -177,7 +180,7 @@ class PlotData(object):
 
     # Plot the average weekly unique visitors
     ax2 = ax1.twinx()
-    ax2.plot(x_axis, monthly_column3, 'gs--')
+    ax2.plot(x_axis, monthly_column3, color=muted_green, marker='s', linestyle='-')
     ax2.set_ylabel(self.right_axis_label + ' (green squares)')
 
     # Save as PDF

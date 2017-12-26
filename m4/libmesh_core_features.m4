@@ -26,31 +26,22 @@ AC_MSG_RESULT([configuring gdb command... "$gdb_command"])
 
 
 # --------------------------------------------------------------
-# Use a true unique_ptr implementation - enabled by default.
-#
-# When enabled, the 'UniquePtr' type in libMesh is a C++03/11
-# compatible (non-deprecated) unique_ptr type.  Otherwise, it is
-# libMesh's (deprecated) AutoPtr type, allowing for backwards
-# compatibility.
-#
-# We now have about a year of experience using --enable-unique-ptr
-# in MOOSE (first enabled April 2015) in both C++11 and C++03 modes,
-# and I'm reasonably confident about enabling this by default.
-# Turning this on also prevents really annoying bugs like the one
-# discussed in http://tinyurl.com/hz63wje
+# The --enable/disable-unique-ptr is now deprecated and a warning
+# message is printed if you attempt to use it.
 # --------------------------------------------------------------
 AC_ARG_ENABLE(unique-ptr,
               [AS_HELP_STRING([--disable-unique-ptr],[Use libMesh's deprecated, less safe AutoPtr])],
               enableuniqueptr=$enableval,
-              enableuniqueptr=yes)
+              enableuniqueptr=irrelevant)
 
-AC_SUBST(enableuniqueptr)
-
-if test "$enableuniqueptr" = yes ; then
-  AC_MSG_RESULT([<<< Configuring library with a non-deprecated UniquePtr implementation >>>])
-  AC_DEFINE(ENABLE_UNIQUE_PTR, 1,
-           [Flag indicating if the library should use a non-deprecated UniquePtr implementation])
+if test "$enableuniqueptr" != irrelevant ; then
+  enableuniqueptr=yes
+  AC_MSG_WARN([--enable/disable-unique-ptr are now deprecated])
 fi
+
+# Keep #define and Makefile variables around for backwards compatibility.
+AC_SUBST(enableuniqueptr)
+AC_DEFINE(ENABLE_UNIQUE_PTR, 1, [Flag indicating the library uses std::unique_ptr])
 # --------------------------------------------------------------
 
 
@@ -70,6 +61,26 @@ else
   AC_MSG_RESULT([<<< Configuring library with warnings >>>])
   AC_DEFINE(ENABLE_WARNINGS, 1,
            [Flag indicating if the library should have warnings enabled])
+fi
+# --------------------------------------------------------------
+
+
+# --------------------------------------------------------------
+# library deprecated code - enable by default
+# --------------------------------------------------------------
+AC_ARG_ENABLE(deprecated,
+              [AS_HELP_STRING([--disable-deprecated],[Deprecated code use gives errors rather than warnings])],
+              enabledeprecated=$enableval,
+              enabledeprecated=yes)
+
+AC_SUBST(enabledeprecated)
+if test "$enabledeprecated" != yes ; then
+  AC_MSG_RESULT([>>> INFO: Disabling library deprecated code <<<])
+  AC_MSG_RESULT([>>> Configuring library without deprecated code support <<<])
+else
+  AC_MSG_RESULT([<<< Configuring library with deprecated code support >>>])
+  AC_DEFINE(ENABLE_DEPRECATED, 1,
+           [Flag indicating if the library should support deprecated code])
 fi
 # --------------------------------------------------------------
 
@@ -279,7 +290,7 @@ AC_ARG_ENABLE(everything,
 # -------------------------------------------------------------
 AC_ARG_ENABLE(unique-id,
               AS_HELP_STRING([--enable-unique-id],
-                             [build with unique id suppport]),
+                             [build with unique id support]),
               [case "${enableval}" in
                 yes)  enableuniqueid=yes ;;
                 no) enableuniqueid=no ;;
@@ -346,7 +357,7 @@ fi
 # -------------------------------------------------------------
 AC_ARG_ENABLE(amr,
               AS_HELP_STRING([--disable-amr],
-                             [build without adaptive mesh refinement (AMR) suppport]),
+                             [build without adaptive mesh refinement (AMR) support]),
               enableamr=$enableval,
               enableamr=yes)
 
@@ -364,7 +375,7 @@ fi
 # -------------------------------------------------------------
 AC_ARG_ENABLE(vsmoother,
               AS_HELP_STRING([--disable-vsmoother],
-                             [build without variational smoother suppport]),
+                             [build without variational smoother support]),
               enablevsmoother=$enableval,
               enablevsmoother=yes)
 
@@ -382,7 +393,7 @@ fi
 # -------------------------------------------------------------
 AC_ARG_ENABLE(periodic,
               AS_HELP_STRING([--disable-periodic],
-                             [build without periodic boundary condition suppport]),
+                             [build without periodic boundary condition support]),
               enableperiodic=$enableval,
               enableperiodic=yes)
 
@@ -418,7 +429,7 @@ fi
 # -------------------------------------------------------------
 AC_ARG_ENABLE(nodeconstraint,
               AS_HELP_STRING([--enable-nodeconstraint],
-                             [build with node constraints suppport]),
+                             [build with node constraints support]),
               enablenodeconstraint=$enableval,
               enablenodeconstraint=$enableeverything)
 
@@ -627,7 +638,7 @@ AC_ARG_ENABLE(complex,
 
 if test "$enablecomplex" != no ; then
   AC_DEFINE(USE_COMPLEX_NUMBERS, 1,
-     [Flag indicating if the library should be built using complxex numbers])
+     [Flag indicating if the library should be built using complex numbers])
   AC_MSG_RESULT(<<< Configuring library with complex number support >>>)
 
 else

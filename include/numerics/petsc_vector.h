@@ -31,7 +31,6 @@
 #include "libmesh/petsc_macro.h"
 #include "libmesh/libmesh_common.h"
 #include "libmesh/petsc_solver_exception.h"
-#include LIBMESH_INCLUDE_UNORDERED_MAP
 
 // PETSc include files.
 #include <petscvec.h>
@@ -40,6 +39,7 @@
 #include <cstddef>
 #include <cstring>
 #include <vector>
+#include <unordered_map>
 
 #ifdef LIBMESH_HAVE_CXX11_THREAD
 #include <atomic>
@@ -123,9 +123,9 @@ public:
 
   virtual void zero () libmesh_override;
 
-  virtual UniquePtr<NumericVector<T> > zero_clone () const libmesh_override;
+  virtual std::unique_ptr<NumericVector<T>> zero_clone () const libmesh_override;
 
-  virtual UniquePtr<NumericVector<T> > clone () const libmesh_override;
+  virtual std::unique_ptr<NumericVector<T>> clone () const libmesh_override;
 
   virtual void init (const numeric_index_type N,
                      const numeric_index_type n_local,
@@ -415,7 +415,7 @@ private:
   /**
    * Type for map that maps global to local ghost cells.
    */
-  typedef LIBMESH_BEST_UNORDERED_MAP<numeric_index_type,numeric_index_type> GlobalToLocalMap;
+  typedef std::unordered_map<numeric_index_type,numeric_index_type> GlobalToLocalMap;
 
   /**
    * Map that maps global to local ghost cells (will be empty if not
@@ -784,7 +784,7 @@ void PetscVector<T>::init (const NumericVector<T> & other,
 
   this->_global_to_local_map = v._global_to_local_map;
 
-  // Even if we're initializeing sizes based on an uninitialized or
+  // Even if we're initializing sizes based on an uninitialized or
   // unclosed vector, *this* vector is being initialized now and is
   // initially closed.
   this->_is_closed      = true; // v._is_closed;
@@ -893,23 +893,23 @@ void PetscVector<T>::zero ()
 
 template <typename T>
 inline
-UniquePtr<NumericVector<T> > PetscVector<T>::zero_clone () const
+std::unique_ptr<NumericVector<T>> PetscVector<T>::zero_clone () const
 {
   NumericVector<T> * cloned_vector = new PetscVector<T>(this->comm(), this->type());
   cloned_vector->init(*this);
-  return UniquePtr<NumericVector<T> >(cloned_vector);
+  return std::unique_ptr<NumericVector<T>>(cloned_vector);
 }
 
 
 
 template <typename T>
 inline
-UniquePtr<NumericVector<T> > PetscVector<T>::clone () const
+std::unique_ptr<NumericVector<T>> PetscVector<T>::clone () const
 {
   NumericVector<T> * cloned_vector = new PetscVector<T>(this->comm(), this->type());
   cloned_vector->init(*this, true);
   *cloned_vector = *this;
-  return UniquePtr<NumericVector<T> >(cloned_vector);
+  return std::unique_ptr<NumericVector<T>>(cloned_vector);
 }
 
 

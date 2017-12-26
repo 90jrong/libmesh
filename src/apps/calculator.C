@@ -142,7 +142,7 @@ int main(int argc, char ** argv)
   L2System & new_sys = new_es.add_system<L2System>(current_sys_name);
 
   new_sys.time_solver =
-    UniquePtr<TimeSolver>(new SteadySolver(new_sys));
+    libmesh_make_unique<SteadySolver>(new_sys);
 
   new_sys.fe_family() =
     cl.follow(std::string("LAGRANGE"), "--family");
@@ -155,7 +155,7 @@ int main(int argc, char ** argv)
 
   ParsedFEMFunction<Number> goal_function(old_sys, calcfunc);
 
-  new_sys.goal_func.reset(goal_function.clone().release());
+  new_sys.goal_func = goal_function.clone();
   new_sys.input_system = &old_sys;
 
   new_es.init();

@@ -139,26 +139,21 @@ void AssembleOptimization::assemble_A_and_F()
 
   const DofMap & dof_map = _sys.get_dof_map();
   FEType fe_type = dof_map.variable_type(u_var);
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
   QGauss qrule (dim, fe_type.default_quadrature_order());
   fe->attach_quadrature_rule (&qrule);
 
   const std::vector<Real> & JxW = fe->get_JxW();
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   std::vector<dof_id_type> dof_indices;
 
   DenseMatrix<Number> Ke;
   DenseVector<Number> Fe;
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
-
       dof_map.dof_indices (elem, dof_indices);
 
       const unsigned int n_dofs = dof_indices.size();
@@ -205,7 +200,7 @@ void AssembleOptimization::assemble_A_and_F()
 Number AssembleOptimization::objective (const NumericVector<Number> & soln,
                                         OptimizationSystem & /*sys*/)
 {
-  UniquePtr< NumericVector<Number> > AxU = soln.zero_clone();
+  std::unique_ptr<NumericVector<Number>> AxU = soln.zero_clone();
 
   A_matrix->vector_mult(*AxU, soln);
 
@@ -222,7 +217,7 @@ void AssembleOptimization::gradient (const NumericVector<Number> & soln,
 {
   grad_f.zero();
 
-  // Since we've enforced constaints on soln, A and F,
+  // Since we've enforced constraints on soln, A and F,
   // this automatically sets grad_f to zero for constrained
   // dofs.
   A_matrix->vector_mult(grad_f, soln);
@@ -297,7 +292,7 @@ int main (int argc, char ** argv)
     const std::string optimization_solver_type = infile("optimization_solver_type",
                                                         "PETSC_SOLVERS");
     SolverPackage sp = Utility::string_to_enum<SolverPackage>(optimization_solver_type);
-    UniquePtr<OptimizationSolver<Number> > new_solver =
+    std::unique_ptr<OptimizationSolver<Number>> new_solver =
       OptimizationSolver<Number>::build(system, sp);
     system.optimization_solver.reset(new_solver.release());
   }

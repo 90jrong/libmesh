@@ -77,9 +77,6 @@ dof_id_type Pyramid::key (const unsigned int s) const
     default:
       libmesh_error_msg("Invalid side s = " << s);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -100,12 +97,12 @@ unsigned int Pyramid::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Pyramid::side_ptr (const unsigned int i)
+std::unique_ptr<Elem> Pyramid::side_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_sides());
 
-  // To be returned wrapped in a UniquePtr
-  Elem * face = libmesh_nullptr;
+  // Return value
+  std::unique_ptr<Elem> face;
 
   // Set up the type of element
   switch (i)
@@ -115,12 +112,12 @@ UniquePtr<Elem> Pyramid::side_ptr (const unsigned int i)
     case 2: // triangular face 3
     case 3: // triangular face 4
       {
-        face = new Tri3;
+        face = libmesh_make_unique<Tri3>();
         break;
       }
     case 4:  // the quad face at z=0
       {
-        face = new Quad4;
+        face = libmesh_make_unique<Quad4>();
         break;
       }
     default:
@@ -131,7 +128,7 @@ UniquePtr<Elem> Pyramid::side_ptr (const unsigned int i)
   for (unsigned n=0; n<face->n_nodes(); ++n)
     face->set_node(n) = this->node_ptr(Pyramid5::side_nodes_map[i][n]);
 
-  return UniquePtr<Elem>(face);
+  return face;
 }
 
 

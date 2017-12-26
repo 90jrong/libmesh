@@ -120,6 +120,7 @@ Real FE<2,BERNSTEIN>::shape(const Elem * elem,
       }
       // handle serendipity QUAD8 element separately
     case QUAD8:
+    case QUADSHELL8:
       {
         libmesh_assert_less (totalorder, 3);
 
@@ -145,6 +146,7 @@ Real FE<2,BERNSTEIN>::shape(const Elem * elem,
     case TRI3:
     case TRISHELL3:
       libmesh_assert_less (totalorder, 2);
+      libmesh_fallthrough();
     case TRI6:
       switch (totalorder)
         {
@@ -376,9 +378,6 @@ Real FE<2,BERNSTEIN>::shape(const Elem * elem,
     default:
       libmesh_error_msg("ERROR: Unsupported element type = " << type);
     } // switch type
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -479,6 +478,7 @@ Real FE<2,BERNSTEIN>::shape_deriv(const Elem * elem,
       // Bernstein shape functions on the 8-noded quadrilateral
       // is handled separately.
     case QUAD8:
+    case QUADSHELL8:
       {
         libmesh_assert_less (totalorder, 3);
 
@@ -517,6 +517,7 @@ Real FE<2,BERNSTEIN>::shape_deriv(const Elem * elem,
     case TRI3:
     case TRISHELL3:
       libmesh_assert_less (totalorder, 2);
+      libmesh_fallthrough();
     case TRI6:
       {
         // I have been lazy here and am using finite differences
@@ -554,9 +555,6 @@ Real FE<2,BERNSTEIN>::shape_deriv(const Elem * elem,
     default:
       libmesh_error_msg("ERROR: Unsupported element type = " << type);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 

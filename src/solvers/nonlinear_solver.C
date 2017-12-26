@@ -17,13 +17,11 @@
 
 
 
-// C++ includes
-
 // Local Includes
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 #include "libmesh/nonlinear_solver.h"
 #include "libmesh/petsc_nonlinear_solver.h"
 #include "libmesh/trilinos_nox_nonlinear_solver.h"
-#include "libmesh/auto_ptr.h"
 #include "libmesh/solver_configuration.h"
 
 namespace libMesh
@@ -34,7 +32,7 @@ namespace libMesh
 // NonlinearSolver members
 #if defined(LIBMESH_HAVE_PETSC) || defined(LIBMESH_TRILINOS_HAVE_NOX)
 template <typename T>
-UniquePtr<NonlinearSolver<T> >
+std::unique_ptr<NonlinearSolver<T>>
 NonlinearSolver<T>::build(sys_type & s, const SolverPackage solver_package)
 {
   // Build the appropriate solver
@@ -43,26 +41,23 @@ NonlinearSolver<T>::build(sys_type & s, const SolverPackage solver_package)
 
 #ifdef LIBMESH_HAVE_PETSC
     case PETSC_SOLVERS:
-      return UniquePtr<NonlinearSolver<T> >(new PetscNonlinearSolver<T>(s));
+      return libmesh_make_unique<PetscNonlinearSolver<T>>(s);
 #endif // LIBMESH_HAVE_PETSC
 
 #if defined(LIBMESH_TRILINOS_HAVE_NOX) && defined(LIBMESH_TRILINOS_HAVE_EPETRA)
     case TRILINOS_SOLVERS:
-      return UniquePtr<NonlinearSolver<T> >(new NoxNonlinearSolver<T>(s));
+      return libmesh_make_unique<NoxNonlinearSolver<T>>(s);
 #endif
 
     default:
       libmesh_error_msg("ERROR:  Unrecognized solver package: " << solver_package);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<NonlinearSolver<T> >();
 }
 
 #else // LIBMESH_HAVE_PETSC || LIBMESH_TRILINOS_HAVE_NOX
 
 template <typename T>
-UniquePtr<NonlinearSolver<T> >
+std::unique_ptr<NonlinearSolver<T>>
 NonlinearSolver<T>::build(sys_type &, const SolverPackage)
 {
   libmesh_not_implemented_msg("ERROR: libMesh was compiled without nonlinear solver support");

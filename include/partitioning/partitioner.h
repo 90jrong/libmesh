@@ -22,12 +22,12 @@
 
 // Local Includes
 #include "libmesh/libmesh.h"
-#include "libmesh/auto_ptr.h"
 #include "libmesh/id_types.h"
 #include "libmesh/mesh_base.h" // for MeshBase::element_iterator
 
 // C++ Includes
 #include <cstddef>
+#include <memory>
 
 namespace libMesh
 {
@@ -65,7 +65,7 @@ public:
    * This is used when copying meshes, and must be overridden in the
    * derived classes.
    */
-  virtual UniquePtr<Partitioner> clone () const = 0;
+  virtual std::unique_ptr<Partitioner> clone () const = 0;
 
   /**
    * Partitions the \p MeshBase into \p n parts by setting
@@ -124,7 +124,7 @@ public:
   { libmesh_not_implemented(); }
 
   /**
-   * Repartitions the \p MeshBase into \p n parts. (Some partitoning
+   * Repartitions the \p MeshBase into \p n parts. (Some partitioning
    * algorithms can repartition more efficiently than computing a new
    * partitioning from scratch.)  The default behavior is to simply
    * call this->partition(mesh,n).
@@ -134,7 +134,7 @@ public:
 
   /**
    * Repartitions the \p MeshBase into \p mesh.n_processors() parts.  This
-   * is required since some partitoning algorithms can repartition
+   * is required since some partitioning algorithms can repartition
    * more efficiently than computing a new partitioning from scratch.
    */
   void repartition (MeshBase & mesh);

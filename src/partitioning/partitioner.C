@@ -218,7 +218,7 @@ void Partitioner::partition_unpartitioned_elements (MeshBase & mesh,
   libmesh_assert_equal_to (subdomain_bounds.back(), n_unpartitioned_elements);
 
   // create the unique mapping for all unpartitioned elements independent of partitioning
-  // determine the global indexing for all the unpartitoned elements
+  // determine the global indexing for all the unpartitioned elements
   std::vector<dof_id_type> global_indices;
 
   // Calling this on all processors a unique range in [0,n_unpartitioned_elements) is constructed.
@@ -264,7 +264,7 @@ void Partitioner::set_parent_processor_ids(MeshBase & mesh)
 
   // If the mesh is serial we have access to all the elements,
   // in particular all the active ones.  We can therefore set
-  // the parent processor ids indirecly through their children, and
+  // the parent processor ids indirectly through their children, and
   // set the subactive processor ids while examining their active
   // ancestors.
   // By convention a parent is assigned to the minimum processor
@@ -272,23 +272,15 @@ void Partitioner::set_parent_processor_ids(MeshBase & mesh)
   // of its active ancestor.
   if (mesh.is_serial())
     {
-      // Loop over all the active elements in the mesh
-      MeshBase::element_iterator       it  = mesh.active_elements_begin();
-      const MeshBase::element_iterator end = mesh.active_elements_end();
-
-      for ( ; it!=end; ++it)
+      for (auto & child : mesh.active_element_ptr_range())
         {
-          Elem * child  = *it;
-
           // First set descendents
-
           std::vector<const Elem *> subactive_family;
           child->total_family_tree(subactive_family);
           for (std::size_t i = 0; i != subactive_family.size(); ++i)
             const_cast<Elem *>(subactive_family[i])->processor_id() = child->processor_id();
 
           // Then set ancestors
-
           Elem * parent = child->parent();
 
           while (parent)
@@ -298,14 +290,12 @@ void Partitioner::set_parent_processor_ids(MeshBase & mesh)
               // than all the children!
               parent->invalidate_processor_id();
 
-              for (unsigned int c=0; c<parent->n_children(); c++)
+              for (auto & child : parent->child_ref_range())
                 {
-                  child = parent->child_ptr(c);
-                  libmesh_assert(child);
-                  libmesh_assert(!child->is_remote());
-                  libmesh_assert_not_equal_to (child->processor_id(), DofObject::invalid_processor_id);
+                  libmesh_assert(!child.is_remote());
+                  libmesh_assert_not_equal_to (child.processor_id(), DofObject::invalid_processor_id);
                   parent->processor_id() = std::min(parent->processor_id(),
-                                                    child->processor_id());
+                                                    child.processor_id());
                 }
               parent = parent->parent();
             }
@@ -320,13 +310,8 @@ void Partitioner::set_parent_processor_ids(MeshBase & mesh)
       // that children have access to all their parents.
 
       // Loop over all the active elements in the mesh
-      MeshBase::element_iterator       it  = mesh.active_elements_begin();
-      const MeshBase::element_iterator end = mesh.active_elements_end();
-
-      for ( ; it!=end; ++it)
+      for (auto & child : mesh.active_element_ptr_range())
         {
-          Elem * child  = *it;
-
           std::vector<const Elem *> subactive_family;
           child->total_family_tree(subactive_family);
           for (std::size_t i = 0; i != subactive_family.size(); ++i)
@@ -455,18 +440,14 @@ void Partitioner::set_node_processor_ids(MeshBase & mesh)
   //
   // The only remaining issue is what to do with unpartitioned nodes.  Since they are required
   // to live on all processors we can simply rely on ourselves to number them properly.
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_node_ids(mesh.n_processors());
 
   // Loop over all the nodes, count the ones on each processor.  We can skip ourself
   std::vector<dof_id_type> ghost_nodes_from_proc(mesh.n_processors(), 0);
 
-  MeshBase::node_iterator       node_it  = mesh.nodes_begin();
-  const MeshBase::node_iterator node_end = mesh.nodes_end();
-
-  for (; node_it != node_end; ++node_it)
+  for (auto & node : mesh.node_ptr_range())
     {
-      Node * node = *node_it;
       libmesh_assert(node);
       const processor_id_type current_pid = node->processor_id();
       if (current_pid != mesh.processor_id() &&
@@ -484,9 +465,8 @@ void Partitioner::set_node_processor_ids(MeshBase & mesh)
 
   // We need to get the new pid for each node from the processor
   // which *currently* owns the node.  We can safely skip ourself
-  for (node_it = mesh.nodes_begin(); node_it != node_end; ++node_it)
+  for (auto & node : mesh.node_ptr_range())
     {
-      Node * node = *node_it;
       libmesh_assert(node);
       const processor_id_type current_pid = node->processor_id();
       if (current_pid != mesh.processor_id() &&
@@ -503,12 +483,8 @@ void Partitioner::set_node_processor_ids(MeshBase & mesh)
     }
 
   // Loop over all the active elements
-  MeshBase::element_iterator       elem_it  = mesh.active_elements_begin();
-  const MeshBase::element_iterator elem_end = mesh.active_elements_end();
-
-  for ( ; elem_it != elem_end; ++elem_it)
+  for (auto & elem : mesh.active_element_ptr_range())
     {
-      Elem * elem = *elem_it;
       libmesh_assert(elem);
 
       libmesh_assert_not_equal_to (elem->processor_id(), DofObject::invalid_processor_id);
@@ -590,7 +566,7 @@ void Partitioner::set_node_processor_ids(MeshBase & mesh)
           const processor_id_type new_pid = node.processor_id();
 
           // We may have an invalid processor_id() on nodes that have been
-          // "detatched" from coarsened-away elements but that have not yet
+          // "detached" from coarsened-away elements but that have not yet
           // themselves been removed.
           // libmesh_assert_not_equal_to (new_pid, DofObject::invalid_processor_id);
           // libmesh_assert_less (new_pid, mesh.n_partitions()); // this is the correct test --
@@ -612,7 +588,7 @@ void Partitioner::set_node_processor_ids(MeshBase & mesh)
           // not equal the number of processors
 
           // But: we may have an invalid processor_id() on nodes that
-          // have been "detatched" from coarsened-away elements but
+          // have been "detached" from coarsened-away elements but
           // that have not yet themselves been removed.
           // libmesh_assert_less (filled_request[i], mesh.n_partitions());
 

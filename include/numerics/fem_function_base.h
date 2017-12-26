@@ -20,15 +20,14 @@
 #ifndef LIBMESH_FEM_FUNCTION_BASE_H
 #define LIBMESH_FEM_FUNCTION_BASE_H
 
-// C++ includes
-
-
-
 // Local Includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/dense_vector.h" // required to instantiate a DenseVector<> below
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/fem_context.h"
+
+// C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -77,7 +76,7 @@ public:
    * independent destruction and simultaneous evaluations of the
    * copies in different threads.
    */
-  virtual UniquePtr<FEMFunctionBase<Output> > clone () const = 0;
+  virtual std::unique_ptr<FEMFunctionBase<Output>> clone () const = 0;
 
   /**
    * \returns The scalar function value at coordinate \p p and time \p

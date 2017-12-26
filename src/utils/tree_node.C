@@ -337,10 +337,6 @@ TreeNode<N>::create_bounding_box (unsigned int c) const
     default:
       libmesh_error_msg("Only implemented for Octrees, QuadTrees, and Binary Trees!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  Point min, max;
-  return BoundingBox (min, max);
 }
 
 
@@ -389,7 +385,7 @@ void TreeNode<N>::print_elements(std::ostream & out_stream) const
 
 
 template <unsigned int N>
-void TreeNode<N>::transform_nodes_to_elements (std::vector<std::vector<const Elem *> > & nodes_to_elem)
+void TreeNode<N>::transform_nodes_to_elements (std::vector<std::vector<const Elem *>> & nodes_to_elem)
 {
   if (this->active())
     {
@@ -490,9 +486,6 @@ TreeNode<N>::find_element (const Point & p,
   else
     return this->find_element_in_children(p,allowed_subdomains,
                                           relative_tol);
-
-  libmesh_error_msg("We'll never get here!");
-  return libmesh_nullptr;
 }
 
 

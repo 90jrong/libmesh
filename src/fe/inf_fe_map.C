@@ -43,7 +43,7 @@ Point InfFE<Dim,T_radial,T_map>::map (const Elem * inf_elem,
   libmesh_assert(inf_elem);
   libmesh_assert_not_equal_to (Dim, 0);
 
-  UniquePtr<Elem>      base_elem (Base::build_elem (inf_elem));
+  std::unique_ptr<Elem>      base_elem (Base::build_elem (inf_elem));
 
   const Order        radial_mapping_order (Radial::mapping_order());
   const Real         v                    (reference_point(Dim-1));
@@ -99,12 +99,7 @@ Point InfFE<Dim,T_radial,T_map>::inverse_map (const Elem * inf_elem,
 
   // 1.)
   // build a base element to do the map inversion in the base face
-  UniquePtr<Elem> base_elem (Base::build_elem (inf_elem));
-
-  const ElemType inf_elem_type = inf_elem->type();
-  if (inf_elem_type != INFHEX8 &&
-      inf_elem_type != INFPRISM6)
-    libmesh_error_msg("ERROR: InfFE::inverse_map is currently implemented only for \ninfinite elments of type InfHex8 and InfPrism6.");
+  std::unique_ptr<Elem> base_elem (Base::build_elem (inf_elem));
 
   // 2.)
   // just like in FE<Dim-1,LAGRANGE>::inverse_map(): compute
@@ -130,7 +125,7 @@ Point InfFE<Dim,T_radial,T_map>::inverse_map (const Elem * inf_elem,
   // element and the physical point.
   Point intersection;
 
-  // the origin of the infinite lement
+  // the origin of the infinite element
   const Point o = inf_elem->origin();
 
   switch (Dim)
@@ -382,6 +377,7 @@ Point InfFE<Dim,T_radial,T_map>::inverse_map (const Elem * inf_elem,
         {
           // in this case, physical_point is not in this element.
           // We therefore give back the best approximation:
+          // TODO: is there a strict argument for this?
           p(Dim-1) = -1;
           return p;
         }

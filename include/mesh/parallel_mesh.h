@@ -48,6 +48,7 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * constructor that takes a Parallel::Communicator instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   explicit
   ParallelMesh (unsigned char dim=1)
     : DistributedMesh(dim)
@@ -55,11 +56,12 @@ public:
     libmesh_deprecated();
   }
 #endif
+#endif
 
   ParallelMesh (const UnstructuredMesh & other_mesh) : DistributedMesh(other_mesh) {}
 
-  virtual UniquePtr<MeshBase> clone () const libmesh_override
-  { return UniquePtr<MeshBase>(new ParallelMesh(*this)); }
+  virtual std::unique_ptr<MeshBase> clone () const libmesh_override
+  { return libmesh_make_unique<ParallelMesh>(*this); }
 
   ~ParallelMesh() {}
 };

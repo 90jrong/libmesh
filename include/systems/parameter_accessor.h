@@ -24,7 +24,10 @@
 // Local Includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/compare_types.h" // remove_const
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
+
+// C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -47,7 +50,7 @@ class ConstParameterProxy;
  *
  * \author Roy Stogner
  * \date 2015
- * \brief Base class for reading/writing sensitivty parameters.
+ * \brief Base class for reading/writing sensitivity parameters.
  */
 template <typename T=Number>
 class ParameterAccessor
@@ -74,8 +77,10 @@ public:
    * This is included for backward compatibility, but will be
    * deprecated in some classes and not implemented in others.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual ParameterAccessor<T> &
   operator= (T * /* new_ptr */) { libmesh_error(); return *this; }
+#endif
 
   /**
    * Proxy: for backward compatibility, we allow codes to treat a
@@ -92,7 +97,7 @@ public:
    * be as shallow as possible, but should still access the same
    * parameter.
    */
-  virtual UniquePtr<ParameterAccessor<T> > clone() const = 0;
+  virtual std::unique_ptr<ParameterAccessor<T>> clone() const = 0;
 };
 
 template <typename T=Number>

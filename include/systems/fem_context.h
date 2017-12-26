@@ -91,7 +91,9 @@ public:
    * \deprecated Instead, use the version that takes a reference to a
    * std::set.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   std::vector<boundary_id_type> side_boundary_ids() const;
+#endif
 
   /**
    * As above, but fills in the std::set provided by the user.
@@ -932,7 +934,9 @@ public:
                        DOFS_ONLY, // Reinitialize dof_indices, not
                                   // algebraic structures
                        CURRENT,   // Use dof_indices, current solution
-                       OLD };     // Use old_dof_indices, custom solution
+                       OLD,       // Use old_dof_indices, custom solution
+                       OLD_DOFS_ONLY}; // Reinitialize old_dof_indices, not
+                                       // algebraic structures
 
   /**
    * Setting which determines whether to initialize algebraic
@@ -979,6 +983,14 @@ public:
    */
   unsigned char edge;
 
+  /**
+   * Helper function to reduce some code duplication in the *_point_* methods.
+   */
+  template<typename OutputShape>
+  FEGenericBase<OutputShape> * build_new_fe(const FEGenericBase<OutputShape> * fe,
+                                            const Point & p,
+                                            const Real tolerance = TOLERANCE) const;
+
 protected:
 
   /**
@@ -991,13 +1003,17 @@ protected:
    */
   const NumericVector<Number> * _custom_solution;
 
-  /**
-   * Helper function to reduce some code duplication in the *_point_* methods.
-   */
+  mutable std::unique_ptr<FEGenericBase<Real>>         _real_fe;
+  mutable std::unique_ptr<FEGenericBase<RealGradient>> _real_grad_fe;
+
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+  mutable bool _real_fe_is_inf;
+  mutable bool _real_grad_fe_is_inf;
+#endif
+
   template<typename OutputShape>
-  UniquePtr<FEGenericBase<OutputShape> > build_new_fe( const FEGenericBase<OutputShape> * fe,
-                                                       const Point & p,
-                                                       const Real tolerance = TOLERANCE) const;
+  FEGenericBase<OutputShape> * cached_fe( const unsigned int elem_dim,
+                                          const FEType fe_type ) const;
 
   /**
    * Helper function to promote accessor usage
@@ -1076,9 +1092,9 @@ protected:
    * We store FE objects for each element dimension present in the mesh,
    * except for edge_fe which only applies to 3D elements.
    */
-  std::vector<std::map<FEType, FEAbstract *> > _element_fe;
-  std::vector<std::map<FEType, FEAbstract *> > _side_fe;
-  std::map<FEType, FEAbstract *> _edge_fe;
+  std::vector<std::map<FEType, std::unique_ptr<FEAbstract>>> _element_fe;
+  std::vector<std::map<FEType, std::unique_ptr<FEAbstract>>> _side_fe;
+  std::map<FEType, std::unique_ptr<FEAbstract>> _edge_fe;
 
 
   /**
@@ -1087,8 +1103,8 @@ protected:
    * present in the mesh, except for edge_fe_var which only applies
    * for 3D elements.
    */
-  std::vector<std::vector<FEAbstract *> > _element_fe_var;
-  std::vector<std::vector<FEAbstract *> > _side_fe_var;
+  std::vector<std::vector<FEAbstract *>> _element_fe_var;
+  std::vector<std::vector<FEAbstract *>> _side_fe_var;
   std::vector<FEAbstract *> _edge_fe_var;
 
   /**
@@ -1124,7 +1140,7 @@ protected:
    * correctly integrates all variables. We prepare quadrature
    * rules for each element dimension in the mesh.
    */
-  std::vector<QBase *> _element_qrule;
+  std::vector<std::unique_ptr<QBase>> _element_qrule;
 
   /**
    * Quadrature rules for element sides
@@ -1132,7 +1148,7 @@ protected:
    * correctly integrates all variables. We prepare quadrature
    * rules for each element dimension in the mesh.
    */
-  std::vector<QBase *> _side_qrule;
+  std::vector<std::unique_ptr<QBase>> _side_qrule;
 
   /**
    * Quadrature rules for element edges.  If the FEM context is told
@@ -1141,7 +1157,7 @@ protected:
    * Because edge rules only apply to 3D elements, we don't need to
    * worry about multiple dimensions
    */
-  UniquePtr<QBase> _edge_qrule;
+  std::unique_ptr<QBase> _edge_qrule;
 
   /**
    * The extra quadrature order for this context.

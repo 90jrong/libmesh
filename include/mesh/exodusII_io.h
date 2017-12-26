@@ -108,9 +108,11 @@ public:
    *
    * \deprecated Use the version of copy_nodal_solution() that takes two names.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   void copy_nodal_solution(System & system,
                            std::string var_name,
                            unsigned int timestep=1);
+#endif
 
   /**
    * If we read in a nodal solution while reading in a mesh, we can attempt
@@ -131,11 +133,49 @@ public:
                                unsigned int timestep=1);
 
   /**
+   * Given an elemental variable and a time step, returns a mapping from the
+   * elements (top parent) unique IDs to the value of the elemental variable at
+   * the corresponding time step index.
+   * Note that this function MUST only be called before renumbering!
+   * This function is essentially a wrapper for read_elemental_var_values from
+   * the exodus helper (which is not accessible outside this class).
+   * \param elemental_var_name Name of an elemental variable
+   * \param timestep The corresponding time step index
+   * \param unique_id_to_value_map The map to be filled
+   */
+  void read_elemental_variable(std::string elemental_var_name,
+                               unsigned int timestep,
+                               std::map<unsigned int, Real> & unique_id_to_value_map);
+
+  /**
+   * Given a vector of global variables and a time step, returns the values
+   * of the global variable at the corresponding time step index.
+   * \param global_var_names Vector of names of global variables
+   * \param timestep The corresponding time step index
+   * \param global_values The vector to be filled
+   */
+  void read_global_variable(std::vector<std::string> global_var_names,
+                            unsigned int timestep,
+                            std::vector<Real> & global_values);
+
+  /**
    * Writes a exodusII file with discontinuous data
    */
   void write_discontinuous_exodusII (const std::string & name,
                                      const EquationSystems & es,
                                      const std::set<std::string> * system_names=libmesh_nullptr);
+
+  /**
+   * Writes a discontinuous solution at a specific timestep
+   * \param fname Name of the file to be written
+   * \param es EquationSystems object which contains the solution vector
+   * \param timestep The timestep to write out. (should be _1_ indexed)
+   * \param time The current simulation time
+   */
+  void write_timestep_discontinuous (const std::string &fname,
+                                     const EquationSystems &es,
+                                     const int timestep,
+                                     const Real time);
 
   /**
    * Write out element solution.
@@ -260,7 +300,7 @@ private:
    * functionality when LIBMESH_HAVE_EXODUS_API is not defined.
    */
 #ifdef LIBMESH_HAVE_EXODUS_API
-  UniquePtr<ExodusII_IO_Helper> exio_helper;
+  std::unique_ptr<ExodusII_IO_Helper> exio_helper;
 
   /**
    * Stores the current value of the timestep when calling

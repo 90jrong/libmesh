@@ -22,6 +22,7 @@
 
 // Local Includes
 #include "libmesh/partitioner.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ Includes
 #include <string>
@@ -52,9 +53,9 @@ public:
   /**
    * \returns A copy of this partitioner wrapped in a smart pointer.
    */
-  virtual UniquePtr<Partitioner> clone () const libmesh_override
+  virtual std::unique_ptr<Partitioner> clone () const libmesh_override
   {
-    return UniquePtr<Partitioner>(new SFCPartitioner());
+    return libmesh_make_unique<SFCPartitioner>();
   }
 
   /**

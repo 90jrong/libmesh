@@ -43,6 +43,7 @@
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/parsed_function.h"
 #include "libmesh/uniform_refinement_estimator.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // The systems and solvers we may use
 #include "heatsystem.h"
@@ -145,16 +146,9 @@ int main (int argc, char ** argv)
   // of different dimensionality to belong to different subdomains.
   // Our interior elements defaulted to subdomain id 0, so we'll set
   // boundary elements to subdomain 1.
-  {
-    const MeshBase::element_iterator end_el = mesh.elements_end();
-    for (MeshBase::element_iterator el = mesh.elements_begin();
-         el != end_el; ++el)
-      {
-        Elem * elem = *el;
-        if (elem->dim() < dim)
-          elem->subdomain_id() = 1;
-      }
-  }
+  for (auto & elem : mesh.element_ptr_range())
+    if (elem->dim() < dim)
+      elem->subdomain_id() = 1;
 
   mesh_refinement.uniformly_refine(coarserefinements);
 
@@ -169,8 +163,7 @@ int main (int argc, char ** argv)
     equation_systems.add_system<HeatSystem> ("Heat");
 
   // Solve this as a steady system
-  system.time_solver =
-    UniquePtr<TimeSolver>(new SteadySolver(system));
+  system.time_solver = libmesh_make_unique<SteadySolver>(system);
 
   // Initialize the system
   equation_systems.init ();
@@ -204,7 +197,7 @@ int main (int argc, char ** argv)
 
       ErrorVector error;
 
-      UniquePtr<ErrorEstimator> error_estimator;
+      std::unique_ptr<ErrorEstimator> error_estimator;
 
       // To solve to a tolerance in this problem we
       // need a better estimator than Kelly

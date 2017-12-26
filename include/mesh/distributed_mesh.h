@@ -23,6 +23,7 @@
 // Local Includes
 #include "libmesh/mapvector.h"
 #include "libmesh/unstructured_mesh.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ Includes
 #include <cstddef>
@@ -68,8 +69,10 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * constructor that takes a Parallel::Communicator instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   explicit
   DistributedMesh (unsigned char dim=1);
+#endif
 #endif
 
 
@@ -88,8 +91,8 @@ public:
   /**
    * Virtual copy-constructor, creates a copy of this mesh
    */
-  virtual UniquePtr<MeshBase> clone () const libmesh_override
-  { return UniquePtr<MeshBase>(new DistributedMesh(*this)); }
+  virtual std::unique_ptr<MeshBase> clone () const libmesh_override
+  { return libmesh_make_unique<DistributedMesh>(*this); }
 
   /**
    * Destructor.
@@ -289,11 +292,15 @@ public:
   virtual element_iterator elements_end () libmesh_override;
   virtual const_element_iterator elements_begin() const libmesh_override;
   virtual const_element_iterator elements_end() const libmesh_override;
+  virtual SimpleRange<element_iterator> element_ptr_range() libmesh_override { return {elements_begin(), elements_end()}; }
+  virtual SimpleRange<const_element_iterator> element_ptr_range() const libmesh_override { return {elements_begin(), elements_end()}; }
 
   virtual element_iterator active_elements_begin () libmesh_override;
   virtual element_iterator active_elements_end () libmesh_override;
   virtual const_element_iterator active_elements_begin() const libmesh_override;
   virtual const_element_iterator active_elements_end() const libmesh_override;
+  virtual SimpleRange<element_iterator> active_element_ptr_range() libmesh_override { return {active_elements_begin(), active_elements_end()}; }
+  virtual SimpleRange<const_element_iterator> active_element_ptr_range() const libmesh_override  { return {active_elements_begin(), active_elements_end()}; }
 
   virtual element_iterator ancestor_elements_begin () libmesh_override;
   virtual element_iterator ancestor_elements_end () libmesh_override;
@@ -349,6 +356,8 @@ public:
   virtual element_iterator active_local_elements_end () libmesh_override;
   virtual const_element_iterator active_local_elements_begin () const libmesh_override;
   virtual const_element_iterator active_local_elements_end () const libmesh_override;
+  virtual SimpleRange<element_iterator> active_local_element_ptr_range() libmesh_override { return {active_local_elements_begin(), active_local_elements_end()}; }
+  virtual SimpleRange<const_element_iterator> active_local_element_ptr_range() const libmesh_override  { return {active_local_elements_begin(), active_local_elements_end()}; }
 
   virtual element_iterator active_not_local_elements_begin () libmesh_override;
   virtual element_iterator active_not_local_elements_end () libmesh_override;
@@ -464,6 +473,8 @@ public:
   virtual node_iterator nodes_end () libmesh_override;
   virtual const_node_iterator nodes_begin () const libmesh_override;
   virtual const_node_iterator nodes_end () const libmesh_override;
+  virtual SimpleRange<node_iterator> node_ptr_range() libmesh_override { return {nodes_begin(), nodes_end()}; }
+  virtual SimpleRange<const_node_iterator> node_ptr_range() const libmesh_override { return {nodes_begin(), nodes_end()}; }
 
   virtual node_iterator active_nodes_begin () libmesh_override;
   virtual node_iterator active_nodes_end () libmesh_override;
@@ -474,6 +485,8 @@ public:
   virtual node_iterator local_nodes_end () libmesh_override;
   virtual const_node_iterator local_nodes_begin () const libmesh_override;
   virtual const_node_iterator local_nodes_end () const libmesh_override;
+  virtual SimpleRange<node_iterator> local_node_ptr_range() libmesh_override { return {local_nodes_begin(), local_nodes_end()}; }
+  virtual SimpleRange<const_node_iterator> local_node_ptr_range() const libmesh_override { return {local_nodes_begin(), local_nodes_end()}; }
 
   virtual node_iterator pid_nodes_begin (processor_id_type proc_id) libmesh_override;
   virtual node_iterator pid_nodes_end (processor_id_type proc_id) libmesh_override;
@@ -507,7 +520,7 @@ public:
 protected:
 
   /**
-   * The verices (spatial coordinates) of the mesh.
+   * The vertices (spatial coordinates) of the mesh.
    */
   mapvector<Node *, dof_id_type> _nodes;
 

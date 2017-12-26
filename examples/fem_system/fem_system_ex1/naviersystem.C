@@ -29,6 +29,7 @@
 #include "libmesh/string_to_enum.h"
 #include "libmesh/zero_function.h"
 #include "libmesh/elem.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // Bring in everything from the libMesh namespace
 using namespace libMesh;
@@ -59,8 +60,8 @@ public:
     output(_w_var) = (_Re+1)*(x*x + y*y);
   }
 
-  virtual UniquePtr<FunctionBase<Number> > clone() const
-  { return UniquePtr<FunctionBase<Number> > (new BdyFunction(_u_var, _v_var, _w_var, _Re)); }
+  virtual std::unique_ptr<FunctionBase<Number>> clone() const
+  { return libmesh_make_unique<BdyFunction>(_u_var, _v_var, _w_var, _Re); }
 
 private:
   const unsigned int _u_var, _v_var, _w_var;
@@ -220,15 +221,15 @@ bool NavierSystem::element_time_derivative (bool request_jacobian,
   const std::vector<Real> & JxW = u_elem_fe->get_JxW();
 
   // The velocity shape functions at interior quadrature points.
-  const std::vector<std::vector<Real> > & phi = u_elem_fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = u_elem_fe->get_phi();
 
   // The velocity shape function gradients at interior
   // quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = u_elem_fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = u_elem_fe->get_dphi();
 
   // The pressure shape functions at interior
   // quadrature points.
-  const std::vector<std::vector<Real> > & psi = p_elem_fe->get_phi();
+  const std::vector<std::vector<Real>> & psi = p_elem_fe->get_phi();
 
   // Physical location of the quadrature points
   const std::vector<Point> & qpoint = u_elem_fe->get_xyz();
@@ -271,12 +272,12 @@ bool NavierSystem::element_time_derivative (bool request_jacobian,
   for (unsigned int qp=0; qp != n_qpoints; qp++)
     {
       // Compute the solution & its gradient at the old Newton iterate
-      c.interior_value(p_var, qp, p),
-      c.interior_value(u_var, qp, u),
-      c.interior_value(v_var, qp, v),
+      c.interior_value(p_var, qp, p);
+      c.interior_value(u_var, qp, u);
+      c.interior_value(v_var, qp, v);
       c.interior_value(w_var, qp, w);
-      c.interior_gradient(u_var, qp, grad_u),
-      c.interior_gradient(v_var, qp, grad_v),
+      c.interior_gradient(u_var, qp, grad_u);
+      c.interior_gradient(v_var, qp, grad_v);
       c.interior_gradient(w_var, qp, grad_w);
 
       // Definitions for convenience.  It is sometimes simpler to do a
@@ -405,11 +406,11 @@ bool NavierSystem::element_constraint (bool request_jacobian,
 
   // The velocity shape function gradients at interior
   // quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = u_elem_fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = u_elem_fe->get_dphi();
 
   // The pressure shape functions at interior
   // quadrature points.
-  const std::vector<std::vector<Real> > & psi = p_elem_fe->get_phi();
+  const std::vector<std::vector<Real>> & psi = p_elem_fe->get_phi();
 
   // The number of local degrees of freedom in each variable
   const unsigned int n_u_dofs = c.get_dof_indices(u_var).size();
@@ -432,8 +433,8 @@ bool NavierSystem::element_constraint (bool request_jacobian,
     {
       // Compute the velocity gradient at the old Newton iterate
       c.interior_gradient(u_var, qp, grad_u),
-      c.interior_gradient(v_var, qp, grad_v),
-      c.interior_gradient(w_var, qp, grad_w);
+        c.interior_gradient(v_var, qp, grad_v),
+        c.interior_gradient(w_var, qp, grad_w);
 
       // Now a loop over the pressure degrees of freedom.  This
       // computes the contributions of the continuity equation.
@@ -541,7 +542,7 @@ bool NavierSystem::mass_residual (bool request_jacobian,
   const std::vector<Real> & JxW = u_elem_fe->get_JxW();
 
   // The velocity shape functions at interior quadrature points.
-  const std::vector<std::vector<Real> > & phi = u_elem_fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = u_elem_fe->get_phi();
 
   // The subvectors and submatrices we need to fill:
   DenseSubVector<Number> & Fu = c.get_elem_residual(u_var);
@@ -563,8 +564,8 @@ bool NavierSystem::mass_residual (bool request_jacobian,
     {
       // Compute time derivatives
       c.interior_rate(u_var, qp, u_dot),
-      c.interior_rate(v_var, qp, v_dot),
-      c.interior_rate(w_var, qp, w_dot);
+        c.interior_rate(v_var, qp, v_dot),
+        c.interior_rate(w_var, qp, w_dot);
 
       // We pull as many calculations as possible outside of loops
       Number JxWxRe   = JxW[qp] * Reynolds;

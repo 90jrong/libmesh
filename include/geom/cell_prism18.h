@@ -141,7 +141,7 @@ public:
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    *
-   * We reimplemenet this method here for the \p Prism18 since we can
+   * We reimplement this method here for the \p Prism18 since we can
    * use the center node of each quad face to provide a perfect (unique)
    * key.
    */
@@ -155,16 +155,16 @@ public:
 
   /**
    * Builds a \p QUAD9 or \p TRI6 built coincident with face i.
-   * The \p UniquePtr<Elem> handles the memory aspect.
+   * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
-  virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
-                                          bool proxy) libmesh_override;
+  virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
+                                                bool proxy) libmesh_override;
 
   /**
    * Builds a \p EDGE3 or \p INFEDGE2 built coincident with edge i.
-   * The \p UniquePtr<Elem> handles the memory aspect.
+   * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
-  virtual UniquePtr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
+  virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int i) libmesh_override;
 
   virtual void connectivity(const unsigned int sc,
                             const IOPackage iop,

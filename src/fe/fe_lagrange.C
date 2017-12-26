@@ -358,6 +358,7 @@ unsigned int lagrange_n_dofs(const ElemType t, const Order o)
           case QUAD4:
           case QUADSHELL4:
           case QUAD8:
+          case QUADSHELL8:
           case QUAD9:
             return 4;
 
@@ -404,6 +405,7 @@ unsigned int lagrange_n_dofs(const ElemType t, const Order o)
             return 6;
 
           case QUAD8:
+          case QUADSHELL8:
             return 8;
 
           case QUAD9:
@@ -459,9 +461,6 @@ unsigned int lagrange_n_dofs(const ElemType t, const Order o)
     default:
       libmesh_error_msg("ERROR: Invalid Order " << Utility::enum_to_string(o) << " selected for LAGRANGE FE family!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -517,6 +516,7 @@ unsigned int lagrange_n_dofs_at_node(const ElemType t,
           case QUAD4:
           case QUADSHELL4:
           case QUAD8:
+          case QUADSHELL8:
           case QUAD9:
             {
               switch (n)
@@ -625,6 +625,7 @@ unsigned int lagrange_n_dofs_at_node(const ElemType t,
           case EDGE3:
           case TRI6:
           case QUAD8:
+          case QUADSHELL8:
           case QUAD9:
           case TET10:
           case HEX20:
@@ -662,10 +663,6 @@ unsigned int lagrange_n_dofs_at_node(const ElemType t,
     default:
       libmesh_error_msg("Unsupported order: " << o );
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
-
 }
 
 
@@ -694,7 +691,7 @@ void lagrange_compute_constraints (DofConstraints & constraints,
 
   // Look at the element faces.  Check to see if we need to
   // build constraints.
-  for (unsigned int s=0; s<elem->n_sides(); s++)
+  for (auto s : elem->side_index_range())
     if (elem->neighbor_ptr(s) != libmesh_nullptr &&
         elem->neighbor_ptr(s) != remote_elem)
       if (elem->neighbor_ptr(s)->level() < elem->level()) // constrain dofs shared between
@@ -708,8 +705,8 @@ void lagrange_compute_constraints (DofConstraints & constraints,
           // level than their neighbors!
           libmesh_assert(parent);
 
-          const UniquePtr<const Elem> my_side     (elem->build_side_ptr(s));
-          const UniquePtr<const Elem> parent_side (parent->build_side_ptr(s));
+          const std::unique_ptr<const Elem> my_side     (elem->build_side_ptr(s));
+          const std::unique_ptr<const Elem> parent_side (parent->build_side_ptr(s));
 
           // This function gets called element-by-element, so there
           // will be a lot of memory allocation going on.  We can
@@ -812,7 +809,7 @@ void lagrange_compute_constraints (DofConstraints & constraints,
                 }
             }
         }
-} // lagrange_compute_constrants()
+} // lagrange_compute_constraints()
 #endif // #ifdef LIBMESH_ENABLE_AMR
 
 } // anonymous namespace

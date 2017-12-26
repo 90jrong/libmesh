@@ -38,10 +38,10 @@ public:
 
   virtual void init_context (const FEMContext &) libmesh_override {}
 
-  virtual UniquePtr<FEMFunctionBase<Number> >
+  virtual std::unique_ptr<FEMFunctionBase<Number>>
   clone () const libmesh_override
   {
-    return UniquePtr<FEMFunctionBase<Number> > (new SlitFunc());
+    return libmesh_make_unique<SlitFunc>();
   }
 
   virtual Number operator() (const FEMContext & c,
@@ -75,7 +75,7 @@ public:
 class SlitMeshTest : public CppUnit::TestCase {
   /**
    * The goal of this test is to ensure that a 2D mesh with nodes overlapping
-   * on opposite sides of an internal, "slit" edge is useable.
+   * on opposite sides of an internal, "slit" edge is usable.
    */
 public:
   CPPUNIT_TEST_SUITE( SlitMeshTest );
@@ -376,20 +376,13 @@ public:
 
     // While we're in the middle of a unique id based test case, let's
     // make sure our unique ids were all read in correctly too.
-    UniquePtr<PointLocatorBase> locator = _mesh->sub_point_locator();
+    std::unique_ptr<PointLocatorBase> locator = _mesh->sub_point_locator();
 
     if (!_mesh->is_serial())
       locator->enable_out_of_mesh_mode();
 
-    MeshBase::const_element_iterator       el     =
-      mesh2.active_local_elements_begin();
-    const MeshBase::const_element_iterator end_el =
-      mesh2.active_local_elements_end();
-
-    for (; el != end_el; ++el)
+    for (const auto & elem : mesh2.active_local_element_ptr_range())
       {
-        const Elem * elem = *el;
-
         const Elem * mesh1_elem = (*locator)(elem->centroid());
         if (mesh1_elem)
           {

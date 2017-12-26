@@ -54,7 +54,7 @@ MeshFunctionSolutionTransfer::transfer(const Variable & from_var,
   EquationSystems & from_es = from_sys->get_equation_systems();
 
   //Create a serialized version of the solution vector
-  UniquePtr<NumericVector<Number> > serialized_solution = NumericVector<Number>::build(from_sys->get_mesh().comm());
+  std::unique_ptr<NumericVector<Number>> serialized_solution = NumericVector<Number>::build(from_sys->get_mesh().comm());
   serialized_solution->init(from_sys->n_dofs(), false, SERIAL);
 
   // Need to pull down a full copy of this vector on every processor
@@ -64,13 +64,9 @@ MeshFunctionSolutionTransfer::transfer(const Variable & from_var,
   MeshFunction from_func(from_es, *serialized_solution, from_sys->get_dof_map(), to_var_num);
   from_func.init();
 
-  MeshBase::const_node_iterator nd     = to_sys->get_mesh().local_nodes_begin();
-  MeshBase::const_node_iterator nd_end = to_sys->get_mesh().local_nodes_end();
-
   // Now loop over the nodes of the 'To' mesh setting values for each variable.
-  for (;nd != nd_end; ++nd)
-    // 0 is for the value component
-    to_sys->solution->set((*nd)->dof_number(to_sys_num, to_var_num, 0), from_func(**nd));
+  for (const auto & node : to_sys->get_mesh().local_node_ptr_range())
+    to_sys->solution->set(node->dof_number(to_sys_num, to_var_num, 0), from_func(*node)); // 0 is for the value component
 
   to_sys->solution->close();
   to_sys->update();

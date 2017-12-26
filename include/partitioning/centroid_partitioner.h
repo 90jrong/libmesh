@@ -22,6 +22,7 @@
 // Local includes
 #include "libmesh/partitioner.h"
 #include "libmesh/point.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ includes
 #include <utility> // pair
@@ -69,9 +70,9 @@ public:
   /**
    * \returns A copy of this partitioner wrapped in a smart pointer.
    */
-  virtual UniquePtr<Partitioner> clone () const libmesh_override
+  virtual std::unique_ptr<Partitioner> clone () const libmesh_override
   {
-    return UniquePtr<Partitioner>(new CentroidPartitioner(sort_method()));
+    return libmesh_make_unique<CentroidPartitioner>(sort_method());
   }
 
   /**
@@ -145,7 +146,7 @@ private:
    * Vector which holds pairs of centroids and their respective
    * element pointers.
    */
-  std::vector<std::pair<Point, Elem *> > _elem_centroids;
+  std::vector<std::pair<Point, Elem *>> _elem_centroids;
 };
 
 } // namespace libMesh

@@ -23,6 +23,7 @@
 #include "libmesh/optimization_solver.h"
 #include "libmesh/tao_optimization_solver.h"
 #include "libmesh/nlopt_optimization_solver.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -58,7 +59,7 @@ OptimizationSolver<T>::~OptimizationSolver ()
 
 
 template <typename T>
-UniquePtr<OptimizationSolver<T> >
+std::unique_ptr<OptimizationSolver<T>>
 OptimizationSolver<T>::build(sys_type & s, const SolverPackage solver_package)
 {
   // Prevent unused variables warnings when Tao is not available
@@ -70,20 +71,17 @@ OptimizationSolver<T>::build(sys_type & s, const SolverPackage solver_package)
 
 #if defined(LIBMESH_HAVE_PETSC_TAO) && !defined(LIBMESH_USE_COMPLEX_NUMBERS)
     case PETSC_SOLVERS:
-      return UniquePtr<OptimizationSolver<T> >(new TaoOptimizationSolver<T>(s));
+      return libmesh_make_unique<TaoOptimizationSolver<T>>(s);
 #endif // #if defined(LIBMESH_HAVE_PETSC_TAO) && !defined(LIBMESH_USE_COMPLEX_NUMBERS)
 
 #if defined(LIBMESH_HAVE_NLOPT) && !defined(LIBMESH_USE_COMPLEX_NUMBERS)
     case NLOPT_SOLVERS:
-      return UniquePtr<OptimizationSolver<T> >(new NloptOptimizationSolver<T>(s));
+      return libmesh_make_unique<NloptOptimizationSolver<T>>(s);
 #endif // #if defined(LIBMESH_HAVE_NLOPT) && !defined(LIBMESH_USE_COMPLEX_NUMBERS)
 
     default:
       libmesh_error_msg("ERROR:  Unrecognized solver package: " << solver_package);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<OptimizationSolver<T> >();
 }
 
 

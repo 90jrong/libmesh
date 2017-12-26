@@ -21,7 +21,7 @@
 #define LIBMESH_MESH_BASE_H
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/boundary_info.h"
 #include "libmesh/dof_object.h" // for invalid_processor_id
 #include "libmesh/enum_elem_type.h"
@@ -30,10 +30,12 @@
 #include "libmesh/point_locator_base.h"
 #include "libmesh/variant_filter_iterator.h"
 #include "libmesh/parallel_object.h"
+#include "libmesh/simple_range.h"
 
 // C++ Includes
 #include <cstddef>
 #include <string>
+#include <memory>
 
 namespace libMesh
 {
@@ -85,7 +87,9 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * constructor that takes a Parallel::Communicator instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   MeshBase (unsigned char dim=1);
+#endif
 #endif
 
   /**
@@ -96,7 +100,7 @@ public:
   /**
    * Virtual "copy constructor"
    */
-  virtual UniquePtr<MeshBase> clone() const = 0;
+  virtual std::unique_ptr<MeshBase> clone() const = 0;
 
   /**
    * Destructor.
@@ -106,7 +110,7 @@ public:
   /**
    * A partitioner to use at each prepare_for_use()
    */
-  virtual UniquePtr<Partitioner> & partitioner() { return _partitioner; }
+  virtual std::unique_ptr<Partitioner> & partitioner() { return _partitioner; }
 
   /**
    * The information about boundary ids on the mesh
@@ -433,11 +437,13 @@ public:
    *
    * \deprecated Use the less confusingly-named node_ref() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual const Node & node (const dof_id_type i) const
   {
     libmesh_deprecated();
     return *this->node_ptr(i);
   }
+#endif
 
   /**
    * \returns A reference to the \f$ i^{th} \f$ node, which should be
@@ -445,11 +451,13 @@ public:
    *
    * \deprecated Use the less confusingly-named node_ref() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual Node & node (const dof_id_type i)
   {
     libmesh_deprecated();
     return *this->node_ptr(i);
   }
+#endif
 
   /**
    * \returns A pointer to the \f$ i^{th} \f$ node, which should be
@@ -512,11 +520,13 @@ public:
    *
    * \deprecated Use the less confusingly-named elem_ptr() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual const Elem * elem (const dof_id_type i) const
   {
     libmesh_deprecated();
     return this->elem_ptr(i);
   }
+#endif
 
   /**
    * \returns A writable pointer to the \f$ i^{th} \f$ element, which
@@ -525,11 +535,13 @@ public:
    *
    * \deprecated Use the less confusingly-named elem_ptr() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual Elem * elem (const dof_id_type i)
   {
     libmesh_deprecated();
     return this->elem_ptr(i);
   }
+#endif
 
   /**
    * \returns A pointer to the \f$ i^{th} \f$ element, or NULL if no
@@ -549,11 +561,13 @@ public:
    *
    * \deprecated Use the less confusingly-named query_elem_ptr() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual const Elem * query_elem (const dof_id_type i) const
   {
     libmesh_deprecated();
     return this->query_elem_ptr(i);
   }
+#endif
 
   /**
    * \returns A writable pointer to the \f$ i^{th} \f$ element, or NULL
@@ -561,11 +575,13 @@ public:
    *
    * \deprecated Use the less confusingly-named query_elem_ptr() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual Elem * query_elem (const dof_id_type i)
   {
     libmesh_deprecated();
     return this->query_elem_ptr(i);
   }
+#endif
 
   /**
    * Add a new \p Node at \p Point \p p to the end of the vertex array,
@@ -663,7 +679,7 @@ public:
                                const bool reset_current_list    = true) = 0;
 
   /**
-   * After partitoning a mesh it is useful to renumber the nodes and elements
+   * After partitioning a mesh it is useful to renumber the nodes and elements
    * so that they lie in contiguous blocks on the processors.  This method
    * does just that.
    */
@@ -728,7 +744,7 @@ public:
   /**
    * If false is passed in then this mesh will no longer be renumbered
    * when being prepared for use.  This may slightly adversely affect
-   * performance during subsequent element access, particulary when
+   * performance during subsequent element access, particularly when
    * using a distributed mesh.
    */
   void allow_renumbering(bool allow) { _skip_renumber_nodes_and_elements = !allow; }
@@ -910,7 +926,9 @@ public:
    *
    * \deprecated This should never be used in threaded or non-parallel_only code.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   const PointLocatorBase & point_locator () const;
+#endif
 
   /**
    * \returns A pointer to a subordinate \p PointLocatorBase object
@@ -919,7 +937,7 @@ public:
    * non-parallel_only code unless the master has already been
    * constructed.
    */
-  UniquePtr<PointLocatorBase> sub_point_locator () const;
+  std::unique_ptr<PointLocatorBase> sub_point_locator () const;
 
   /**
    * Releases the current \p PointLocator object.
@@ -971,6 +989,8 @@ public:
   virtual element_iterator elements_end () = 0;
   virtual const_element_iterator elements_begin () const = 0;
   virtual const_element_iterator elements_end () const = 0;
+  virtual SimpleRange<element_iterator> element_ptr_range() = 0;
+  virtual SimpleRange<const_element_iterator> element_ptr_range() const = 0;
 
   /**
    * Iterate over elements for which elem->ancestor() is true.
@@ -1106,6 +1126,8 @@ public:
   virtual element_iterator active_elements_end () = 0;
   virtual const_element_iterator active_elements_begin () const = 0;
   virtual const_element_iterator active_elements_end () const = 0;
+  virtual SimpleRange<element_iterator> active_element_ptr_range() = 0;
+  virtual SimpleRange<const_element_iterator> active_element_ptr_range() const = 0;
 
   virtual element_iterator local_elements_begin () = 0;
   virtual element_iterator local_elements_end () = 0;
@@ -1161,6 +1183,8 @@ public:
   virtual element_iterator active_local_elements_end () = 0;
   virtual const_element_iterator active_local_elements_begin () const = 0;
   virtual const_element_iterator active_local_elements_end () const = 0;
+  virtual SimpleRange<element_iterator> active_local_element_ptr_range() = 0;
+  virtual SimpleRange<const_element_iterator> active_local_element_ptr_range() const = 0;
 
   virtual element_iterator active_not_local_elements_begin () = 0;
   virtual element_iterator active_not_local_elements_end () = 0;
@@ -1198,6 +1222,8 @@ public:
   virtual node_iterator nodes_end () = 0;
   virtual const_node_iterator nodes_begin () const = 0;
   virtual const_node_iterator nodes_end () const = 0;
+  virtual SimpleRange<node_iterator> node_ptr_range() = 0;
+  virtual SimpleRange<const_node_iterator> node_ptr_range() const = 0;
 
   /**
    * Iterate over only the active nodes in the Mesh.
@@ -1214,6 +1240,8 @@ public:
   virtual node_iterator local_nodes_end () = 0;
   virtual const_node_iterator local_nodes_begin () const = 0;
   virtual const_node_iterator local_nodes_end () const = 0;
+  virtual SimpleRange<node_iterator> local_node_ptr_range() = 0;
+  virtual SimpleRange<const_node_iterator> local_node_ptr_range() const = 0;
 
   /**
    * Iterate over nodes with processor_id() == proc_id
@@ -1270,7 +1298,7 @@ public:
 
 
   /**
-   * Search the mesh and cache the different dimenions of the elements
+   * Search the mesh and cache the different dimensions of the elements
    * present in the mesh.  This is done in prepare_for_use(), but can
    * be done manually by other classes after major mesh modifications.
    */
@@ -1291,7 +1319,7 @@ public:
    * Direct access to this class will be removed in future libMesh
    * versions.  Use the \p get_boundary_info() accessor instead.
    */
-  UniquePtr<BoundaryInfo> boundary_info;
+  std::unique_ptr<BoundaryInfo> boundary_info;
 
 
 protected:
@@ -1326,7 +1354,7 @@ protected:
    * this needs to be mutable.  Since the PointLocatorBase::build() member is used,
    * and it operates on a constant reference to the mesh, this is OK.
    */
-  mutable UniquePtr<PointLocatorBase> _point_locator;
+  mutable std::unique_ptr<PointLocatorBase> _point_locator;
 
   /**
    * Do we count lower dimensional elements in point locator refinement?
@@ -1340,7 +1368,7 @@ protected:
    * This will be built in the constructor of each derived class, but
    * can be replaced by the user through the partitioner() accessor.
    */
-  UniquePtr<Partitioner> _partitioner;
+  std::unique_ptr<Partitioner> _partitioner;
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
   /**
@@ -1355,7 +1383,7 @@ protected:
   bool _skip_partitioning;
 
   /**
-   * If this is true then renumbering will be kept to a miniumum.
+   * If this is true then renumbering will be kept to a minimum.
    *
    * This is set when prepare_for_use() is called.
    */
@@ -1394,7 +1422,7 @@ protected:
    * libMesh element ghosting behavior.  We use a base class pointer
    * here to avoid dragging in more header dependencies.
    */
-  UniquePtr<GhostingFunctor> _default_ghosting;
+  std::unique_ptr<GhostingFunctor> _default_ghosting;
 
   /**
    * The list of all GhostingFunctor objects to be used when

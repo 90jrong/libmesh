@@ -24,7 +24,7 @@
 #include <algorithm> // for std::min
 #include <map>       // for std::multimap
 #include <sstream>   // for std::ostringstream
-
+#include <unordered_map>
 
 // Local includes
 #include "libmesh/boundary_info.h"
@@ -38,7 +38,6 @@
 #include "libmesh/point_locator_base.h"
 #include "libmesh/threads.h"
 
-#include LIBMESH_INCLUDE_UNORDERED_MAP
 
 namespace libMesh
 {
@@ -74,6 +73,7 @@ MeshBase::MeshBase (const Parallel::Communicator & comm_in,
 
 
 #ifndef LIBMESH_DISABLE_COMMWORLD
+#ifdef LIBMESH_ENABLE_DEPRECATED
 MeshBase::MeshBase (unsigned char d) :
   ParallelObject (CommWorld),
   boundary_info  (new BoundaryInfo(*this)),
@@ -97,6 +97,7 @@ MeshBase::MeshBase (unsigned char d) :
   libmesh_assert_greater_equal (LIBMESH_DIM, d);
   libmesh_assert (libMesh::initialized());
 }
+#endif
 #endif // !LIBMESH_DISABLE_COMMWORLD
 
 
@@ -172,6 +173,8 @@ void MeshBase::set_spatial_dimension(unsigned char d)
 
 void MeshBase::prepare_for_use (const bool skip_renumber_nodes_and_elements, const bool skip_find_neighbors)
 {
+  LOG_SCOPE("prepare_for_use()", "MeshBase");
+
   parallel_object_only();
 
   libmesh_assert(this->comm().verify(this->is_serial()));
@@ -510,6 +513,7 @@ unsigned int MeshBase::recalculate_n_partitions()
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 const PointLocatorBase & MeshBase::point_locator () const
 {
   libmesh_deprecated();
@@ -519,14 +523,15 @@ const PointLocatorBase & MeshBase::point_locator () const
       // PointLocator construction may not be safe within threads
       libmesh_assert(!Threads::in_threads);
 
-      _point_locator.reset (PointLocatorBase::build(TREE_ELEMENTS, *this).release());
+      _point_locator = PointLocatorBase::build(TREE_ELEMENTS, *this);
     }
 
   return *_point_locator;
 }
+#endif
 
 
-UniquePtr<PointLocatorBase> MeshBase::sub_point_locator () const
+std::unique_ptr<PointLocatorBase> MeshBase::sub_point_locator () const
 {
   // If there's no master point locator, then we need one.
   if (_point_locator.get() == libmesh_nullptr)
@@ -537,7 +542,7 @@ UniquePtr<PointLocatorBase> MeshBase::sub_point_locator () const
       // And it may require parallel communication
       parallel_object_only();
 
-      _point_locator.reset (PointLocatorBase::build(TREE_ELEMENTS, *this).release());
+      _point_locator = PointLocatorBase::build(TREE_ELEMENTS, *this);
     }
 
   // Otherwise there was a master point locator, and we can grab a
@@ -680,7 +685,7 @@ void MeshBase::detect_interior_parents()
     return;
 
   //This map will be used to set interior parents
-  LIBMESH_BEST_UNORDERED_MAP<dof_id_type, std::vector<dof_id_type> > node_to_elem;
+  std::unordered_map<dof_id_type, std::vector<dof_id_type>> node_to_elem;
 
   const_element_iterator el  = this->active_elements_begin();
   const_element_iterator end = this->active_elements_end();
@@ -712,7 +717,7 @@ void MeshBase::detect_interior_parents()
       // element at each vertex of the current element, thus ignoring interior nodes.
       // If one of the SET of elements is empty, then we will not have an interior parent
       // since an interior parent must be connected to all vertices of the current element
-      std::vector< std::set<dof_id_type> > neighbors( element->n_vertices() );
+      std::vector<std::set<dof_id_type>> neighbors( element->n_vertices() );
 
       bool found_interior_parents = false;
 

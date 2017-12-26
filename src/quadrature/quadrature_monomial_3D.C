@@ -209,7 +209,7 @@ void QMonomial::init_3D(const ElemType type_in,
 
               // A degree 7, 34-point, "fully-symmetric" rule, first published in
               // P.C. Hammer and A.H. Stroud, "Numerical Evaluation of Multiple Integrals II",
-              // Mathmatical Tables and Other Aids to Computation, vol 12., no 64, 1958, pp. 272-280
+              // Mathematical Tables and Other Aids to Computation, vol 12., no 64, 1958, pp. 272-280
               //
               // This rule happens to fall under the same general
               // construction as the Kim rules, so we've re-used
@@ -317,6 +317,7 @@ void QMonomial::init_3D(const ElemType type_in,
           } // end switch(_order + 2*p)
       } // end case HEX8/20/27
 
+      libmesh_fallthrough();
 
       // By default: construct and use a Gauss quadrature rule
     default:

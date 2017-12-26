@@ -44,18 +44,18 @@ const unsigned int Hex20::side_nodes_map[6][8] =
 
 const unsigned int Hex20::edge_nodes_map[12][3] =
   {
-    {0, 1, 8},  // Side 0
-    {1, 2, 9},  // Side 1
-    {2, 3, 10}, // Side 2
-    {0, 3, 11}, // Side 3
-    {0, 4, 12}, // Side 4
-    {1, 5, 13}, // Side 5
-    {2, 6, 14}, // Side 6
-    {3, 7, 15}, // Side 7
-    {4, 5, 16}, // Side 8
-    {5, 6, 17}, // Side 9
-    {6, 7, 18}, // Side 10
-    {4, 7, 19}  // Side 11
+    {0, 1, 8},  // Edge 0
+    {1, 2, 9},  // Edge 1
+    {2, 3, 10}, // Edge 2
+    {0, 3, 11}, // Edge 3
+    {0, 4, 12}, // Edge 4
+    {1, 5, 13}, // Edge 5
+    {2, 6, 14}, // Edge 6
+    {3, 7, 15}, // Edge 7
+    {4, 5, 16}, // Edge 8
+    {5, 6, 17}, // Edge 9
+    {6, 7, 18}, // Edge 10
+    {4, 7, 19}  // Edge 11
   };
 
 
@@ -142,27 +142,24 @@ bool Hex20::has_affine_map() const
 
 
 
-UniquePtr<Elem> Hex20::build_side_ptr (const unsigned int i,
-                                       bool proxy )
+std::unique_ptr<Elem> Hex20::build_side_ptr (const unsigned int i,
+                                             bool proxy )
 {
   libmesh_assert_less (i, this->n_sides());
 
   if (proxy)
-    return UniquePtr<Elem>(new Side<Quad8,Hex20>(this,i));
+    return libmesh_make_unique<Side<Quad8,Hex20>>(this,i);
 
   else
     {
-      Elem * face = new Quad8;
+      std::unique_ptr<Elem> face = libmesh_make_unique<Quad8>();
       face->subdomain_id() = this->subdomain_id();
 
       for (unsigned n=0; n<face->n_nodes(); ++n)
         face->set_node(n) = this->node_ptr(Hex20::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(face);
+      return face;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 
@@ -178,11 +175,11 @@ unsigned int Hex20::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Hex20::build_edge_ptr (const unsigned int i)
+std::unique_ptr<Elem> Hex20::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
 
-  return UniquePtr<Elem>(new SideEdge<Edge3,Hex20>(this,i));
+  return libmesh_make_unique<SideEdge<Edge3,Hex20>>(this,i);
 }
 
 

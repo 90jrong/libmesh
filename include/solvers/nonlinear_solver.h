@@ -27,10 +27,11 @@
 #include "libmesh/nonlinear_implicit_system.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/parallel_object.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ includes
 #include <cstddef>
+#include <memory>
 
 namespace libMesh
 {
@@ -49,7 +50,7 @@ class SolverConfiguration;
  * \date 2005
  */
 template <typename T>
-class NonlinearSolver : public ReferenceCountedObject<NonlinearSolver<T> >,
+class NonlinearSolver : public ReferenceCountedObject<NonlinearSolver<T>>,
                         public ParallelObject
 {
 public:
@@ -73,8 +74,8 @@ public:
    * Builds a \p NonlinearSolver using the nonlinear solver package specified by
    * \p solver_package
    */
-  static UniquePtr<NonlinearSolver<T> > build(sys_type & s,
-                                              const SolverPackage solver_package = libMesh::default_solver_package());
+  static std::unique_ptr<NonlinearSolver<T>> build(sys_type & s,
+                                                   const SolverPackage solver_package = libMesh::default_solver_package());
 
   /**
    * \returns \p true if the data structures are

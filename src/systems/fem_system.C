@@ -367,7 +367,7 @@ public:
    */
   void operator()(const ConstElemRange & range) const
   {
-    UniquePtr<DiffContext> con = _sys.build_context();
+    std::unique_ptr<DiffContext> con = _sys.build_context();
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _sys.init_context(_femcontext);
 
@@ -409,7 +409,7 @@ public:
    */
   void operator()(const ConstElemRange & range) const
   {
-    UniquePtr<DiffContext> con = _sys.build_context();
+    std::unique_ptr<DiffContext> con = _sys.build_context();
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _sys.init_context(_femcontext);
 
@@ -473,7 +473,7 @@ public:
    */
   void operator()(const ConstElemRange & range)
   {
-    UniquePtr<DiffContext> con = _sys.build_context();
+    std::unique_ptr<DiffContext> con = _sys.build_context();
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _diff_qoi.init_context(_femcontext);
 
@@ -608,7 +608,7 @@ public:
    */
   void operator()(const ConstElemRange & range) const
   {
-    UniquePtr<DiffContext> con = _sys.build_context();
+    std::unique_ptr<DiffContext> con = _sys.build_context();
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _qoi.init_context(_femcontext);
 
@@ -854,7 +854,10 @@ void FEMSystem::assembly (bool get_residual, bool get_jacobian,
                           bool apply_no_constraints)
 {
   libmesh_assert(get_residual || get_jacobian);
-  std::string log_name;
+
+  // Log residual and jacobian and combined performance separately
+#ifdef LIBMESH_ENABLE_PERFORMANCE_LOGGING
+  const char * log_name;
   if (get_residual && get_jacobian)
     log_name = "assembly()";
   else if (get_residual)
@@ -862,7 +865,8 @@ void FEMSystem::assembly (bool get_residual, bool get_jacobian,
   else
     log_name = "assembly(get_jacobian)";
 
-  LOG_SCOPE(log_name.c_str(), "FEMSystem");
+  LOG_SCOPE(log_name, "FEMSystem");
+#endif
 
   const MeshBase & mesh = this->get_mesh();
 
@@ -940,7 +944,7 @@ void FEMSystem::assembly (bool get_residual, bool get_jacobian,
   // their equation terms there and only if we have a SCALAR variable
   if (this->processor_id() == (this->n_processors()-1) && have_scalar)
     {
-      UniquePtr<DiffContext> con = this->build_context();
+      std::unique_ptr<DiffContext> con = this->build_context();
       FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
       this->init_context(_femcontext);
       _femcontext.pre_fe_reinit(*this, libmesh_nullptr);
@@ -1068,20 +1072,15 @@ void FEMSystem::mesh_position_set()
 
   MeshBase & mesh = this->get_mesh();
 
-  UniquePtr<DiffContext> con = this->build_context();
+  std::unique_ptr<DiffContext> con = this->build_context();
   FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
   this->init_context(_femcontext);
 
   // Move every mesh element we can
-  MeshBase::const_element_iterator el =
-    mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el =
-    mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
       // We need the algebraic data
-      _femcontext.pre_fe_reinit(*this, *el);
+      _femcontext.pre_fe_reinit(*this, elem);
       // And when asserts are on, we also need the FE so
       // we can assert that the mesh data is of the right type.
 #ifndef NDEBUG
@@ -1178,6 +1177,10 @@ void FEMSystem::assemble_qoi_derivative (const QoISet & qoi_indices,
                                                     *(this->diff_qoi),
                                                     include_liftfunc,
                                                     apply_constraints));
+
+  for (std::size_t i=0; i != qoi.size(); ++i)
+    if (qoi_indices.has_index(i))
+      this->diff_qoi->finalize_derivative(this->get_adjoint_rhs(i),i);
 }
 
 
@@ -1315,7 +1318,7 @@ void FEMSystem::numerical_nonlocal_jacobian (FEMContext & context) const
 
 
 
-UniquePtr<DiffContext> FEMSystem::build_context ()
+std::unique_ptr<DiffContext> FEMSystem::build_context ()
 {
   FEMContext * fc = new FEMContext(*this);
 
@@ -1334,7 +1337,7 @@ UniquePtr<DiffContext> FEMSystem::build_context ()
   // If we are solving the adjoint problem, tell that to the Context
   fc->is_adjoint() = this->get_time_solver().is_adjoint();
 
-  return UniquePtr<DiffContext>(fc);
+  return std::unique_ptr<DiffContext>(fc);
 }
 
 
@@ -1400,19 +1403,14 @@ void FEMSystem::mesh_position_get()
   // Loop over every active mesh element on this processor
   const MeshBase & mesh = this->get_mesh();
 
-  MeshBase::const_element_iterator el =
-    mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el =
-    mesh.active_local_elements_end();
-
-  UniquePtr<DiffContext> con = this->build_context();
+  std::unique_ptr<DiffContext> con = this->build_context();
   FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
   this->init_context(_femcontext);
 
   // Get the solution's mesh variables from every element
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      _femcontext.pre_fe_reinit(*this, *el);
+      _femcontext.pre_fe_reinit(*this, elem);
 
       _femcontext.elem_position_get();
 

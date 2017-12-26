@@ -22,10 +22,6 @@ if LIBMESH_ENABLE_CAPNPROTO
   oprof_libs += capnproto/liboprof.la
 endif
 
-if LIBMESH_INSTALL_HINNANT_UNIQUE_PTR
-  SUBDIRS += unique_ptr
-endif
-
 if LIBMESH_INSTALL_INTERNAL_BOOST
    SUBDIRS += boost/include
 endif
@@ -227,6 +223,11 @@ endif
 if LIBMESH_ENABLE_NANOFLANN
   SUBDIRS += nanoflann
   # header-only library - no library dependencies
+endif
+
+if LIBMESH_ENABLE_METAPHYSICL
+  SUBDIRS += metaphysicl/0.2.0
+  # header-only library for the parts we use - no library dependencies
 endif
 
 

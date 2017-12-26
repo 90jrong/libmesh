@@ -671,6 +671,7 @@ Real FE<3,HIERARCHIC>::shape(const Elem * elem,
     case HEX8:
     case HEX20:
       libmesh_assert_less (totalorder, 2);
+      libmesh_fallthrough();
     case HEX27:
       {
         libmesh_assert_less (i, (totalorder+1u)*(totalorder+1u)*(totalorder+1u));
@@ -694,9 +695,6 @@ Real FE<3,HIERARCHIC>::shape(const Elem * elem,
     }
 
 #endif
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -764,9 +762,6 @@ Real FE<3,HIERARCHIC>::shape_deriv(const Elem * elem,
   return (FE<3,HIERARCHIC>::shape(elem, order, i, pp) -
           FE<3,HIERARCHIC>::shape(elem, order, i, pm))/2./eps;
 #endif
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 

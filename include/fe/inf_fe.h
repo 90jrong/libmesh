@@ -196,7 +196,7 @@ protected:
     /**
      * Build the base element of an infinite element.  Be careful,
      * this method allocates memory!  So be sure to delete the
-     * new element afterwards.
+     * new element afterward.
      */
     static Elem * build_elem (const Elem * inf_elem);
 
@@ -547,7 +547,7 @@ protected:
    * Combines the shape functions, which were formed in
    * \p init_shape_functions(Elem *), with geometric data.
    * Has to be called every time the geometric configuration
-   * changes.  Afterwards, the fields are ready to be used
+   * changes.  Afterward, the fields are ready to be used
    * to compute global derivatives, the jacobian etc, see
    * \p FEAbstract::compute_map().
    */
@@ -636,24 +636,24 @@ protected:
    * the radial approximation shapes in local coordinates
    * Needed when setting up the overall shape functions.
    */
-  std::vector<std::vector<Real> > mode;
+  std::vector<std::vector<Real>> mode;
 
   /**
    * the first local derivative of the radial approximation shapes.
    * Needed when setting up the overall shape functions.
    */
-  std::vector<std::vector<Real> > dmodedv;
+  std::vector<std::vector<Real>> dmodedv;
 
   /**
    * the radial mapping shapes in local coordinates
    */
-  std::vector<std::vector<Real> > radial_map;
+  std::vector<std::vector<Real>> radial_map;
 
 
   /**
    * the first local derivative of the radial mapping shapes
    */
-  std::vector<std::vector<Real> > dradialdv_map;
+  std::vector<std::vector<Real>> dradialdv_map;
 
   /**
    * the first local derivative (for 3D, the first in the base)
@@ -686,7 +686,7 @@ protected:
    * -- tensor product of base element times radial
    * nodes -- has to be determined from the node numbering
    * of the current infinite element.  This vector
-   * maps the infinte \p Elem node number to the
+   * maps the infinite \p Elem node number to the
    * radial node (either 0 or 1).
    */
   std::vector<unsigned int> _radial_node_index;
@@ -696,7 +696,7 @@ protected:
    * -- tensor product of base element times radial
    * nodes -- has to be determined from the node numbering
    * of the current element.  This vector
-   * maps the infinte \p Elem node number to the
+   * maps the infinite \p Elem node number to the
    * associated node in the base element.
    */
   std::vector<unsigned int> _base_node_index;
@@ -748,19 +748,19 @@ protected:
    * The quadrature rule for the base element associated
    * with the current infinite element
    */
-  UniquePtr<QBase> base_qrule;
+  std::unique_ptr<QBase> base_qrule;
 
   /**
    * The quadrature rule for the base element associated
    * with the current infinite element
    */
-  UniquePtr<QBase> radial_qrule;
+  std::unique_ptr<QBase> radial_qrule;
 
   /**
    * The base element associated with the
    * current infinite element
    */
-  UniquePtr<Elem> base_elem;
+  std::unique_ptr<Elem> base_elem;
 
   /**
    * Have a \p FE<Dim-1,T_base> handy for base approximation.
@@ -768,7 +768,7 @@ protected:
    * the \p InfFE class is not required to be templated w.r.t.
    * to the base approximation shape.
    */
-  UniquePtr<FEBase> base_fe;
+  std::unique_ptr<FEBase> base_fe;
 
   /**
    * This \p FEType stores the characteristics for which the data

@@ -39,6 +39,7 @@
 #include "libmesh/mesh_generation.h"
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/uniform_refinement_estimator.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // The systems and solvers we may use
 #include "naviersystem.h"
@@ -146,12 +147,10 @@ int main (int argc, char ** argv)
 
   // Solve this as a time-dependent or steady system
   if (transient)
-    system.time_solver =
-      UniquePtr<TimeSolver>(new EulerSolver(system));
+    system.time_solver = libmesh_make_unique<EulerSolver>(system);
   else
     {
-      system.time_solver =
-        UniquePtr<TimeSolver>(new SteadySolver(system));
+      system.time_solver = libmesh_make_unique<SteadySolver>(system);
       libmesh_assert_equal_to (n_timesteps, 1);
     }
 
@@ -204,7 +203,7 @@ int main (int argc, char ** argv)
 
           ErrorVector error;
 
-          UniquePtr<ErrorEstimator> error_estimator;
+          std::unique_ptr<ErrorEstimator> error_estimator;
 
           // To solve to a tolerance in this problem we
           // need a better estimator than Kelly

@@ -56,6 +56,7 @@ namespace MeshTools
  *
  * \deprecated Use libMesh::BoundingBox instead.
  */
+#ifdef LIBMESH_ENABLE_DEPRECATED
 class BoundingBox : public libMesh::BoundingBox
 {
 public:
@@ -74,10 +75,11 @@ public:
     libmesh_deprecated(); // Switch to libMesh::BoundingBox
   }
 };
+#endif
 
 
 /**
- * \returns The sum over all the elemenents of the number
+ * \returns The sum over all the elements of the number
  * of nodes per element.
  *
  * This can be useful for partitioning hybrid meshes.  A feasible load
@@ -87,7 +89,7 @@ public:
 dof_id_type total_weight (const MeshBase & mesh);
 
 /**
- * \returns The sum over all the elemenents on processor \p pid
+ * \returns The sum over all the elements on processor \p pid
  * of nodes per element.
  *
  * This can be useful for partitioning hybrid meshes.  A feasible load
@@ -108,13 +110,13 @@ dof_id_type weight (const MeshBase & mesh)
  * element connected to node \p i.
  */
 void build_nodes_to_elem_map (const MeshBase & mesh,
-                              std::vector<std::vector<dof_id_type> > & nodes_to_elem_map);
+                              std::vector<std::vector<dof_id_type>> & nodes_to_elem_map);
 
 /**
  * The same, except element pointers are returned instead of indices.
  */
 void build_nodes_to_elem_map (const MeshBase & mesh,
-                              std::vector<std::vector<const Elem *> > & nodes_to_elem_map);
+                              std::vector<std::vector<const Elem *>> & nodes_to_elem_map);
 
 
 //   /**
@@ -133,13 +135,15 @@ void find_boundary_nodes (const MeshBase & mesh,
 
 /**
  * \returns Two points defining a cartesian box that bounds the
- * mesh.  The first entry in the pair is the mininum, the second
- * is the maximim.
+ * mesh.  The first entry in the pair is the minimum, the second
+ * is the maximum.
  *
  * \deprecated Use create_bounding_box() instead.
  */
+#ifdef LIBMESH_ENABLE_DEPRECATED
 BoundingBox
 bounding_box (const MeshBase & mesh);
+#endif
 
 /**
  * The same functionality as the deprecated MeshTools::bounding_box().
@@ -182,9 +186,11 @@ create_local_bounding_box (const MeshBase & mesh);
  *
  * \deprecated Use create_processor_bounding_box() instead.
  */
+#ifdef LIBMESH_ENABLE_DEPRECATED
 BoundingBox
 processor_bounding_box (const MeshBase & mesh,
                         const processor_id_type pid);
+#endif
 
 /**
  * The same functionality as the deprecated MeshTools::processor_bounding_box().
@@ -208,9 +214,11 @@ processor_bounding_sphere (const MeshBase & mesh,
  *
  * \deprecated Use create_subdomain_bounding_box() instead.
  */
+#ifdef LIBMESH_ENABLE_DEPRECATED
 BoundingBox
 subdomain_bounding_box (const MeshBase & mesh,
                         const subdomain_id_type sid);
+#endif
 
 
 /**
@@ -286,7 +294,7 @@ unsigned int n_local_levels(const MeshBase & mesh);
  * \returns The number of levels of refinement in the active mesh.
  *
  * Implemented by looping over all the active local elements and finding
- * the maximum level, then maxxing in parallel.
+ * the maximum level, then taking the max in parallel.
  */
 unsigned int n_active_levels(const MeshBase & mesh);
 
@@ -343,7 +351,7 @@ dof_id_type n_nodes (const MeshBase::const_node_iterator & begin,
 
 
 /**
- * Find the maxium h-refinement level in a mesh.
+ * Find the maximum h-refinement level in a mesh.
  */
 unsigned int max_level (const MeshBase & mesh);
 
@@ -354,7 +362,7 @@ unsigned int max_level (const MeshBase & mesh);
  */
 void find_nodal_neighbors(const MeshBase & mesh,
                           const Node & n,
-                          const std::vector<std::vector<const Elem *> > & nodes_to_elem_map,
+                          const std::vector<std::vector<const Elem *>> & nodes_to_elem_map,
                           std::vector<const Node *> & neighbors);
 
 /**
@@ -364,7 +372,7 @@ void find_nodal_neighbors(const MeshBase & mesh,
  * the side the hanging node is on.
  */
 void find_hanging_nodes_and_parents(const MeshBase & mesh,
-                                    std::map<dof_id_type, std::vector<dof_id_type> > & hanging_nodes);
+                                    std::map<dof_id_type, std::vector<dof_id_type>> & hanging_nodes);
 
 /**
  * Changes the processor ids on each node so be the same as the id of the

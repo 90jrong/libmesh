@@ -231,9 +231,9 @@ void PetscVector<T>::add_vector (const NumericVector<T> & v_in,
   // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
   if (!A->closed())
     {
-      libmesh_deprecated();
       libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector(v, A).\n"
                       "Please update your code, as this warning will become an error in a future release.");
+      libmesh_deprecated();
       const_cast<PetscMatrix<T> *>(A)->close();
     }
 
@@ -259,9 +259,9 @@ void PetscVector<T>::add_vector_transpose (const NumericVector<T> & v_in,
   // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
   if (!A->closed())
     {
-      libmesh_deprecated();
       libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector_transpose(v, A).\n"
                       "Please update your code, as this warning will become an error in a future release.");
+      libmesh_deprecated();
       const_cast<PetscMatrix<T> *>(A)->close();
     }
 
@@ -296,15 +296,15 @@ void PetscVector<T>::add_vector_conjugate_transpose (const NumericVector<T> & v_
   // We shouldn't close() the matrix for you, as that would potentially modify the state of a const object.
   if (!A->closed())
     {
-      libmesh_deprecated();
       libmesh_warning("Matrix A must be assembled before calling PetscVector::add_vector_conjugate_transpose(v, A).\n"
                       "Please update your code, as this warning will become an error in a future release.");
+      libmesh_deprecated();
       const_cast<PetscMatrix<T> *>(A)->close();
     }
 
   // Store a temporary copy since MatMultHermitianTransposeAdd doesn't seem to work
   // TODO: Find out why MatMultHermitianTransposeAdd doesn't work, might be a PETSc bug?
-  UniquePtr< NumericVector<Number> > this_clone = this->clone();
+  std::unique_ptr<NumericVector<Number>> this_clone = this->clone();
 
   // The const_cast<> is not elegant, but it is required since PETSc
   // expects a non-const Mat.
@@ -1072,7 +1072,7 @@ void PetscVector<Complex>::localize_to_one (std::vector<Complex> & v_local,
     v_local[i] = 0.;
 
   // only one processor
-  if (n == nl)
+  if (n_processors() == 1)
     {
       ierr = VecGetArray (_vec, &values);
       LIBMESH_CHKERR(ierr);

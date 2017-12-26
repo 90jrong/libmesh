@@ -24,9 +24,10 @@
 #include "libmesh/libmesh_common.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/enum_xdr_mode.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ includes
+#include <memory>
 #ifdef LIBMESH_HAVE_XDR
 #  ifdef LIBMESH_HAVE_RPC_RPC_H
 #    include <rpc/rpc.h>
@@ -180,7 +181,7 @@ private:
   void do_read(std::vector<T> & a);
 
   template <typename T>
-  void do_read(std::vector<std::complex<T> > & a);
+  void do_read(std::vector<std::complex<T>> & a);
 
   /**
    * Helper method for writing different data types
@@ -195,7 +196,7 @@ private:
   void do_write(std::vector<T> & a);
 
   template <typename T>
-  void do_write(std::vector<std::complex<T> > & a);
+  void do_write(std::vector<std::complex<T>> & a);
 
   /**
    * The mode used for accessing the file.
@@ -213,7 +214,7 @@ private:
    * Pointer to the standard XDR struct.  See the standard header file
    * rpc/rpc.h for more information.
    */
-  UniquePtr<XDR> xdrs;
+  std::unique_ptr<XDR> xdrs;
 
   /**
    * File pointer.
@@ -225,12 +226,12 @@ private:
   /**
    * The input file stream.
    */
-  UniquePtr<std::istream> in;
+  std::unique_ptr<std::istream> in;
 
   /**
    * The output file stream.
    */
-  UniquePtr<std::ostream> out;
+  std::unique_ptr<std::ostream> out;
 
   /**
    * A buffer to put comment strings into.

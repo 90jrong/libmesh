@@ -16,8 +16,9 @@ using namespace libMesh;
 
 void LaplaceSystem::init_data ()
 {
-  this->add_variable ("T", static_cast<Order>(_fe_order),
-                      Utility::string_to_enum<FEFamily>(_fe_family));
+  unsigned int T_var =
+    this->add_variable ("T", static_cast<Order>(_fe_order),
+                        Utility::string_to_enum<FEFamily>(_fe_family));
 
   GetPot infile("l-shaped.in");
   exact_QoI[0] = infile("QoI_0", 0.0);
@@ -26,7 +27,8 @@ void LaplaceSystem::init_data ()
   // Do the parent's initialization after variables are defined
   FEMSystem::init_data();
 
-  this->time_evolving(0);
+  // The temperature is evolving, with a first order time derivative
+  this->time_evolving(T_var, 1);
 }
 
 void LaplaceSystem::init_context(DiffContext & context)
@@ -71,7 +73,7 @@ bool LaplaceSystem::element_time_derivative (bool request_jacobian,
   const std::vector<Real> & JxW = elem_fe->get_JxW();
 
   // Element basis functions
-  const std::vector<std::vector<RealGradient> > & dphi = elem_fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = elem_fe->get_dphi();
 
   // The number of local degrees of freedom in each variable
   const unsigned int n_T_dofs = c.get_dof_indices(0).size();
@@ -124,7 +126,7 @@ bool LaplaceSystem::side_constraint (bool request_jacobian,
   const std::vector<Real> & JxW = side_fe->get_JxW();
 
   // Side basis functions
-  const std::vector<std::vector<Real> > & phi = side_fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = side_fe->get_phi();
 
   // Side Quadrature points
   const std::vector<Point > & qside_point = side_fe->get_xyz();

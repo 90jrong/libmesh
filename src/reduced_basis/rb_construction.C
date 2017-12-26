@@ -99,53 +99,20 @@ void RBConstruction::clear()
 
   Parent::clear();
 
-  for (std::size_t q=0; q<Aq_vector.size(); q++)
-    {
-      delete Aq_vector[q];
-      Aq_vector[q] = libmesh_nullptr;
-    }
-
-  for (std::size_t q=0; q<Fq_vector.size(); q++)
-    {
-      delete Fq_vector[q];
-      Fq_vector[q] = libmesh_nullptr;
-    }
-
-  for (std::size_t i=0; i<outputs_vector.size(); i++)
-    for (std::size_t q_l=0; q_l<outputs_vector[i].size(); q_l++)
-      {
-        delete outputs_vector[i][q_l];
-        outputs_vector[i][q_l] = libmesh_nullptr;
-      }
+  Aq_vector.clear();
+  Fq_vector.clear();
+  outputs_vector.clear();
 
   if (store_non_dirichlet_operators)
     {
-      for (std::size_t q=0; q<non_dirichlet_Aq_vector.size(); q++)
-        {
-          delete non_dirichlet_Aq_vector[q];
-          non_dirichlet_Aq_vector[q] = libmesh_nullptr;
-        }
-
-      for (std::size_t q=0; q<non_dirichlet_Fq_vector.size(); q++)
-        {
-          delete non_dirichlet_Fq_vector[q];
-          non_dirichlet_Fq_vector[q] = libmesh_nullptr;
-        }
-
-      for (std::size_t i=0; i<non_dirichlet_outputs_vector.size(); i++)
-        for (std::size_t q_l=0; q_l<non_dirichlet_outputs_vector[i].size(); q_l++)
-          {
-            delete non_dirichlet_outputs_vector[i][q_l];
-            non_dirichlet_outputs_vector[i][q_l] = libmesh_nullptr;
-          }
+      non_dirichlet_Aq_vector.clear();
+      non_dirichlet_Fq_vector.clear();
+      non_dirichlet_outputs_vector.clear();
     }
 
   // Also delete the Fq representors
-  for (std::size_t q_f=0; q_f<Fq_representor.size(); q_f++)
-    {
-      delete Fq_representor[q_f];
-      Fq_representor[q_f] = libmesh_nullptr;
-    }
+  Fq_representor.clear();
+
   // Set Fq_representor_innerprods_computed flag to false now
   // that we've cleared the Fq representors
   Fq_representor_innerprods_computed = false;
@@ -260,7 +227,7 @@ void RBConstruction::process_parameters_file (const std::string & parameters_fil
       }
     }
 
-  std::map< std::string, std::vector<Real> > discrete_parameter_values_in;
+  std::map<std::string, std::vector<Real>> discrete_parameter_values_in;
 
   unsigned int n_discrete_parameters = infile.vector_variable_size("discrete_parameter_names");
   for (unsigned int i=0; i<n_discrete_parameters; i++)
@@ -314,7 +281,7 @@ void RBConstruction::set_rb_construction_parameters(
                                                     bool normalize_rb_bound_in_greedy_in,
                                                     RBParameters mu_min_in,
                                                     RBParameters mu_max_in,
-                                                    std::map< std::string, std::vector<Real> > discrete_parameter_values_in,
+                                                    std::map<std::string, std::vector<Real>> discrete_parameter_values_in,
                                                     std::map<std::string,bool> log_scaling_in)
 {
   // Read in training_parameters_random_seed value.  This is used to
@@ -385,7 +352,7 @@ void RBConstruction::print_info()
 
 void RBConstruction::print_basis_function_orthogonality()
 {
-  UniquePtr< NumericVector<Number> > temp = solution->clone();
+  std::unique_ptr<NumericVector<Number>> temp = solution->clone();
 
   for (unsigned int i=0; i<get_rb_evaluation().get_n_basis_functions(); i++)
     {
@@ -528,7 +495,7 @@ void RBConstruction::allocate_data_structures()
     for (unsigned int q=0; q<get_rb_theta_expansion().get_n_A_terms(); q++)
       {
         // Initialize the memory for the matrices
-        Aq_vector[q] = SparseMatrix<Number>::build(this->comm()).release();
+        Aq_vector[q] = SparseMatrix<Number>::build(this->comm());
         dof_map.attach_matrix(*Aq_vector[q]);
         Aq_vector[q]->init();
         Aq_vector[q]->zero();
@@ -541,7 +508,7 @@ void RBConstruction::allocate_data_structures()
         for (unsigned int q=0; q<get_rb_theta_expansion().get_n_A_terms(); q++)
           {
             // Initialize the memory for the matrices
-            non_dirichlet_Aq_vector[q] = SparseMatrix<Number>::build(this->comm()).release();
+            non_dirichlet_Aq_vector[q] = SparseMatrix<Number>::build(this->comm());
             dof_map.attach_matrix(*non_dirichlet_Aq_vector[q]);
             non_dirichlet_Aq_vector[q]->init();
             non_dirichlet_Aq_vector[q]->zero();
@@ -553,7 +520,7 @@ void RBConstruction::allocate_data_structures()
   for (unsigned int q=0; q<get_rb_theta_expansion().get_n_F_terms(); q++)
     {
       // Initialize the memory for the vectors
-      Fq_vector[q] = NumericVector<Number>::build(this->comm()).release();
+      Fq_vector[q] = NumericVector<Number>::build(this->comm());
       Fq_vector[q]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
     }
 
@@ -564,7 +531,7 @@ void RBConstruction::allocate_data_structures()
       for (unsigned int q=0; q<get_rb_theta_expansion().get_n_F_terms(); q++)
         {
           // Initialize the memory for the vectors
-          non_dirichlet_Fq_vector[q] = NumericVector<Number>::build(this->comm()).release();
+          non_dirichlet_Fq_vector[q] = NumericVector<Number>::build(this->comm());
           non_dirichlet_Fq_vector[q]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
         }
     }
@@ -573,7 +540,7 @@ void RBConstruction::allocate_data_structures()
     for (unsigned int q_l=0; q_l<get_rb_theta_expansion().get_n_output_terms(n); q_l++)
       {
         // Initialize the memory for the truth output vectors
-        outputs_vector[n][q_l] = (NumericVector<Number>::build(this->comm()).release());
+        outputs_vector[n][q_l] = NumericVector<Number>::build(this->comm());
         outputs_vector[n][q_l]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
       }
 
@@ -586,7 +553,7 @@ void RBConstruction::allocate_data_structures()
           for (unsigned int q_l=0; q_l<get_rb_theta_expansion().get_n_output_terms(n); q_l++)
             {
               // Initialize the memory for the truth output vectors
-              non_dirichlet_outputs_vector[n][q_l] = (NumericVector<Number>::build(this->comm()).release());
+              non_dirichlet_outputs_vector[n][q_l] = NumericVector<Number>::build(this->comm());
               non_dirichlet_outputs_vector[n][q_l]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
             }
         }
@@ -596,9 +563,9 @@ void RBConstruction::allocate_data_structures()
   truth_outputs.resize(this->get_rb_theta_expansion().get_n_outputs());
 }
 
-UniquePtr<DGFEMContext> RBConstruction::build_context ()
+std::unique_ptr<DGFEMContext> RBConstruction::build_context ()
 {
-  return UniquePtr<DGFEMContext>(new DGFEMContext(*this));
+  return libmesh_make_unique<DGFEMContext>(*this);
 }
 
 void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
@@ -639,39 +606,61 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
           if (node.processor_id() == this->comm().rank())
             {
               // Get the values to add to the rhs vector
-              std::map<numeric_index_type, Number> rhs_values;
-              elem_assembly->get_nodal_rhs_values(rhs_values, *this, node);
+              std::vector<dof_id_type> nodal_dof_indices;
+              DenseMatrix<Number> nodal_matrix;
+              DenseVector<Number> nodal_rhs;
+              elem_assembly->get_nodal_values(nodal_dof_indices,
+                                              nodal_matrix,
+                                              nodal_rhs,
+                                              *this,
+                                              node);
 
-              std::map<numeric_index_type, Number>::const_iterator it =
-                rhs_values.begin();
-              const std::map<numeric_index_type, Number>::const_iterator it_end =
-                rhs_values.end();
-              for ( ; it != it_end; ++it)
+              if (!nodal_dof_indices.empty())
                 {
-                  numeric_index_type dof_index = it->first;
-                  Number value = it->second;
+                  if (assemble_vector)
+                    input_vector->add_vector(nodal_rhs, nodal_dof_indices);
 
-                  input_vector->add( dof_index, value);
+                  if (assemble_matrix)
+                    input_matrix->add_matrix(nodal_matrix, nodal_dof_indices);
                 }
+#ifdef LIBMESH_ENABLE_DEPRECATED
+              else if(elem_assembly->is_nodal_rhs_values_overriden)
+                {
+                  // This is the "old" implementation, to be deprecated soon.
+                  // Only enter this if ElemAssembly::get_nodal_rhs_values has
+                  // a non-default implementation.
+                  libmesh_deprecated();
+
+                  std::map<numeric_index_type, Number> rhs_values;
+                  elem_assembly->get_nodal_rhs_values(rhs_values, *this, node);
+
+                  std::map<numeric_index_type, Number>::const_iterator it =
+                    rhs_values.begin();
+                  const std::map<numeric_index_type, Number>::const_iterator it_end =
+                    rhs_values.end();
+                  for ( ; it != it_end; ++it)
+                    {
+                      numeric_index_type dof_index = it->first;
+                      Number value = it->second;
+                      input_vector->add( dof_index, value);
+                    }
+                }
+#endif
             }
         }
     }
 
-  UniquePtr<DGFEMContext> c = this->build_context();
+  std::unique_ptr<DGFEMContext> c = this->build_context();
   DGFEMContext & context  = cast_ref<DGFEMContext &>(*c);
 
   this->init_context(context);
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
       // Subdivision elements need special care:
       // - skip ghost elements
       // - init special quadrature rule
-      const Elem * elem = *el;
-      UniquePtr<QBase> qrule;
+      std::unique_ptr<QBase> qrule;
       if (elem->type() == TRI3SUBDIVISION)
         {
           const Tri3Subdivision * gh_elem = static_cast<const Tri3Subdivision *> (elem);
@@ -690,7 +679,7 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
           elem_fe->attach_quadrature_rule (qrule.get());
         }
 
-      context.pre_fe_reinit(*this, *el);
+      context.pre_fe_reinit(*this, elem);
       context.elem_fe_reinit();
       elem_assembly->interior_assembly(context);
 
@@ -702,9 +691,30 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
           if ((context.get_elem().neighbor_ptr(context.get_side()) != libmesh_nullptr) && !impose_internal_fluxes)
             continue;
 
-          // Impose boundary (e.g. Neumann) term
-          context.side_fe_reinit();
-          elem_assembly->boundary_assembly(context);
+          bool reinit_succeeded = false;
+
+          // Exceptions can be thrown in side_fe_reinit, e.g. due to a zero or negative
+          // Jacobian on an element side. This is sometimes intentional, e.g. some people
+          // use "degenerate HEX" elements when generating meshes. In order to support this
+          // case we just print a message and skip the side assembly on this element
+          // if an exception occurs during side_fe_reinit.
+          try
+            {
+              context.side_fe_reinit();
+              reinit_succeeded = true;
+            }
+          catch(std::exception& e)
+            {
+              libMesh::err << std::endl << "Error detected when computing element data on side "
+                           << static_cast<int>(context.side) << " of element "
+                           << context.get_elem().id() << std::endl;
+              libMesh::err << "Skipping assembly on this element side" << std::endl << std::endl;
+            }
+
+          if(reinit_succeeded)
+            {
+              elem_assembly->boundary_assembly(context);
+            }
 
           if (context.dg_terms_are_active())
             {
@@ -828,7 +838,7 @@ void RBConstruction::truth_assembly()
         matrix->add(get_rb_theta_expansion().eval_A_theta(q_a, mu), *get_Aq(q_a));
       }
 
-    UniquePtr< NumericVector<Number> > temp_vec = NumericVector<Number>::build(this->comm());
+    std::unique_ptr<NumericVector<Number>> temp_vec = NumericVector<Number>::build(this->comm());
     temp_vec->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
     for (unsigned int q_f=0; q_f<get_rb_theta_expansion().get_n_F_terms(); q_f++)
       {
@@ -1219,7 +1229,7 @@ void RBConstruction::enrich_RB_space()
 {
   LOG_SCOPE("enrich_RB_space()", "RBConstruction");
 
-  NumericVector<Number> * new_bf = NumericVector<Number>::build(this->comm()).release();
+  auto new_bf = NumericVector<Number>::build(this->comm());
   new_bf->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
   *new_bf = *solution;
 
@@ -1246,7 +1256,7 @@ void RBConstruction::enrich_RB_space()
     }
 
   // load the new basis function into the basis_functions vector.
-  get_rb_evaluation().basis_functions.push_back( new_bf );
+  get_rb_evaluation().basis_functions.emplace_back( std::move(new_bf) );
 }
 
 void RBConstruction::update_system()
@@ -1375,7 +1385,7 @@ void RBConstruction::update_RB_system_matrices()
 
   unsigned int RB_size = get_rb_evaluation().get_n_basis_functions();
 
-  UniquePtr< NumericVector<Number> > temp = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> temp = NumericVector<Number>::build(this->comm());
   temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
   for (unsigned int q_f=0; q_f<get_rb_theta_expansion().get_n_F_terms(); q_f++)
@@ -1451,7 +1461,7 @@ void RBConstruction::update_residual_terms(bool compute_inner_products)
           // Initialize the vector in which we'll store the representor
           if (!get_rb_evaluation().Aq_representor[q_a][i])
             {
-              get_rb_evaluation().Aq_representor[q_a][i] = (NumericVector<Number>::build(this->comm()).release());
+              get_rb_evaluation().Aq_representor[q_a][i] = NumericVector<Number>::build(this->comm());
               get_rb_evaluation().Aq_representor[q_a][i]->init(this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
             }
 
@@ -1558,10 +1568,10 @@ void RBConstruction::compute_output_dual_innerprods()
       for (unsigned int n=0; n<get_rb_theta_expansion().get_n_outputs(); n++)
         max_Q_l = (get_rb_theta_expansion().get_n_output_terms(n) > max_Q_l) ? get_rb_theta_expansion().get_n_output_terms(n) : max_Q_l;
 
-      std::vector< NumericVector<Number> * > L_q_representor(max_Q_l);
+      std::vector<std::unique_ptr<NumericVector<Number>>> L_q_representor(max_Q_l);
       for (unsigned int q=0; q<max_Q_l; q++)
         {
-          L_q_representor[q] = (NumericVector<Number>::build(this->comm()).release());
+          L_q_representor[q] = NumericVector<Number>::build(this->comm());
           L_q_representor[q]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
         }
 
@@ -1618,16 +1628,6 @@ void RBConstruction::compute_output_dual_innerprods()
             }
         }
 
-      // Finally clear the L_q_representor vectors
-      for (unsigned int q=0; q<max_Q_l; q++)
-        {
-          if (L_q_representor[q])
-            {
-              delete L_q_representor[q];
-              L_q_representor[q] = libmesh_nullptr;
-            }
-        }
-
       // We may not need to use linear_solver again (e.g. this would happen if we use
       // extra_linear_solver for the truth_solves). As a result, let's clear linear_solver
       // to release any memory it may be taking up. If we do need it again, it will
@@ -1654,7 +1654,7 @@ void RBConstruction::compute_Fq_representor_innerprods(bool compute_inner_produc
         {
           if (!Fq_representor[q_f])
             {
-              Fq_representor[q_f] = (NumericVector<Number>::build(this->comm()).release());
+              Fq_representor[q_f] = NumericVector<Number>::build(this->comm());
               Fq_representor[q_f]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
             }
 
@@ -1738,10 +1738,10 @@ void RBConstruction::load_rb_solution()
 //   // Note that this only works in serial since otherwise each processor will
 //   // have a different parameter value during the Greedy training.
 //
-//   UniquePtr< NumericVector<Number> > RB_sol = NumericVector<Number>::build();
+//   std::unique_ptr<NumericVector<Number>> RB_sol = NumericVector<Number>::build();
 //   RB_sol->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 //
-//   UniquePtr< NumericVector<Number> > temp = NumericVector<Number>::build();
+//   std::unique_ptr<NumericVector<Number>> temp = NumericVector<Number>::build();
 //   temp->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 //
 //   for (unsigned int i=0; i<N; i++)
@@ -1789,7 +1789,7 @@ SparseMatrix<Number> * RBConstruction::get_Aq(unsigned int q)
   if (q >= get_rb_theta_expansion().get_n_A_terms())
     libmesh_error_msg("Error: We must have q < Q_a in get_Aq.");
 
-  return Aq_vector[q];
+  return Aq_vector[q].get();
 }
 
 SparseMatrix<Number> * RBConstruction::get_non_dirichlet_Aq(unsigned int q)
@@ -1800,7 +1800,7 @@ SparseMatrix<Number> * RBConstruction::get_non_dirichlet_Aq(unsigned int q)
   if (q >= get_rb_theta_expansion().get_n_A_terms())
     libmesh_error_msg("Error: We must have q < Q_a in get_Aq.");
 
-  return non_dirichlet_Aq_vector[q];
+  return non_dirichlet_Aq_vector[q].get();
 }
 
 NumericVector<Number> * RBConstruction::get_Fq(unsigned int q)
@@ -1808,7 +1808,7 @@ NumericVector<Number> * RBConstruction::get_Fq(unsigned int q)
   if (q >= get_rb_theta_expansion().get_n_F_terms())
     libmesh_error_msg("Error: We must have q < Q_f in get_Fq.");
 
-  return Fq_vector[q];
+  return Fq_vector[q].get();
 }
 
 NumericVector<Number> * RBConstruction::get_non_dirichlet_Fq(unsigned int q)
@@ -1819,7 +1819,7 @@ NumericVector<Number> * RBConstruction::get_non_dirichlet_Fq(unsigned int q)
   if (q >= get_rb_theta_expansion().get_n_F_terms())
     libmesh_error_msg("Error: We must have q < Q_f in get_Fq.");
 
-  return non_dirichlet_Fq_vector[q];
+  return non_dirichlet_Fq_vector[q].get();
 }
 
 NumericVector<Number> * RBConstruction::get_output_vector(unsigned int n, unsigned int q_l)
@@ -1828,7 +1828,7 @@ NumericVector<Number> * RBConstruction::get_output_vector(unsigned int n, unsign
     libmesh_error_msg("Error: We must have n < n_outputs and "          \
                       << "q_l < get_rb_theta_expansion().get_n_output_terms(n) in get_output_vector.");
 
-  return outputs_vector[n][q_l];
+  return outputs_vector[n][q_l].get();
 }
 
 NumericVector<Number> * RBConstruction::get_non_dirichlet_output_vector(unsigned int n, unsigned int q_l)
@@ -1837,7 +1837,7 @@ NumericVector<Number> * RBConstruction::get_non_dirichlet_output_vector(unsigned
     libmesh_error_msg("Error: We must have n < n_outputs and "          \
                       << "q_l < get_rb_theta_expansion().get_n_output_terms(n) in get_non_dirichlet_output_vector.");
 
-  return non_dirichlet_outputs_vector[n][q_l];
+  return non_dirichlet_outputs_vector[n][q_l].get();
 }
 
 void RBConstruction::get_all_matrices(std::map<std::string, SparseMatrix<Number> *> & all_matrices)
@@ -1899,7 +1899,7 @@ void RBConstruction::get_output_vectors(std::map<std::string, NumericVector<Numb
       }
 }
 
-UniquePtr<DirichletBoundary> RBConstruction::build_zero_dirichlet_boundary_object()
+std::unique_ptr<DirichletBoundary> RBConstruction::build_zero_dirichlet_boundary_object()
 {
   ZeroFunction<> zf;
 
@@ -1907,7 +1907,7 @@ UniquePtr<DirichletBoundary> RBConstruction::build_zero_dirichlet_boundary_objec
   std::vector<unsigned int> variables;
 
   // The DirichletBoundary constructor clones zf, so it's OK that zf is only in local scope
-  return UniquePtr<DirichletBoundary> (new DirichletBoundary(dirichlet_ids, variables, &zf));
+  return libmesh_make_unique<DirichletBoundary>(dirichlet_ids, variables, &zf);
 }
 
 void RBConstruction::write_riesz_representors_to_files(const std::string & riesz_representors_dir,
@@ -1932,7 +1932,7 @@ void RBConstruction::write_riesz_representors_to_files(const std::string & riesz
 
   for (std::size_t i=0; i<Fq_representor.size(); ++i)
     {
-      if (Fq_representor[i] != libmesh_nullptr)
+      if (Fq_representor[i])
         {
           file_name.str(""); // reset filename
           file_name << riesz_representors_dir << "/Fq_representor" << i << riesz_representor_suffix;
@@ -2032,7 +2032,7 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
   // should we be worried about leaks here?
   for (std::size_t i=0; i<Fq_representor.size(); ++i)
     {
-      if (Fq_representor[i] != libmesh_nullptr)
+      if (Fq_representor[i])
         libmesh_error_msg("Error, must delete existing Fq_representor before reading in from file.");
     }
 
@@ -2056,7 +2056,7 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
 
       read_serialized_data(fqr_data, false);
 
-      Fq_representor[i] = NumericVector<Number>::build(this->comm()).release();
+      Fq_representor[i] = NumericVector<Number>::build(this->comm());
       Fq_representor[i]->init (this->n_dofs(), this->n_local_dofs(), false, PARALLEL);
 
       // No need to copy, just swap
@@ -2102,7 +2102,7 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
 
         read_serialized_data(aqr_data, false);
 
-        get_rb_evaluation().Aq_representor[i][j] = NumericVector<Number>::build(this->comm()).release();
+        get_rb_evaluation().Aq_representor[i][j] = NumericVector<Number>::build(this->comm());
         get_rb_evaluation().Aq_representor[i][j]->init (n_dofs(), n_local_dofs(),
                                                         false, PARALLEL);
 

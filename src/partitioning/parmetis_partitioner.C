@@ -44,10 +44,8 @@ extern "C" {
 #endif
 
 
-// Hash maps for interior->boundary element lookups
-#include LIBMESH_INCLUDE_UNORDERED_MULTIMAP
-#include LIBMESH_INCLUDE_HASH
-LIBMESH_DEFINE_HASH_POINTERS
+// C++ includes
+#include <unordered_map>
 
 
 namespace libMesh
@@ -234,7 +232,7 @@ void ParmetisPartitioner::initialize (const MeshBase & mesh,
   // use mesh.n_active_elem() in general since this only returns the number
   // of active elements which are stored on the calling processor.
   // We should not use n_active_elem for any allocation because that will
-  // be inheritly unscalable, but it can be useful for libmesh_assertions.
+  // be inherently unscalable, but it can be useful for libmesh_assertions.
   dof_id_type n_active_elem=0;
 
   // Set up the vtxdist array.  This will be the same on each processor.
@@ -258,7 +256,7 @@ void ParmetisPartitioner::initialize (const MeshBase & mesh,
   // unique range [0,n_active_elem) which is *independent* of the current partitioning.
   // This can be fed to ParMetis as the initial partitioning of the subdomains (decoupled
   // from the partitioning of the objects themselves).  This allows us to get the same
-  // resultant partitioning independed of the input partitioning.
+  // resultant partitioning independent of the input partitioning.
   libMesh::BoundingBox bbox =
     MeshTools::create_bounding_box(mesh);
 
@@ -364,13 +362,8 @@ void ParmetisPartitioner::initialize (const MeshBase & mesh,
 
     libmesh_assert_equal_to (subdomain_bounds.back(), n_active_elem);
 
-    MeshBase::const_element_iterator       elem_it  = mesh.active_local_elements_begin();
-    const MeshBase::const_element_iterator elem_end = mesh.active_local_elements_end();
-
-    for (; elem_it != elem_end; ++elem_it)
+    for (const auto & elem : mesh.active_local_element_ptr_range())
       {
-        const Elem * elem = *elem_it;
-
         libmesh_assert (_global_index_by_pid_map.count(elem->id()));
         const dof_id_type global_index_by_pid =
           _global_index_by_pid_map[elem->id()];
@@ -421,66 +414,37 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
   // interior elements from boundary elements, but we need to build up
   // a lookup map to do the reverse.
 
-  typedef LIBMESH_BEST_UNORDERED_MULTIMAP<const Elem *, const Elem *>
-    map_type;
+  typedef std::unordered_multimap<const Elem *, const Elem *> map_type;
   map_type interior_to_boundary_map;
 
-  {
-    MeshBase::const_element_iterator       elem_it  = mesh.active_elements_begin();
-    const MeshBase::const_element_iterator elem_end = mesh.active_elements_end();
+  for (const auto & elem : mesh.active_element_ptr_range())
+    {
+      // If we don't have an interior_parent then there's nothing to look us
+      // up.
+      if ((elem->dim() >= LIBMESH_DIM) ||
+          !elem->interior_parent())
+        continue;
 
-    for (; elem_it != elem_end; ++elem_it)
-      {
-        const Elem * elem = *elem_it;
+      // get all relevant interior elements
+      std::set<const Elem *> neighbor_set;
+      elem->find_interior_neighbors(neighbor_set);
 
-        // If we don't have an interior_parent then there's nothing to look us
-        // up.
-        if ((elem->dim() >= LIBMESH_DIM) ||
-            !elem->interior_parent())
-          continue;
-
-        // get all relevant interior elements
-        std::set<const Elem *> neighbor_set;
-        elem->find_interior_neighbors(neighbor_set);
-
-        std::set<const Elem *>::iterator n_it = neighbor_set.begin();
-        for (; n_it != neighbor_set.end(); ++n_it)
-          {
-            // FIXME - non-const versions of the Elem set methods
-            // would be nice
-            Elem * neighbor = const_cast<Elem *>(*n_it);
-
-#if defined(LIBMESH_HAVE_UNORDERED_MULTIMAP) || \
-  defined(LIBMESH_HAVE_TR1_UNORDERED_MAP) ||    \
-  defined(LIBMESH_HAVE_HASH_MAP) ||             \
-  defined(LIBMESH_HAVE_EXT_HASH_MAP)
-            interior_to_boundary_map.insert
-              (std::make_pair(neighbor, elem));
-#else
-            interior_to_boundary_map.insert
-              (interior_to_boundary_map.begin(),
-               std::make_pair(neighbor, elem));
-#endif
-          }
-      }
-  }
+      std::set<const Elem *>::iterator n_it = neighbor_set.begin();
+      for (; n_it != neighbor_set.end(); ++n_it)
+        interior_to_boundary_map.insert(std::make_pair(*n_it, elem));
+    }
 
 #ifdef LIBMESH_ENABLE_AMR
   std::vector<const Elem *> neighbors_offspring;
 #endif
 
-  std::vector<std::vector<dof_id_type> > graph(n_active_local_elem);
+  std::vector<std::vector<dof_id_type>> graph(n_active_local_elem);
   dof_id_type graph_size=0;
 
   const dof_id_type first_local_elem = _pmetis->vtxdist[mesh.processor_id()];
 
-  MeshBase::const_element_iterator       elem_it  = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator elem_end = mesh.active_local_elements_end();
-
-  for (; elem_it != elem_end; ++elem_it)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *elem_it;
-
       libmesh_assert (_global_index_by_pid_map.count(elem->id()));
       const dof_id_type global_index_by_pid =
         _global_index_by_pid_map[elem->id()];
@@ -493,10 +457,8 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
 
       // Loop over the element's neighbors.  An element
       // adjacency corresponds to a face neighbor
-      for (unsigned int ms=0; ms<elem->n_neighbors(); ms++)
+      for (auto neighbor : elem->neighbor_ptr_range())
         {
-          const Elem * neighbor = elem->neighbor_ptr(ms);
-
           if (neighbor != libmesh_nullptr)
             {
               // If the neighbor is active treat it
@@ -590,13 +552,9 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
         }
 
       // Check for any boundary neighbors
-      typedef map_type::iterator map_it_type;
-      std::pair<map_it_type, map_it_type>
-        bounds = interior_to_boundary_map.equal_range(elem);
-
-      for (map_it_type it = bounds.first; it != bounds.second; ++it)
+      for (const auto & pr : as_range(interior_to_boundary_map.equal_range(elem)))
         {
-          const Elem * neighbor = it->second;
+          const Elem * neighbor = pr.second;
 
           const dof_id_type neighbor_global_index_by_pid =
             _global_index_by_pid_map[neighbor->id()];
@@ -615,7 +573,7 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
   for (std::size_t r=0; r<graph.size(); r++)
     {
       _pmetis->xadj.push_back(_pmetis->adjncy.size());
-      std::vector<dof_id_type> graph_row; // build this emtpy
+      std::vector<dof_id_type> graph_row; // build this empty
       graph_row.swap(graph[r]); // this will deallocate at the end of scope
       _pmetis->adjncy.insert(_pmetis->adjncy.end(),
                              graph_row.begin(),
@@ -645,17 +603,12 @@ void ParmetisPartitioner::assign_partitioning (MeshBase & mesh)
   const dof_id_type n_active_local_elem = mesh.n_active_local_elem();
 #endif
 
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_ids(mesh.n_processors()),
     requests_to_fill(mesh.n_processors());
 
-  MeshBase::element_iterator elem_it  = mesh.active_elements_begin();
-  MeshBase::element_iterator elem_end = mesh.active_elements_end();
-
-  for (; elem_it != elem_end; ++elem_it)
+  for (auto & elem : mesh.active_element_ptr_range())
     {
-      Elem * elem = *elem_it;
-
       // we need to get the index from the owning processor
       // (note we cannot assign it now -- we are iterating
       // over elements again and this will be bad!)
@@ -708,14 +661,9 @@ void ParmetisPartitioner::assign_partitioning (MeshBase & mesh)
   // note we are iterating in exactly the same order
   // used to build up the request, so we can expect the
   // required entries to be in the proper sequence.
-  elem_it  = mesh.active_elements_begin();
-  elem_end = mesh.active_elements_end();
-
-  for (std::vector<unsigned int> counters(mesh.n_processors(), 0);
-       elem_it != elem_end; ++elem_it)
+  std::vector<unsigned int> counters(mesh.n_processors(), 0);
+  for (auto & elem : mesh.active_element_ptr_range())
     {
-      Elem * elem = *elem_it;
-
       const processor_id_type current_pid = elem->processor_id();
 
       libmesh_assert_less (counters[current_pid], requested_ids[current_pid].size());

@@ -69,7 +69,7 @@ void RBEIMAssembly::evaluate_basis_function(unsigned int var,
   LOG_SCOPE("evaluate_basis_function", "RBEIMAssembly");
 
   bool repeated_qrule = false;
-  if (_qrule.get() != libmesh_nullptr)
+  if (_qrule)
     {
       repeated_qrule =
         ( (element_qrule.type()      == _qrule->type()) &&
@@ -80,14 +80,14 @@ void RBEIMAssembly::evaluate_basis_function(unsigned int var,
   // If the qrule is not repeated, then we need to make a new copy of element_qrule.
   if (!repeated_qrule)
     {
-      _qrule.reset(QBase::build(element_qrule.type(),
-                                element_qrule.get_dim(),
-                                element_qrule.get_order()).release());
+      _qrule = QBase::build(element_qrule.type(),
+                            element_qrule.get_dim(),
+                            element_qrule.get_order());
 
       get_fe().attach_quadrature_rule (_qrule.get());
     }
 
-  const std::vector<std::vector<Real> > & phi = get_fe().get_phi();
+  const std::vector<std::vector<Real>> & phi = get_fe().get_phi();
 
   // The FE object caches data, hence we recompute as little as
   // possible on the call to reinit.
@@ -134,7 +134,7 @@ void RBEIMAssembly::initialize_fe()
     get_rb_eim_construction().get_mesh().mesh_dimension();
 
   FEType fe_type = dof_map.variable_type(0);
-  _fe.reset(FEBase::build(dim, fe_type).release());
+  _fe = FEBase::build(dim, fe_type);
 
   // Pre-request the shape function for efficieny's sake
   _fe->get_phi();

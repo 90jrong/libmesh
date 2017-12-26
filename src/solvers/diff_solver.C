@@ -20,10 +20,10 @@
 #include "libmesh/diff_solver.h"
 #include "libmesh/newton_solver.h"
 #include "libmesh/implicit_system.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
+
 namespace libMesh
 {
-
-
 
 DiffSolver::DiffSolver (sys_type & s) :
   ParallelObject(s),
@@ -50,9 +50,9 @@ DiffSolver::DiffSolver (sys_type & s) :
 
 
 
-UniquePtr<DiffSolver> DiffSolver::build (sys_type & s)
+std::unique_ptr<DiffSolver> DiffSolver::build (sys_type & s)
 {
-  return UniquePtr<DiffSolver>(new NewtonSolver(s));
+  return libmesh_make_unique<NewtonSolver>(s);
 }
 
 

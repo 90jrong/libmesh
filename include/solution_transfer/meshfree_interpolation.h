@@ -23,7 +23,7 @@
 // Local includes
 #include "libmesh/libmesh_config.h"
 #include "libmesh/libmesh_common.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/point.h"
 #include "libmesh/parallel_object.h"
 #ifdef LIBMESH_HAVE_NANOFLANN
@@ -33,7 +33,7 @@
 // C++ includes
 #include <string>
 #include <vector>
-
+#include <memory>
 
 
 namespace libMesh
@@ -145,7 +145,7 @@ public:
 
   /**
    * Interpolate source data at target points.
-   * Pure virtual, must be overriden in derived classes.
+   * Pure virtual, must be overridden in derived classes.
    */
   virtual void interpolate_field_data (const std::vector<std::string> & field_names,
                                        const std::vector<Point>  & tgt_pts,
@@ -173,7 +173,7 @@ protected:
 
 
 /**
- * Inverse distance interplation.
+ * Inverse distance interpolation.
  */
 template <unsigned int KDDim>
 class InverseDistanceInterpolation : public MeshfreeInterpolation
@@ -293,10 +293,10 @@ protected:
   // {
   // };
 
-  typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<Real, PointListAdaptor<KDDim> >,
+  typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<Real, PointListAdaptor<KDDim>>,
                                               PointListAdaptor<KDDim>, KDDim> kd_tree_t;
 
-  mutable UniquePtr<kd_tree_t> _kd_tree;
+  mutable std::unique_ptr<kd_tree_t> _kd_tree;
 
 #endif // LIBMESH_HAVE_NANOFLANN
 
@@ -347,7 +347,7 @@ public:
 
   /**
    * Interpolate source data at target points.
-   * Pure virtual, must be overriden in derived classes.
+   * Pure virtual, must be overridden in derived classes.
    */
   virtual void interpolate_field_data (const std::vector<std::string> & field_names,
                                        const std::vector<Point>  & tgt_pts,

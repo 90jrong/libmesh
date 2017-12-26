@@ -25,6 +25,7 @@
 #include "libmesh/enum_elem_type.h"
 #include "libmesh/vector_value.h"
 #include "libmesh/enum_fe_family.h"
+#include "libmesh/enum_order.h"
 
 // C++ includes
 #include <map>
@@ -108,6 +109,18 @@ public:
                                      const FEType & fe_t,
                                      const ElemType t,
                                      const unsigned int n);
+
+  typedef unsigned int (*n_dofs_at_node_ptr) (const ElemType,
+                                              const Order,
+                                              const unsigned int);
+
+  /**
+   * \returns A function which evaluates n_dofs_at_node for the
+   * requested FE type and dimension.
+   */
+  static n_dofs_at_node_ptr
+  n_dofs_at_node_function(const unsigned int dim,
+                          const FEType & fe_t);
 
   /**
    * \returns The number of dofs interior to the element,
@@ -257,7 +270,7 @@ public:
    * \note On a p-refined element, \p fe_t.order should be the total
    * order of the element.
    */
-  template< typename OutputType>
+  template<typename OutputType>
   static void shape(const unsigned int dim,
                     const FEType & fe_t,
                     const ElemType t,
@@ -274,7 +287,7 @@ public:
    * \note On a p-refined element, \p fe_t.order should be the total
    * order of the element.
    */
-  template< typename OutputType>
+  template<typename OutputType>
   static void shape(const unsigned int dim,
                     const FEType & fe_t,
                     const Elem * elem,

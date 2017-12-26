@@ -38,10 +38,10 @@ public:
 
 protected:
 
-  UniquePtr<Mesh> _mesh;
-  UniquePtr<Mesh> _all_boundary_mesh;
-  UniquePtr<Mesh> _left_boundary_mesh;
-  UniquePtr<Mesh> _internal_boundary_mesh;
+  std::unique_ptr<Mesh> _mesh;
+  std::unique_ptr<Mesh> _all_boundary_mesh;
+  std::unique_ptr<Mesh> _left_boundary_mesh;
+  std::unique_ptr<Mesh> _internal_boundary_mesh;
 
   void build_mesh()
   {
@@ -64,7 +64,7 @@ protected:
         _internal_boundary_mesh->skip_partitioning(true);
       }
 
-    // Set subdomain ids for specfic elements. This allows us to later
+    // Set subdomain ids for specific elements. This allows us to later
     // build an internal sideset with respect to a given
     // subdomain. The element subdomains look like:
     // ___________________
@@ -82,10 +82,9 @@ protected:
     // and we will create an internal sideset along the border between
     // subdomains 1 and 2.
 
-    for (MeshBase::element_iterator elem_it =
-           _mesh->active_elements_begin(),
-         elem_end =
-           _mesh->active_elements_end();
+    for (MeshBase::element_iterator
+           elem_it = _mesh->active_elements_begin(),
+           elem_end = _mesh->active_elements_end();
          elem_it != elem_end; ++elem_it)
       {
         Elem * elem = *elem_it;
@@ -125,10 +124,9 @@ protected:
     // should not be overlapped elems in the BoundaryMesh.
     BoundaryInfo & bi = _mesh->get_boundary_info();
 
-    for (MeshBase::element_iterator elem_it =
-           _mesh->active_elements_begin(),
-         elem_end =
-           _mesh->active_elements_end();
+    for (MeshBase::element_iterator
+           elem_it = _mesh->active_elements_begin(),
+           elem_end = _mesh->active_elements_end();
          elem_it != elem_end; ++elem_it)
       {
         Elem * elem = *elem_it;

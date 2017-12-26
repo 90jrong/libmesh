@@ -48,6 +48,7 @@ public:
    * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
    * constructor that takes a Parallel::Communicator instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   explicit
   SerialMesh (unsigned char dim=1)
     : ReplicatedMesh(dim)
@@ -55,11 +56,12 @@ public:
     libmesh_deprecated();
   }
 #endif
+#endif
 
   SerialMesh (const UnstructuredMesh & other_mesh) : ReplicatedMesh(other_mesh) {}
 
-  virtual UniquePtr<MeshBase> clone () const libmesh_override
-  { return UniquePtr<MeshBase>(new SerialMesh(*this)); }
+  virtual std::unique_ptr<MeshBase> clone () const libmesh_override
+  { return libmesh_make_unique<SerialMesh>(*this); }
 
   ~SerialMesh() {}
 };

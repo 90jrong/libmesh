@@ -60,12 +60,14 @@ public:
   /**
    * A simple reseater won't work with a multipointer
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual ParameterAccessor<T> &
   operator= (T * /* new_ptr */) libmesh_override
   {
     libmesh_error();
     return *this;
   }
+#endif
 
   /**
    * Setter: change the value of the parameter we access.
@@ -105,12 +107,12 @@ public:
   /**
    * \returns A new copy of the accessor.
    */
-  virtual UniquePtr<ParameterAccessor<T> > clone() const libmesh_override
+  virtual std::unique_ptr<ParameterAccessor<T>> clone() const libmesh_override
   {
     ParameterMultiPointer * pmp = new ParameterMultiPointer<T>();
     pmp->_ptrs = _ptrs;
 
-    return UniquePtr<ParameterAccessor<T> >(pmp);
+    return std::unique_ptr<ParameterAccessor<T>>(pmp);
   }
 
   void push_back (T * new_ptr) { _ptrs.push_back(new_ptr); }

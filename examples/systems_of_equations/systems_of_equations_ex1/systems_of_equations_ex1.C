@@ -175,11 +175,11 @@ void assemble_stokes (EquationSystems & es,
 
   // Build a Finite Element object of the specified type for
   // the velocity variables.
-  UniquePtr<FEBase> fe_vel  (FEBase::build(dim, fe_vel_type));
+  std::unique_ptr<FEBase> fe_vel  (FEBase::build(dim, fe_vel_type));
 
   // Build a Finite Element object of the specified type for
   // the pressure variables.
-  UniquePtr<FEBase> fe_pres (FEBase::build(dim, fe_pres_type));
+  std::unique_ptr<FEBase> fe_pres (FEBase::build(dim, fe_pres_type));
 
   // A Gauss quadrature rule for numerical integration.
   // Let the FEType object decide what order rule is appropriate.
@@ -197,11 +197,11 @@ void assemble_stokes (EquationSystems & es,
 
   // The element shape function gradients for the velocity
   // variables evaluated at the quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe_vel->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe_vel->get_dphi();
 
   // The element shape functions for the pressure variable
   // evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & psi = fe_pres->get_phi();
+  const std::vector<std::vector<Real>> & psi = fe_pres->get_phi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -240,16 +240,8 @@ void assemble_stokes (EquationSystems & es,
   // modify this program to include refinement, we will be safe and
   // will only consider the active elements; hence we use a variant of
   // the active_elem_iterator.
-
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -288,7 +280,7 @@ void assemble_stokes (EquationSystems & es,
       //        | Kpu Kpv Kpp |        | Fp |
       //         -           -          -  -
       //
-      // The DenseSubMatrix.repostition () member takes the
+      // The DenseSubMatrix.reposition () member takes the
       // (row_offset, column_offset, row_size, column_size).
       //
       // Similarly, the DenseSubVector.reposition () member
@@ -361,13 +353,13 @@ void assemble_stokes (EquationSystems & es,
         // The following loops over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
-        for (unsigned int s=0; s<elem->n_sides(); s++)
+        for (auto s : elem->side_index_range())
           if (elem->neighbor_ptr(s) == libmesh_nullptr)
             {
-              UniquePtr<const Elem> side (elem->build_side_ptr(s));
+              std::unique_ptr<const Elem> side (elem->build_side_ptr(s));
 
               // Loop over the nodes on the side.
-              for (unsigned int ns=0; ns<side->n_nodes(); ns++)
+              for (auto ns : side->node_index_range())
                 {
                   // The location on the boundary of the current
                   // node.
@@ -389,7 +381,7 @@ void assemble_stokes (EquationSystems & es,
                   // Find the node on the element matching this node on
                   // the side.  That defined where in the element matrix
                   // the boundary condition will be applied.
-                  for (unsigned int n=0; n<elem->n_nodes(); n++)
+                  for (auto n : elem->node_index_range())
                     if (elem->node_id(n) == side->node_id(ns))
                       {
                         // Matrix contribution.

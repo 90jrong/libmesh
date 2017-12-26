@@ -131,7 +131,7 @@ unsigned int Pyramid13::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
+std::unique_ptr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
 {
   libmesh_assert_less (i, this->n_sides());
 
@@ -143,10 +143,10 @@ UniquePtr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
         case 1:
         case 2:
         case 3:
-          return UniquePtr<Elem>(new Side<Tri6,Pyramid13>(this,i));
+          return libmesh_make_unique<Side<Tri6,Pyramid13>>(this,i);
 
         case 4:
-          return UniquePtr<Elem>(new Side<Quad8,Pyramid13>(this,i));
+          return libmesh_make_unique<Side<Quad8,Pyramid13>>(this,i);
 
         default:
           libmesh_error_msg("Invalid side i = " << i);
@@ -155,8 +155,8 @@ UniquePtr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
 
   else
     {
-      // Create NULL pointer to be initialized, returned later.
-      Elem * face = libmesh_nullptr;
+      // Return value
+      std::unique_ptr<Elem> face;
 
       switch (i)
         {
@@ -165,12 +165,12 @@ UniquePtr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
         case 2: // triangular face 3
         case 3: // triangular face 4
           {
-            face = new Tri6;
+            face = libmesh_make_unique<Tri6>();
             break;
           }
         case 4:  // the quad face at z=0
           {
-            face = new Quad8;
+            face = libmesh_make_unique<Quad8>();
             break;
           }
         default:
@@ -183,20 +183,17 @@ UniquePtr<Elem> Pyramid13::build_side_ptr (const unsigned int i, bool proxy)
       for (unsigned n=0; n<face->n_nodes(); ++n)
         face->set_node(n) = this->node_ptr(Pyramid13::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(face);
+      return face;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 
 
-UniquePtr<Elem> Pyramid13::build_edge_ptr (const unsigned int i)
+std::unique_ptr<Elem> Pyramid13::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
 
-  return UniquePtr<Elem>(new SideEdge<Edge3,Pyramid13>(this,i));
+  return libmesh_make_unique<SideEdge<Edge3,Pyramid13>>(this,i);
 }
 
 
@@ -247,9 +244,6 @@ unsigned int Pyramid13::n_second_order_adjacent_vertices (const unsigned int n) 
     default:
       libmesh_error_msg("Invalid node n = " << n);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return libMesh::invalid_uint;
 }
 
 
@@ -294,9 +288,6 @@ unsigned short int Pyramid13::second_order_adjacent_vertex (const unsigned int n
       libmesh_error_msg("Invalid n = " << n);
 
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return static_cast<unsigned short int>(-1);
 }
 
 

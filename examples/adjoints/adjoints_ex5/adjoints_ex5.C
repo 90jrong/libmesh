@@ -82,6 +82,7 @@
 #include "libmesh/dirichlet_boundaries.h"
 #include "libmesh/system_norm.h"
 #include "libmesh/numeric_vector.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 #include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
@@ -208,11 +209,10 @@ void set_system_parameters(HeatSystem & system,
         libmesh_error_msg("This example (and unsteady adjoints in libMesh) only support Backward Euler and explicit methods.");
 
       system.time_solver =
-        UniquePtr<TimeSolver>(innersolver);
+        std::unique_ptr<TimeSolver>(innersolver);
     }
   else
-    system.time_solver =
-      UniquePtr<TimeSolver>(new SteadySolver(system));
+    system.time_solver = libmesh_make_unique<SteadySolver>(system);
 
   // The Memory Solution History object we will set the system SolutionHistory object to
   MemorySolutionHistory heatsystem_solution_history(system);
@@ -255,7 +255,7 @@ void set_system_parameters(HeatSystem & system,
     {
 #ifdef LIBMESH_HAVE_PETSC
       PetscDiffSolver *solver = new PetscDiffSolver(system);
-      system.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
+      system.time_solver->diff_solver() = std::unique_ptr<DiffSolver>(solver);
 #else
       libmesh_error_msg("This example requires libMesh to be compiled with PETSc support.");
 #endif
@@ -263,7 +263,7 @@ void set_system_parameters(HeatSystem & system,
   else
     {
       NewtonSolver *solver = new NewtonSolver(system);
-      system.time_solver->diff_solver() = UniquePtr<DiffSolver>(solver);
+      system.time_solver->diff_solver() = std::unique_ptr<DiffSolver>(solver);
 
       solver->quiet                       = param.solver_quiet;
       solver->verbose                     = param.solver_verbose;
@@ -323,7 +323,7 @@ int main (int argc, char ** argv)
   Mesh mesh(init.comm(), param.dimension);
 
   // And an object to refine it
-  UniquePtr<MeshRefinement> mesh_refinement(new MeshRefinement(mesh));
+  auto mesh_refinement = libmesh_make_unique<MeshRefinement>(mesh);
 
   // And an EquationSystems to run on it
   EquationSystems equation_systems (mesh);
@@ -483,7 +483,7 @@ int main (int argc, char ** argv)
 
       // Since we have specified an adjoint solution for the current
       // time (T), set the adjoint_already_solved boolean to true, so
-      // we dont solve unneccesarily in the adjoint sensitivity method
+      // we dont solve unnecessarily in the adjoint sensitivity method
       system.set_adjoint_already_solved(true);
 
       libMesh::out << "|Z("
@@ -536,7 +536,7 @@ int main (int argc, char ** argv)
 
           // Now that we have solved the adjoint, set the
           // adjoint_already_solved boolean to true, so we dont solve
-          // unneccesarily in the error estimator
+          // unnecessarily in the error estimator
           system.set_adjoint_already_solved(true);
 
           libMesh::out << "|Z("
@@ -562,7 +562,7 @@ int main (int argc, char ** argv)
         }
       // End adjoint timestep loop
 
-      // Now that we have computed both the primal and adjoint solutions, we compute the sensitivties to the parameter p
+      // Now that we have computed both the primal and adjoint solutions, we compute the sensitivities to the parameter p
       // dQ/dp = partialQ/partialp - partialR/partialp
       // partialQ/partialp = (Q(p+dp) - Q(p-dp))/(2*dp), this is not supported by the library yet
       // partialR/partialp = (R(u,z;p+dp) - R(u,z;p-dp))/(2*dp), where

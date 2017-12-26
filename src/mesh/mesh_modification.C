@@ -86,13 +86,10 @@ void MeshTools::Modification::distort (MeshBase & mesh,
   std::vector<float> hmin (mesh.max_node_id(),
                            std::numeric_limits<float>::max());
 
-  MeshBase::element_iterator       el  = mesh.active_elements_begin();
-  const MeshBase::element_iterator end = mesh.active_elements_end();
-
-  for (; el!=end; ++el)
-    for (unsigned int n=0; n<(*el)->n_nodes(); n++)
-      hmin[(*el)->node_id(n)] = std::min(hmin[(*el)->node_id(n)],
-                                         static_cast<float>((*el)->hmin()));
+  for (const auto & elem : mesh.active_element_ptr_range())
+    for (auto & n : elem->node_ref_range())
+      hmin[n.id()] = std::min(hmin[n.id()],
+                              static_cast<float>(elem->hmin()));
 
 
   // Now actually move the nodes
@@ -158,15 +155,10 @@ void MeshTools::Modification::redistribute (MeshBase & mesh,
   DenseVector<Real> output_vec(LIBMESH_DIM);
 
   // FIXME - we should thread this later.
-  UniquePtr<FunctionBase<Real> > myfunc = mapfunc.clone();
+  std::unique_ptr<FunctionBase<Real>> myfunc = mapfunc.clone();
 
-  MeshBase::node_iterator       it  = mesh.nodes_begin();
-  const MeshBase::node_iterator end = mesh.nodes_end();
-
-  for (; it != end; ++it)
+  for (auto & node : mesh.node_ptr_range())
     {
-      Node * node = *it;
-
       (*myfunc)(*node, output_vec);
 
       (*node)(0) = output_vec(0);
@@ -188,11 +180,8 @@ void MeshTools::Modification::translate (MeshBase & mesh,
 {
   const Point p(xt, yt, zt);
 
-  const MeshBase::node_iterator nd_end = mesh.nodes_end();
-
-  for (MeshBase::node_iterator nd = mesh.nodes_begin();
-       nd != nd_end; ++nd)
-    **nd += p;
+  for (auto & node : mesh.node_ptr_range())
+    *node += p;
 }
 
 
@@ -235,18 +224,15 @@ void MeshTools::Modification::rotate (MeshBase & mesh,
   // (equations 6-14 give the entries of the composite transformation matrix).
   // The rotations are performed sequentially about the z, x, and z axes, in that order.
   // A positive angle yields a counter-clockwise rotation about the axis in question.
-  const MeshBase::node_iterator nd_end = mesh.nodes_end();
-
-  for (MeshBase::node_iterator nd = mesh.nodes_begin();
-       nd != nd_end; ++nd)
+  for (auto & node : mesh.node_ptr_range())
     {
-      const Point pt = **nd;
+      const Point pt = *node;
       const Real  x  = pt(0);
       const Real  y  = pt(1);
       const Real  z  = pt(2);
-      **nd = Point(( cp*cs-sp*ct*ss)*x + ( sp*cs+cp*ct*ss)*y + (st*ss)*z,
-                   (-cp*ss-sp*ct*cs)*x + (-sp*ss+cp*ct*cs)*y + (st*cs)*z,
-                   ( sp*st)*x          + (-cp*st)*y          + (ct)*z   );
+      *node = Point(( cp*cs-sp*ct*ss)*x + ( sp*cs+cp*ct*ss)*y + (st*ss)*z,
+                    (-cp*ss-sp*ct*cs)*x + (-sp*ss+cp*ct*cs)*y + (st*cs)*z,
+                    ( sp*st)*x          + (-cp*st)*y          + (ct)*z   );
     }
 #else
   libmesh_error_msg("MeshTools::Modification::rotate() requires libMesh to be compiled with LIBMESH_DIM==3");
@@ -271,28 +257,22 @@ void MeshTools::Modification::scale (MeshBase & mesh,
     }
 
   // Scale the x coordinate in all dimensions
-  const MeshBase::node_iterator nd_end = mesh.nodes_end();
-
-  for (MeshBase::node_iterator nd = mesh.nodes_begin();
-       nd != nd_end; ++nd)
-    (**nd)(0) *= x_scale;
-
+  for (auto & node : mesh.node_ptr_range())
+    (*node)(0) *= x_scale;
 
   // Only scale the y coordinate in 2 and 3D
   if (LIBMESH_DIM < 2)
     return;
 
-  for (MeshBase::node_iterator nd = mesh.nodes_begin();
-       nd != nd_end; ++nd)
-    (**nd)(1) *= y_scale;
+  for (auto & node : mesh.node_ptr_range())
+    (*node)(1) *= y_scale;
 
   // Only scale the z coordinate in 3D
   if (LIBMESH_DIM < 3)
     return;
 
-  for (MeshBase::node_iterator nd = mesh.nodes_begin();
-       nd != nd_end; ++nd)
-    (**nd)(2) *= z_scale;
+  for (auto & node : mesh.node_ptr_range())
+    (*node)(2) *= z_scale;
 }
 
 
@@ -339,7 +319,9 @@ void UnstructuredMesh::all_first_order ()
         (Elem::first_order_equivalent_type
          (so_elem->type()), so_elem->parent()).release();
 
-      for (unsigned int s=0; s != so_elem->n_sides(); ++s)
+      const unsigned short n_sides = so_elem->n_sides();
+
+      for (unsigned short s=0; s != n_sides; ++s)
         if (so_elem->neighbor_ptr(s) == remote_elem)
           lo_elem->set_neighbor(s, const_cast<RemoteElem *>(remote_elem));
 
@@ -348,10 +330,11 @@ void UnstructuredMesh::all_first_order ()
        * Reset the parent links of any child elements
        */
       if (so_elem->has_children())
-        for (unsigned int c=0; c != so_elem->n_children(); ++c)
+        for (unsigned int c = 0, nc = so_elem->n_children(); c != nc; ++c)
           {
-            so_elem->child_ptr(c)->set_parent(lo_elem);
-            lo_elem->add_child(so_elem->child_ptr(c), c);
+            Elem * child = so_elem->child_ptr(c);
+            child->set_parent(lo_elem);
+            lo_elem->add_child(child, c);
           }
 
       /*
@@ -389,15 +372,15 @@ void UnstructuredMesh::all_first_order ()
        * find_neighbors relies on remote_elem neighbor links being
        * properly maintained.
        */
-      for (unsigned short s=0; s<so_elem->n_sides(); s++)
+      for (unsigned short s=0; s != n_sides; s++)
         {
-          if (so_elem->neighbor(s) == remote_elem)
+          if (so_elem->neighbor_ptr(s) == remote_elem)
             lo_elem->set_neighbor(s, const_cast<RemoteElem*>(remote_elem));
         }
 
       /**
        * If the second order element had any boundary conditions they
-       * should be transfered to the first-order element.  The old
+       * should be transferred to the first-order element.  The old
        * boundary conditions will be removed from the BoundaryInfo
        * data structure by insert_elem.
        */
@@ -580,7 +563,7 @@ void UnstructuredMesh::all_second_order (const bool full_ordered)
        * the new_elements list.  Note that this here
        * is the only point where \p full_ordered
        * is necessary.  The remaining code works well
-       * for either type of seconrd-order equivalent, e.g.
+       * for either type of second-order equivalent, e.g.
        * Hex20 or Hex27, as equivalents for Hex8
        */
       Elem * so_elem =
@@ -698,7 +681,7 @@ void UnstructuredMesh::all_second_order (const bool full_ordered)
        * find_neighbors relies on remote_elem neighbor links being
        * properly maintained.
        */
-      for (unsigned short s=0; s<lo_elem->n_sides(); s++)
+      for (auto s : lo_elem->side_index_range())
         {
           if (lo_elem->neighbor_ptr(s) == remote_elem)
             so_elem->set_neighbor(s, const_cast<RemoteElem*>(remote_elem));
@@ -706,7 +689,7 @@ void UnstructuredMesh::all_second_order (const bool full_ordered)
 
       /**
        * If the linear element had any boundary conditions they
-       * should be transfered to the second-order element.  The old
+       * should be transferred to the second-order element.  The old
        * boundary conditions will be removed from the BoundaryInfo
        * data structure by insert_elem.
        *
@@ -807,13 +790,8 @@ void MeshTools::Modification::all_tri (MeshBase & mesh)
     unique_id_type max_unique_id = mesh.parallel_max_unique_id();
 #endif
 
-    MeshBase::element_iterator       el  = mesh.elements_begin();
-    const MeshBase::element_iterator end = mesh.elements_end();
-
-    for (; el!=end; ++el)
+    for (auto & elem : mesh.element_ptr_range())
       {
-        Elem * elem = *el;
-
         const ElemType etype = elem->type();
 
         // all_tri currently only works on coarse meshes
@@ -1442,9 +1420,9 @@ void MeshTools::Modification::all_tri (MeshBase & mesh)
             // Container to key boundary IDs handed back by the BoundaryInfo object.
             std::vector<boundary_id_type> bc_ids;
 
-            for (unsigned int sn=0; sn<elem->n_sides(); ++sn)
+            for (auto sn : elem->side_index_range())
               {
-                mesh.get_boundary_info().boundary_ids(*el, sn, bc_ids);
+                mesh.get_boundary_info().boundary_ids(elem, sn, bc_ids);
                 for (std::vector<boundary_id_type>::const_iterator id_it=bc_ids.begin(); id_it!=bc_ids.end(); ++id_it)
                   {
                     const boundary_id_type b_id = *id_it;
@@ -1453,7 +1431,7 @@ void MeshTools::Modification::all_tri (MeshBase & mesh)
                       continue;
 
                     // Make a sorted list of node ids for elem->side(sn)
-                    UniquePtr<Elem> elem_side = elem->build_side_ptr(sn);
+                    std::unique_ptr<Elem> elem_side = elem->build_side_ptr(sn);
                     std::vector<dof_id_type> elem_side_nodes(elem_side->n_nodes());
                     for (std::size_t esn=0; esn<elem_side_nodes.size(); ++esn)
                       elem_side_nodes[esn] = elem_side->node_id(esn);
@@ -1462,9 +1440,9 @@ void MeshTools::Modification::all_tri (MeshBase & mesh)
                     for (unsigned int i=0; i != max_subelems; ++i)
                       if (subelem[i])
                         {
-                          for (unsigned int subside=0; subside < subelem[i]->n_sides(); ++subside)
+                          for (auto subside : subelem[i]->side_index_range())
                             {
-                              UniquePtr<Elem> subside_elem = subelem[i]->build_side_ptr(subside);
+                              std::unique_ptr<Elem> subside_elem = subelem[i]->build_side_ptr(subside);
 
                               // Make a list of *vertex* node ids for this subside, see if they are all present
                               // in elem->side(sn).  Note 1: we can't just compare elem->key(sn) to
@@ -1644,7 +1622,7 @@ void MeshTools::Modification::smooth (MeshBase & mesh,
                  */
                 if (refinement_level == 0)
                   {
-                    for (unsigned int s=0; s<elem->n_neighbors(); s++)
+                    for (auto s : elem->side_index_range())
                       {
                         /*
                          * Only operate on sides which are on the
@@ -1655,7 +1633,7 @@ void MeshTools::Modification::smooth (MeshBase & mesh,
                         if ((elem->neighbor_ptr(s) != libmesh_nullptr) &&
                             (elem->id() > elem->neighbor_ptr(s)->id()))
                           {
-                            UniquePtr<const Elem> side(elem->build_side_ptr(s));
+                            std::unique_ptr<const Elem> side(elem->build_side_ptr(s));
 
                             const Node & node0 = side->node_ref(0);
                             const Node & node1 = side->node_ref(1);
@@ -1690,37 +1668,31 @@ void MeshTools::Modification::smooth (MeshBase & mesh,
                     /*
                      * find out which child I am
                      */
-                    for (unsigned int c=0; c < parent->n_children(); c++)
+                    unsigned int c = parent->which_child_am_i(elem);
+                    /*
+                     *loop over the childs (that is, the current elements) nodes
+                     */
+                    for (auto nc : elem->node_index_range())
                       {
-                        if (parent->child_ptr(c) == elem)
+                        /*
+                         * the new position of the node
+                         */
+                        Point point;
+                        for (auto n : parent->node_index_range())
                           {
                             /*
-                             *loop over the childs (that is, the current elements) nodes
+                             * The value from the embedding matrix
                              */
-                            for (unsigned int nc=0; nc < elem->n_nodes(); nc++)
-                              {
-                                /*
-                                 * the new position of the node
-                                 */
-                                Point point;
-                                for (unsigned int n=0; n<parent->n_nodes(); n++)
-                                  {
-                                    /*
-                                     * The value from the embedding matrix
-                                     */
-                                    const float em_val = parent->embedding_matrix(c,nc,n);
+                            const float em_val = parent->embedding_matrix(c,nc,n);
 
-                                    if (em_val != 0.)
-                                      point.add_scaled (parent->point(n), em_val);
-                                  }
+                            if (em_val != 0.)
+                              point.add_scaled (parent->point(n), em_val);
+                          }
 
-                                const dof_id_type id = elem->node_ptr(nc)->id();
-                                new_positions[id] = point;
-                                weight[id] = 1.;
-                              }
-
-                          } // if parent->child == elem
-                      } // for parent->n_children
+                        const dof_id_type id = elem->node_ptr(nc)->id();
+                        new_positions[id] = point;
+                        weight[id] = 1.;
+                      }
                   } // if element refinement_level
 #endif // #ifdef LIBMESH_ENABLE_AMR
 
@@ -1737,7 +1709,7 @@ void MeshTools::Modification::smooth (MeshBase & mesh,
           {
             /*
              * Now handle the additional second_order nodes by calculating
-             * their position based on the vertex postitions
+             * their position based on the vertex positions
              * we do a second loop over the level elements
              */
             MeshBase::element_iterator       el  = mesh.level_elements_begin(refinement_level);
@@ -1801,78 +1773,65 @@ void MeshTools::Modification::flatten(MeshBase & mesh)
   saved_boundary_elements.reserve(mesh.get_boundary_info().n_boundary_conds());
   saved_bc_ids.reserve(mesh.get_boundary_info().n_boundary_conds());
   saved_bc_sides.reserve(mesh.get_boundary_info().n_boundary_conds());
-  {
-    MeshBase::element_iterator       it  = mesh.active_elements_begin();
-    const MeshBase::element_iterator end = mesh.active_elements_end();
 
-    for (; it != end; ++it)
-      {
-        Elem * elem = *it;
+  for (auto & elem : mesh.active_element_ptr_range())
+    {
+      // Make a new element of the same type
+      Elem * copy = Elem::build(elem->type()).release();
 
-        // Make a new element of the same type
-        Elem * copy = Elem::build(elem->type()).release();
+      // Set node pointers (they still point to nodes in the original mesh)
+      for (auto n : elem->node_index_range())
+        copy->set_node(n) = elem->node_ptr(n);
 
-        // Set node pointers (they still point to nodes in the original mesh)
-        for (unsigned int n=0; n<elem->n_nodes(); n++)
-          copy->set_node(n) = elem->node_ptr(n);
+      // Copy over ids
+      copy->processor_id() = elem->processor_id();
+      copy->subdomain_id() = elem->subdomain_id();
 
-        // Copy over ids
-        copy->processor_id() = elem->processor_id();
-        copy->subdomain_id() = elem->subdomain_id();
-
-        // Retain the original element's ID(s) as well, otherwise
-        // the Mesh may try to create them for you...
-        copy->set_id( elem->id() );
+      // Retain the original element's ID(s) as well, otherwise
+      // the Mesh may try to create them for you...
+      copy->set_id( elem->id() );
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-        copy->set_unique_id() = elem->unique_id();
+      copy->set_unique_id() = elem->unique_id();
 #endif
 
-        // This element could have boundary info or DistributedMesh
-        // remote_elem links as well.  We need to save the (elem,
-        // side, bc_id) triples and those links
-        for (unsigned short s=0; s<elem->n_sides(); s++)
-          {
-            if (elem->neighbor_ptr(s) == remote_elem)
-              copy->set_neighbor(s, const_cast<RemoteElem *>(remote_elem));
+      // This element could have boundary info or DistributedMesh
+      // remote_elem links as well.  We need to save the (elem,
+      // side, bc_id) triples and those links
+      for (auto s : elem->side_index_range())
+        {
+          if (elem->neighbor_ptr(s) == remote_elem)
+            copy->set_neighbor(s, const_cast<RemoteElem *>(remote_elem));
 
-            mesh.get_boundary_info().boundary_ids(elem, s, bc_ids);
-            for (std::vector<boundary_id_type>::const_iterator id_it=bc_ids.begin(); id_it!=bc_ids.end(); ++id_it)
-              {
-                const boundary_id_type bc_id = *id_it;
+          mesh.get_boundary_info().boundary_ids(elem, s, bc_ids);
+          for (std::vector<boundary_id_type>::const_iterator id_it=bc_ids.begin(); id_it!=bc_ids.end(); ++id_it)
+            {
+              const boundary_id_type bc_id = *id_it;
 
-                if (bc_id != BoundaryInfo::invalid_id)
-                  {
-                    saved_boundary_elements.push_back(copy);
-                    saved_bc_ids.push_back(bc_id);
-                    saved_bc_sides.push_back(s);
-                  }
-              }
-          }
+              if (bc_id != BoundaryInfo::invalid_id)
+                {
+                  saved_boundary_elements.push_back(copy);
+                  saved_bc_ids.push_back(bc_id);
+                  saved_bc_sides.push_back(s);
+                }
+            }
+        }
 
 
-        // We're done with this element
-        mesh.delete_elem(elem);
+      // We're done with this element
+      mesh.delete_elem(elem);
 
-        // But save the copy
-        new_elements.push_back(copy);
-      }
+      // But save the copy
+      new_elements.push_back(copy);
+    }
 
-    // Make sure we saved the same number of boundary conditions
-    // in each vector.
-    libmesh_assert_equal_to (saved_boundary_elements.size(), saved_bc_ids.size());
-    libmesh_assert_equal_to (saved_bc_ids.size(), saved_bc_sides.size());
-  }
-
+  // Make sure we saved the same number of boundary conditions
+  // in each vector.
+  libmesh_assert_equal_to (saved_boundary_elements.size(), saved_bc_ids.size());
+  libmesh_assert_equal_to (saved_bc_ids.size(), saved_bc_sides.size());
 
   // Loop again, delete any remaining elements
-  {
-    MeshBase::element_iterator       it  = mesh.elements_begin();
-    const MeshBase::element_iterator end = mesh.elements_end();
-
-    for (; it != end; ++it)
-      mesh.delete_elem( *it );
-  }
-
+  for (auto & elem : mesh.element_ptr_range())
+    mesh.delete_elem(elem);
 
   // Add the copied (now level-0) elements back to the mesh
   {
@@ -2074,13 +2033,8 @@ void MeshTools::Modification::change_subdomain_id (MeshBase & mesh,
       return;
     }
 
-  MeshBase::element_iterator           el = mesh.elements_begin();
-  const MeshBase::element_iterator end_el = mesh.elements_end();
-
-  for (; el != end_el; ++el)
+  for (auto & elem : mesh.element_ptr_range())
     {
-      Elem * elem = *el;
-
       if (elem->subdomain_id() == old_id)
         elem->subdomain_id() = new_id;
     }

@@ -30,43 +30,28 @@ void AugmentSparsityOnInterface::mesh_reinit ()
   // Loop over all elements (not just local elements) to make sure we find
   // "neighbor" elements on opposite sides of the crack.
 
-  MeshBase::const_element_iterator       el     = _mesh.active_elements_begin();
-  const MeshBase::const_element_iterator end_el = _mesh.active_elements_end();
-
   // Map from (elem, side) to centroid
-  std::map< std::pair<const Elem *, unsigned char>, Point> lower_centroids;
-  std::map< std::pair<const Elem *, unsigned char>, Point> upper_centroids;
+  std::map<std::pair<const Elem *, unsigned char>, Point> lower_centroids;
+  std::map<std::pair<const Elem *, unsigned char>, Point> upper_centroids;
 
-  for ( ; el != end_el; ++el)
-    {
-      const Elem * elem = *el;
-
-      {
-        for (unsigned char side=0; side<elem->n_sides(); side++)
-          if (elem->neighbor_ptr(side) == libmesh_nullptr)
+  for (const auto & elem : _mesh.active_element_ptr_range())
+    for (auto side : elem->side_index_range())
+      if (elem->neighbor_ptr(side) == libmesh_nullptr)
+        {
+          if (_mesh.get_boundary_info().has_boundary_id(elem, side, _crack_boundary_lower))
             {
-              if (_mesh.get_boundary_info().has_boundary_id(elem, side, _crack_boundary_lower))
-                {
-                  UniquePtr<const Elem> side_elem = elem->build_side_ptr(side);
+              std::unique_ptr<const Elem> side_elem = elem->build_side_ptr(side);
 
-                  lower_centroids[std::make_pair(elem, side)] = side_elem->centroid();
-                }
+              lower_centroids[std::make_pair(elem, side)] = side_elem->centroid();
             }
-      }
 
-      {
-        for (unsigned char side=0; side<elem->n_sides(); side++)
-          if (elem->neighbor_ptr(side) == libmesh_nullptr)
+          if (_mesh.get_boundary_info().has_boundary_id(elem, side, _crack_boundary_upper))
             {
-              if (_mesh.get_boundary_info().has_boundary_id(elem, side, _crack_boundary_upper))
-                {
-                  UniquePtr<const Elem> side_elem = elem->build_side_ptr(side);
+              std::unique_ptr<const Elem> side_elem = elem->build_side_ptr(side);
 
-                  upper_centroids[std::make_pair(elem, side)] = side_elem->centroid();
-                }
+              upper_centroids[std::make_pair(elem, side)] = side_elem->centroid();
             }
-      }
-    }
+        }
 
   // If we're doing a reinit on a distributed mesh then we may not see
   // all the centroids, or even a matching number of centroids.
@@ -85,8 +70,8 @@ void AugmentSparsityOnInterface::mesh_reinit ()
   // We do an N^2 search to find elements with matching centroids. This could be optimized,
   // e.g. by first sorting the centroids based on their (x,y,z) location.
   {
-    std::map< std::pair<const Elem *, unsigned char>, Point>::iterator it     = lower_centroids.begin();
-    std::map< std::pair<const Elem *, unsigned char>, Point>::iterator it_end = lower_centroids.end();
+    std::map<std::pair<const Elem *, unsigned char>, Point>::iterator it     = lower_centroids.begin();
+    std::map<std::pair<const Elem *, unsigned char>, Point>::iterator it_end = lower_centroids.end();
     for ( ; it != it_end; ++it)
       {
         Point lower_centroid = it->second;
@@ -94,8 +79,8 @@ void AugmentSparsityOnInterface::mesh_reinit ()
         // find closest centroid in upper_centroids
         Real min_distance = std::numeric_limits<Real>::max();
 
-        std::map< std::pair<const Elem *, unsigned char>, Point>::iterator inner_it     = upper_centroids.begin();
-        std::map< std::pair<const Elem *, unsigned char>, Point>::iterator inner_it_end = upper_centroids.end();
+        std::map<std::pair<const Elem *, unsigned char>, Point>::iterator inner_it     = upper_centroids.begin();
+        std::map<std::pair<const Elem *, unsigned char>, Point>::iterator inner_it_end = upper_centroids.end();
 
         for ( ; inner_it != inner_it_end; ++inner_it)
           {
@@ -129,8 +114,8 @@ void AugmentSparsityOnInterface::mesh_reinit ()
 
     // Let's make sure we didn't miss any upper elements either
 #ifndef NDEBUG
-    std::map< std::pair<const Elem *, unsigned char>, Point>::iterator inner_it     = upper_centroids.begin();
-    std::map< std::pair<const Elem *, unsigned char>, Point>::iterator inner_it_end = upper_centroids.end();
+    std::map<std::pair<const Elem *, unsigned char>, Point>::iterator inner_it     = upper_centroids.begin();
+    std::map<std::pair<const Elem *, unsigned char>, Point>::iterator inner_it_end = upper_centroids.end();
 
     for ( ; inner_it != inner_it_end; ++inner_it)
       {
@@ -163,7 +148,7 @@ void AugmentSparsityOnInterface::operator()
       if (elem->processor_id() != p)
         coupled_elements.insert (std::make_pair(elem, null_mat));
 
-      for (unsigned int side=0; side<elem->n_sides(); side++)
+      for (auto side : elem->side_index_range())
         if (elem->neighbor_ptr(side) == libmesh_nullptr)
           {
             ElementSideMap::const_iterator ltu_it =

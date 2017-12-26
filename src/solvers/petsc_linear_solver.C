@@ -420,10 +420,10 @@ PetscLinearSolver<T>::solve (SparseMatrix<T> &  matrix_in,
   Vec subrhs = libmesh_nullptr;
   Vec subsolution = libmesh_nullptr;
   VecScatter scatter = libmesh_nullptr;
-  UniquePtr<PetscMatrix<Number> > subprecond_matrix;
+  std::unique_ptr<PetscMatrix<Number>> subprecond_matrix;
 
   // Set operators.  Also restrict rhs and solution vector to
-  // subdomain if neccessary.
+  // subdomain if necessary.
   if (_restrict_solve_to_is != libmesh_nullptr)
     {
       PetscInt is_local_size = this->_restrict_solve_to_is_local_size();
@@ -687,10 +687,10 @@ PetscLinearSolver<T>::adjoint_solve (SparseMatrix<T> &  matrix_in,
   Vec subrhs = libmesh_nullptr;
   Vec subsolution = libmesh_nullptr;
   VecScatter scatter = libmesh_nullptr;
-  UniquePtr<PetscMatrix<Number> > subprecond_matrix;
+  std::unique_ptr<PetscMatrix<Number>> subprecond_matrix;
 
   // Set operators.  Also restrict rhs and solution vector to
-  // subdomain if neccessary.
+  // subdomain if necessary.
   if (_restrict_solve_to_is != libmesh_nullptr)
     {
       PetscInt is_local_size = this->_restrict_solve_to_is_local_size();
@@ -1007,10 +1007,7 @@ PetscLinearSolver<T>::solve (const ShellMatrix<T> & shell_matrix,
       ierr = VecScatterEnd(scatter,solution->vec(),subsolution,INSERT_VALUES,SCATTER_FORWARD);
       LIBMESH_CHKERR(ierr);
 
-#if PETSC_VERSION_LESS_THAN(3,1,0)
-      // This point can't be reached, see above.
-      libmesh_error_msg("We'll never get here!");
-#else
+#if !PETSC_VERSION_LESS_THAN(3,1,0)
       ierr = LibMeshCreateSubMatrix(mat,
                                     _restrict_solve_to_is,
                                     _restrict_solve_to_is,
@@ -1051,10 +1048,7 @@ PetscLinearSolver<T>::solve (const ShellMatrix<T> & shell_matrix,
           ierr = VecScale(subvec1,-1.0);
           LIBMESH_CHKERR(ierr);
 
-#if PETSC_VERSION_LESS_THAN(3,1,0)
-          // This point can't be reached, see above.
-          libmesh_error_msg("We'll never get here!");
-#else
+#if !PETSC_VERSION_LESS_THAN(3,1,0)
           ierr = LibMeshCreateSubMatrix(mat,
                                         _restrict_solve_to_is,
                                         _restrict_solve_to_is_complement,
@@ -1223,7 +1217,7 @@ PetscLinearSolver<T>::solve (const ShellMatrix<T> & shell_matrix,
   Vec subrhs = libmesh_nullptr;
   Vec subsolution = libmesh_nullptr;
   VecScatter scatter = libmesh_nullptr;
-  UniquePtr<PetscMatrix<Number> > subprecond_matrix;
+  std::unique_ptr<PetscMatrix<Number>> subprecond_matrix;
 
   // Close the matrices and vectors in case this wasn't already done.
   solution->close ();
@@ -1284,10 +1278,7 @@ PetscLinearSolver<T>::solve (const ShellMatrix<T> & shell_matrix,
       ierr = VecScatterEnd(scatter,solution->vec(),subsolution,INSERT_VALUES,SCATTER_FORWARD);
       LIBMESH_CHKERR(ierr);
 
-#if PETSC_VERSION_LESS_THAN(3,1,0)
-      // This point can't be reached, see above.
-      libmesh_error_msg("We'll never get here!");
-#else
+#if !PETSC_VERSION_LESS_THAN(3,1,0)
       ierr = LibMeshCreateSubMatrix(mat,
                                     _restrict_solve_to_is,
                                     _restrict_solve_to_is,
@@ -1334,10 +1325,7 @@ PetscLinearSolver<T>::solve (const ShellMatrix<T> & shell_matrix,
           ierr = VecScale(subvec1,-1.0);
           LIBMESH_CHKERR(ierr);
 
-#if PETSC_VERSION_LESS_THAN(3,1,0)
-          // This point can't be reached, see above.
-          libmesh_error_msg("We'll never get here!");
-#else
+#if !PETSC_VERSION_LESS_THAN(3,1,0)
           ierr = LibMeshCreateSubMatrix(mat,
                                         _restrict_solve_to_is,
                                         _restrict_solve_to_is_complement,

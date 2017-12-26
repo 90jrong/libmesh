@@ -49,22 +49,19 @@ Tree<N>::Tree (const MeshBase & m,
     {
       // Add all the nodes to the root node.  It will
       // automagically build the tree for us.
-      MeshBase::const_node_iterator       it  = mesh.nodes_begin();
-      const MeshBase::const_node_iterator end = mesh.nodes_end();
-
-      for (; it != end; ++it)
+      for (const auto & node : mesh.node_ptr_range())
         {
 #ifndef NDEBUG
           bool node_was_inserted =
 #endif
-            root.insert (*it);
+            root.insert (node);
           libmesh_assert(node_was_inserted);
         }
 
       // Now the tree contains the nodes.
       // However, we want element pointers, so here we
       // convert between the two.
-      std::vector<std::vector<const Elem *> > nodes_to_elem;
+      std::vector<std::vector<const Elem *>> nodes_to_elem;
 
       MeshTools::build_nodes_to_elem_map (mesh, nodes_to_elem);
       root.transform_nodes_to_elements (nodes_to_elem);
@@ -74,15 +71,12 @@ Tree<N>::Tree (const MeshBase & m,
     {
       // Add all active elements to the root node.  It will
       // automatically build the tree for us.
-      MeshBase::const_element_iterator       it  = mesh.active_elements_begin();
-      const MeshBase::const_element_iterator end = mesh.active_elements_end();
-
-      for (; it != end; ++it)
+      for (const auto & elem : mesh.active_element_ptr_range())
         {
 #ifndef NDEBUG
           bool elem_was_inserted =
 #endif
-            root.insert (*it);
+            root.insert (elem);
           libmesh_assert(elem_was_inserted);
         }
     }
@@ -91,15 +85,12 @@ Tree<N>::Tree (const MeshBase & m,
     {
       // Add all active, local elements to the root node.  It will
       // automatically build the tree for us.
-      MeshBase::const_element_iterator       it  = mesh.active_local_elements_begin();
-      const MeshBase::const_element_iterator end = mesh.active_local_elements_end();
-
-      for (; it != end; ++it)
+      for (const auto & elem : mesh.active_local_element_ptr_range())
         {
 #ifndef NDEBUG
           bool elem_was_inserted =
 #endif
-            root.insert (*it);
+            root.insert (elem);
           libmesh_assert(elem_was_inserted);
         }
     }

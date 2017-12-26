@@ -38,10 +38,10 @@
 #include <algorithm>
 #include <math.h>
 
-// Basic include file needed for the mesh functionality.
+// Basic include files needed for the mesh functionality.
 #include "libmesh/exodusII_io.h"
 #include "libmesh/libmesh.h"
-#include "libmesh/replicated_mesh.h"
+#include "libmesh/mesh.h"
 #include "libmesh/mesh_generation.h"
 #include "libmesh/linear_implicit_system.h"
 #include "libmesh/equation_systems.h"
@@ -98,10 +98,7 @@ int main (int argc, char ** argv)
 
   // Create a serialized mesh, distributed across the default MPI
   // communicator.
-  // InfElemBuilder still requires some updates to be DistributedMesh
-  // compatible
-
-  ReplicatedMesh mesh(init.comm());
+  Mesh mesh(init.comm());
 
   // Use the internal mesh generator to create elements
   // on the square [-1,1]^3, of type Hex8.
@@ -140,18 +137,9 @@ int main (int argc, char ** argv)
 
   // Reassign subdomain_id() of all infinite elements.
   // Otherwise, the exodus-api will fail on the mesh.
-  MeshBase::element_iterator       elem_it  = mesh.elements_begin();
-  const MeshBase::element_iterator elem_end = mesh.elements_end();
-  for (; elem_it != elem_end; ++elem_it)
-    {
-      Elem * elem = *elem_it;
-      if(elem->infinite())
-        {
-          elem->subdomain_id() = 1;
-        }
-    }
-
-
+  for (auto & elem : mesh.element_ptr_range())
+    if (elem->infinite())
+      elem->subdomain_id() = 1;
 
   // Print information about the mesh to the screen.
   mesh.print_info();
@@ -210,6 +198,8 @@ int main (int argc, char ** argv)
   // Solve the system "Wave".
   equation_systems.get_system("Wave").solve();
 
+  libMesh::out << "Wave system solved" << std::endl;
+
   // Write the whole EquationSystems object to file.
   // For infinite elements, the concept of nodal_soln()
   // is not applicable. Therefore, writing the mesh in
@@ -219,6 +209,8 @@ int main (int argc, char ** argv)
   // determine physically correct results within an
   // infinite element.
   equation_systems.write ("eqn_sys.dat", WRITE);
+
+  libMesh::out << "eqn_sys.dat written" << std::endl;
 
   // All done.
   return 0;
@@ -264,11 +256,11 @@ void assemble_wave(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  // store the object as a std::unique_ptr<FEBase>.
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // Do the same for an infinite element.
-  UniquePtr<FEBase> inf_fe (FEBase::build_InfFE(dim, fe_type));
+  std::unique_ptr<FEBase> inf_fe (FEBase::build_InfFE(dim, fe_type));
 
   // A 2nd order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, SECOND);
@@ -305,15 +297,8 @@ void assemble_wave(EquationSystems & es,
   // Now we will loop over all the elements in the mesh.
   // We will compute the element matrix and right-hand-side
   // contribution.
-  MeshBase::const_element_iterator           el = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -340,8 +325,8 @@ void assemble_wave(EquationSystems & es,
         {
           // We have an infinite element.  Let cfe point
           // to our InfFE object.  This is handled through
-          // a UniquePtr.  Through the UniquePtr::get() we "borrow"
-          // the pointer, while the  UniquePtr inf_fe is
+          // a std::unique_ptr.  Through the std::unique_ptr::get() we "borrow"
+          // the pointer, while the  std::unique_ptr inf_fe is
           // still in charge of memory management.
           cfe = inf_fe.get();
         }
@@ -370,11 +355,11 @@ void assemble_wave(EquationSystems & es,
       const std::vector<Real> & JxW = cfe->get_JxW();
 
       // The element shape functions evaluated at the quadrature points.
-      const std::vector<std::vector<Real> > & phi = cfe->get_phi();
+      const std::vector<std::vector<Real>> & phi = cfe->get_phi();
 
       // The element shape function gradients evaluated at the quadrature
       // points.
-      const std::vector<std::vector<RealGradient> > & dphi = cfe->get_dphi();
+      const std::vector<std::vector<RealGradient>> & dphi = cfe->get_dphi();
 
       // The infinite elements need more data fields than conventional FE.
       // These are the gradients of the phase term dphase, an additional
@@ -483,28 +468,16 @@ void assemble_wave(EquationSystems & es,
 
   // Note that we have not applied any boundary conditions so far.
   // Here we apply a unit load at the node located at (0,0,0).
-  {
-    // Iterate over local nodes
-    MeshBase::const_node_iterator           nd = mesh.local_nodes_begin();
-    const MeshBase::const_node_iterator nd_end = mesh.local_nodes_end();
-
-    for (; nd != nd_end; ++nd)
+  for (const auto & node : mesh.local_node_ptr_range())
+    if (std::abs((*node)(0)) < TOLERANCE &&
+        std::abs((*node)(1)) < TOLERANCE &&
+        std::abs((*node)(2)) < TOLERANCE)
       {
-        // Get a reference to the current node.
-        const Node & node = **nd;
+        // The global number of the respective degree of freedom.
+        unsigned int dn = node->dof_number(0,0,0);
 
-        // Check the location of the current node.
-        if (std::abs(node(0)) < TOLERANCE &&
-            std::abs(node(1)) < TOLERANCE &&
-            std::abs(node(2)) < TOLERANCE)
-          {
-            // The global number of the respective degree of freedom.
-            unsigned int dn = node.dof_number(0,0,0);
-
-            system.rhs->add (dn, 1.);
-          }
+        system.rhs->add (dn, 1.);
       }
-  }
 
 #else
 

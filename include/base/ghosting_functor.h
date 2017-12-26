@@ -27,7 +27,7 @@
 #include "libmesh/reference_counted_object.h"
 
 // C++ Includes
-#include LIBMESH_INCLUDE_UNORDERED_MAP
+#include <unordered_map>
 
 namespace libMesh
 {
@@ -137,12 +137,12 @@ public:
    * What elements do we care about and what variables do we care
    * about on each element?
    */
-  typedef LIBMESH_BEST_UNORDERED_MAP<const Elem*, const CouplingMatrix*> map_type;
+  typedef std::unordered_map<const Elem*, const CouplingMatrix*> map_type;
 
   /**
    * For the specified range of active elements, what other elements
    * currently living (whether local or ghosted) on this processor
-   * need to be coupled/ghosted to accomodate them?  Don't bother to
+   * need to be coupled/ghosted to accommodate them?  Don't bother to
    * return any results which already have processor_id p.
    *
    * This API is new, and we should replace "ignoring those on

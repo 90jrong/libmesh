@@ -30,7 +30,7 @@
 #include "libmesh/dense_matrix.h"
 #include "libmesh/petsc_vector.h"
 
-// For some reason, the blocked matrix API calls below seem to break with PETSC 3.2 & presumably earier.
+// For some reason, the blocked matrix API calls below seem to break with PETSC 3.2 & presumably earlier.
 // For example:
 // [0]PETSC ERROR: --------------------- Error Message ------------------------------------
 // [0]PETSC ERROR: Nonconforming object sizes!
@@ -910,6 +910,19 @@ void PetscMatrix<T>::close ()
   ierr = MatAssemblyBegin (_mat, MAT_FINAL_ASSEMBLY);
   LIBMESH_CHKERR(ierr);
   ierr = MatAssemblyEnd   (_mat, MAT_FINAL_ASSEMBLY);
+  LIBMESH_CHKERR(ierr);
+}
+
+template <typename T>
+void PetscMatrix<T>::flush ()
+{
+  semiparallel_only();
+
+  PetscErrorCode ierr=0;
+
+  ierr = MatAssemblyBegin (_mat, MAT_FLUSH_ASSEMBLY);
+  LIBMESH_CHKERR(ierr);
+  ierr = MatAssemblyEnd   (_mat, MAT_FLUSH_ASSEMBLY);
   LIBMESH_CHKERR(ierr);
 }
 

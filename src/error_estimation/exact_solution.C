@@ -70,17 +70,6 @@ ExactSolution::ExactSolution(const EquationSystems & es) :
 
 ExactSolution::~ExactSolution()
 {
-  // delete will clean up any cloned functors and no-op on any NULL
-  // pointers
-
-  for (std::size_t i=0; i != _exact_values.size(); ++i)
-    delete (_exact_values[i]);
-
-  for (std::size_t i=0; i != _exact_derivs.size(); ++i)
-    delete (_exact_derivs[i]);
-
-  for (std::size_t i=0; i != _exact_hessians.size(); ++i)
-    delete (_exact_hessians[i]);
 }
 
 
@@ -110,9 +99,7 @@ void ExactSolution::attach_exact_value (Number fptr(const Point & p,
   for (unsigned int sys=0; sys<_equation_systems.n_systems(); ++sys)
     {
       const System & system = _equation_systems.get_system(sys);
-      _exact_values.push_back
-        (new WrappedFunction<Number>
-         (system, fptr, &_equation_systems.parameters));
+      _exact_values.emplace_back(libmesh_make_unique<WrappedFunction<Number>>(system, fptr, &_equation_systems.parameters));
     }
 
   // If we're using exact values, we're not using a fine grid solution
@@ -122,20 +109,12 @@ void ExactSolution::attach_exact_value (Number fptr(const Point & p,
 
 void ExactSolution::attach_exact_values (const std::vector<FunctionBase<Number> *> & f)
 {
-  // Clear out any previous _exact_values entries, then add a new
+  // Automatically delete any previous _exact_values entries, then add a new
   // entry for each system.
-  for (std::size_t i=0; i != _exact_values.size(); ++i)
-    delete (_exact_values[i]);
-
   _exact_values.clear();
-  _exact_values.resize(f.size(), libmesh_nullptr);
 
-  // We use clone() to get non-sliced copies of FunctionBase
-  // subclasses, but we don't currently put the resulting UniquePtrs
-  // into an STL container.
-  for (std::size_t i=0; i != f.size(); ++i)
-    if (f[i])
-      _exact_values[i] = f[i]->clone().release();
+  for (auto ptr : f)
+    _exact_values.emplace_back(ptr ? ptr->clone() : libmesh_nullptr);
 }
 
 
@@ -143,10 +122,10 @@ void ExactSolution::attach_exact_value (unsigned int sys_num,
                                         FunctionBase<Number> * f)
 {
   if (_exact_values.size() <= sys_num)
-    _exact_values.resize(sys_num+1, libmesh_nullptr);
+    _exact_values.resize(sys_num+1);
 
   if (f)
-    _exact_values[sys_num] = f->clone().release();
+    _exact_values[sys_num] = f->clone();
 }
 
 
@@ -164,9 +143,7 @@ void ExactSolution::attach_exact_deriv (Gradient gptr(const Point & p,
   for (unsigned int sys=0; sys<_equation_systems.n_systems(); ++sys)
     {
       const System & system = _equation_systems.get_system(sys);
-      _exact_derivs.push_back
-        (new WrappedFunction<Gradient>
-         (system, gptr, &_equation_systems.parameters));
+      _exact_derivs.emplace_back(libmesh_make_unique<WrappedFunction<Gradient>>(system, gptr, &_equation_systems.parameters));
     }
 
   // If we're using exact values, we're not using a fine grid solution
@@ -176,20 +153,12 @@ void ExactSolution::attach_exact_deriv (Gradient gptr(const Point & p,
 
 void ExactSolution::attach_exact_derivs (const std::vector<FunctionBase<Gradient> *> & g)
 {
-  // Clear out any previous _exact_derivs entries, then add a new
+  // Automatically delete any previous _exact_derivs entries, then add a new
   // entry for each system.
-  for (std::size_t i=0; i != _exact_derivs.size(); ++i)
-    delete (_exact_derivs[i]);
-
   _exact_derivs.clear();
-  _exact_derivs.resize(g.size(), libmesh_nullptr);
 
-  // We use clone() to get non-sliced copies of FunctionBase
-  // subclasses, but we don't currently put the resulting UniquePtrs
-  // into an STL container.
-  for (std::size_t i=0; i != g.size(); ++i)
-    if (g[i])
-      _exact_derivs[i] = g[i]->clone().release();
+  for (auto ptr : g)
+    _exact_derivs.emplace_back(ptr ? ptr->clone() : libmesh_nullptr);
 }
 
 
@@ -197,10 +166,10 @@ void ExactSolution::attach_exact_deriv (unsigned int sys_num,
                                         FunctionBase<Gradient> * g)
 {
   if (_exact_derivs.size() <= sys_num)
-    _exact_derivs.resize(sys_num+1, libmesh_nullptr);
+    _exact_derivs.resize(sys_num+1);
 
   if (g)
-    _exact_derivs[sys_num] = g->clone().release();
+    _exact_derivs[sys_num] = g->clone();
 }
 
 
@@ -218,9 +187,7 @@ void ExactSolution::attach_exact_hessian (Tensor hptr(const Point & p,
   for (unsigned int sys=0; sys<_equation_systems.n_systems(); ++sys)
     {
       const System & system = _equation_systems.get_system(sys);
-      _exact_hessians.push_back
-        (new WrappedFunction<Tensor>
-         (system, hptr, &_equation_systems.parameters));
+      _exact_hessians.emplace_back(libmesh_make_unique<WrappedFunction<Tensor>>(system, hptr, &_equation_systems.parameters));
     }
 
   // If we're using exact values, we're not using a fine grid solution
@@ -230,20 +197,12 @@ void ExactSolution::attach_exact_hessian (Tensor hptr(const Point & p,
 
 void ExactSolution::attach_exact_hessians (std::vector<FunctionBase<Tensor> *> h)
 {
-  // Clear out any previous _exact_hessians entries, then add a new
+  // Automatically delete any previous _exact_hessians entries, then add a new
   // entry for each system.
-  for (std::size_t i=0; i != _exact_hessians.size(); ++i)
-    delete (_exact_hessians[i]);
-
   _exact_hessians.clear();
-  _exact_hessians.resize(h.size(), libmesh_nullptr);
 
-  // We use clone() to get non-sliced copies of FunctionBase
-  // subclasses, but we don't currently put the resulting UniquePtrs
-  // into an STL container.
-  for (std::size_t i=0; i != h.size(); ++i)
-    if (h[i])
-      _exact_hessians[i] = h[i]->clone().release();
+  for (auto ptr : h)
+    _exact_hessians.emplace_back(ptr ? ptr->clone() : libmesh_nullptr);
 }
 
 
@@ -251,10 +210,10 @@ void ExactSolution::attach_exact_hessian (unsigned int sys_num,
                                           FunctionBase<Tensor> * h)
 {
   if (_exact_hessians.size() <= sys_num)
-    _exact_hessians.resize(sys_num+1, libmesh_nullptr);
+    _exact_hessians.resize(sys_num+1);
 
   if (h)
-    _exact_hessians[sys_num] = h->clone().release();
+    _exact_hessians[sys_num] = h->clone();
 }
 
 
@@ -504,7 +463,7 @@ Real ExactSolution::h2_error(const std::string & sys_name,
 
 
 
-template< typename OutputShape>
+template<typename OutputShape>
 void ExactSolution::_compute_error(const std::string & sys_name,
                                    const std::string & unknown_name,
                                    std::vector<Real> & error_vals)
@@ -512,7 +471,7 @@ void ExactSolution::_compute_error(const std::string & sys_name,
   // Make sure we aren't "overconfigured"
   libmesh_assert (!(_exact_values.size() && _equation_systems_fine));
 
-  // We need a commmunicator.
+  // We need a communicator.
   const Parallel::Communicator & communicator(_equation_systems.comm());
 
   // This function must be run on all processors at once
@@ -533,8 +492,8 @@ void ExactSolution::_compute_error(const std::string & sys_name,
     computed_system.variable_scalar_number(var, 0);
 
   // Prepare a global solution and a MeshFunction of the coarse system if we need one
-  UniquePtr<MeshFunction> coarse_values;
-  UniquePtr<NumericVector<Number> > comparison_soln = NumericVector<Number>::build(_equation_systems.comm());
+  std::unique_ptr<MeshFunction> coarse_values;
+  std::unique_ptr<NumericVector<Number>> comparison_soln = NumericVector<Number>::build(_equation_systems.comm());
   if (_equation_systems_fine)
     {
       const System & comparison_system
@@ -545,7 +504,7 @@ void ExactSolution::_compute_error(const std::string & sys_name,
       comparison_soln->init(comparison_system.solution->size(), true, SERIAL);
       (*comparison_soln) = global_soln;
 
-      coarse_values = UniquePtr<MeshFunction>
+      coarse_values = std::unique_ptr<MeshFunction>
         (new MeshFunction(_equation_systems,
                           *comparison_soln,
                           comparison_system.get_dof_map(),
@@ -601,22 +560,20 @@ void ExactSolution::_compute_error(const std::string & sys_name,
 
 
   // Allow space for dims 0-3, even if we don't use them all
-  std::vector<FEGenericBase<OutputShape> *> fe_ptrs(4, libmesh_nullptr);
-  std::vector<QBase *> q_rules(4, libmesh_nullptr);
+  std::vector<std::unique_ptr<FEGenericBase<OutputShape>>> fe_ptrs(4);
+  std::vector<std::unique_ptr<QBase>> q_rules(4);
 
   // Prepare finite elements for each dimension present in the mesh
-  for (std::set<unsigned char>::const_iterator d_it = elem_dims.begin();
-       d_it != elem_dims.end(); ++d_it)
+  for (const auto dim : elem_dims)
     {
-      q_rules[*d_it] =
-        fe_type.default_quadrature_rule (*d_it, _extra_order).release();
+      // Build a quadrature rule.
+      q_rules[dim] = fe_type.default_quadrature_rule (dim, _extra_order);
 
       // Construct finite element object
-
-      fe_ptrs[*d_it] = FEGenericBase<OutputShape>::build(*d_it, fe_type).release();
+      fe_ptrs[dim] = FEGenericBase<OutputShape>::build(dim, fe_type);
 
       // Attach quadrature rule to FE object
-      fe_ptrs[*d_it]->attach_quadrature_rule (q_rules[*d_it]);
+      fe_ptrs[dim]->attach_quadrature_rule (q_rules[dim].get());
     }
 
   // The global degree of freedom indices associated
@@ -630,14 +587,10 @@ void ExactSolution::_compute_error(const std::string & sys_name,
   // TODO: this ought to be threaded (and using subordinate
   // MeshFunction objects in each thread rather than a single
   // master)
-  MeshBase::const_element_iterator       el     = _mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = _mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : _mesh.active_local_element_ptr_range())
     {
       // Store a pointer to the element we are currently
       // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
       const unsigned int dim = elem->dim();
 
       const subdomain_id_type elem_subid = elem->subdomain_id();
@@ -653,8 +606,8 @@ void ExactSolution::_compute_error(const std::string & sys_name,
       std::set<subdomain_id_type> subdomain_id;
       subdomain_id.insert(elem_subid);
 
-      FEGenericBase<OutputShape> * fe = fe_ptrs[dim];
-      QBase * qrule = q_rules[dim];
+      FEGenericBase<OutputShape> * fe = fe_ptrs[dim].get();
+      QBase * qrule = q_rules[dim].get();
       libmesh_assert(fe);
       libmesh_assert(qrule);
 
@@ -663,19 +616,19 @@ void ExactSolution::_compute_error(const std::string & sys_name,
 
       // The value of the shape functions at the quadrature points
       // i.e. phi(i) = phi_values[i][qp]
-      const std::vector<std::vector<OutputShape> > &  phi_values = fe->get_phi();
+      const std::vector<std::vector<OutputShape>> &  phi_values = fe->get_phi();
 
       // The value of the shape function gradients at the quadrature points
-      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputGradient> > &
+      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputGradient>> &
         dphi_values = fe->get_dphi();
 
       // The value of the shape function curls at the quadrature points
       // Only computed for vector-valued elements
-      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputShape> > * curl_values = libmesh_nullptr;
+      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputShape>> * curl_values = libmesh_nullptr;
 
       // The value of the shape function divergences at the quadrature points
       // Only computed for vector-valued elements
-      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputDivergence> > * div_values = libmesh_nullptr;
+      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputDivergence>> * div_values = libmesh_nullptr;
 
       if (FEInterface::field_type(fe_type) == TYPE_VECTOR)
         {
@@ -685,7 +638,7 @@ void ExactSolution::_compute_error(const std::string & sys_name,
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
       // The value of the shape function second derivatives at the quadrature points
-      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputTensor> > &
+      const std::vector<std::vector<typename FEGenericBase<OutputShape>::OutputTensor>> &
         d2phi_values = fe->get_d2phi();
 #endif
 
@@ -724,7 +677,7 @@ void ExactSolution::_compute_error(const std::string & sys_name,
           typename FEGenericBase<OutputShape>::OutputNumberDivergence div_u_h = 0.0;
 
           // Compute solution values at the current
-          // quadrature point.  This reqiures a sum
+          // quadrature point.  This requires a sum
           // over all the shape functions evaluated
           // at the quadrature point.
           for (unsigned int i=0; i<n_sf; i++)
@@ -868,14 +821,6 @@ void ExactSolution::_compute_error(const std::string & sys_name,
 
         } // end qp loop
     } // end element loop
-
-  // Clean up the FE and QBase pointers we created
-  for (std::set<unsigned char>::const_iterator d_it = elem_dims.begin();
-       d_it != elem_dims.end(); ++d_it)
-    {
-      delete fe_ptrs[*d_it];
-      delete q_rules[*d_it];
-    }
 
   // Add up the error values on all processors, except for the L-infty
   // norm, for which the maximum is computed.

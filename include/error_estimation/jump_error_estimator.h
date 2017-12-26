@@ -21,7 +21,7 @@
 #define LIBMESH_JUMP_ERROR_ESTIMATOR_H
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/dense_vector.h"
 #include "libmesh/error_estimator.h"
 #include "libmesh/fem_context.h"
@@ -30,6 +30,7 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -131,7 +132,7 @@ protected:
    * Context objects for integrating on the fine and coarse elements
    * sharing a face
    */
-  UniquePtr<FEMContext> fine_context, coarse_context;
+  std::unique_ptr<FEMContext> fine_context, coarse_context;
 
   /**
    * The fine and coarse error values to be set by each side_integration();

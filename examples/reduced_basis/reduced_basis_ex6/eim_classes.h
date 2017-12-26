@@ -1,10 +1,17 @@
 #ifndef EIM_CLASSES_H
 #define EIM_CLASSES_H
 
-// local includes
+// libMesh includes
 #include "libmesh/rb_eim_construction.h"
 #include "libmesh/rb_eim_evaluation.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
+
+// Example includes
 #include "assembly.h"
+
+#ifndef LIBMESH_HAVE_CXX14_MAKE_UNIQUE
+using libMesh::make_unique;
+#endif
 
 // A simple subclass of RBEIMEvaluation. Overload
 // evaluate_parametrized_function to define the
@@ -24,9 +31,9 @@ public:
   /**
    * Build a ThetaEIM rather than an RBEIMTheta.
    */
-  virtual UniquePtr<RBTheta> build_eim_theta(unsigned int index)
+  virtual std::unique_ptr<RBTheta> build_eim_theta(unsigned int index)
   {
-    return UniquePtr<RBTheta>(new ThetaEIM(*this, index));
+    return libmesh_make_unique<ThetaEIM>(*this, index);
   }
 
   /**
@@ -60,9 +67,9 @@ public:
   /**
    * Provide an implementation of build_eim_assembly
    */
-  virtual UniquePtr<ElemAssembly> build_eim_assembly(unsigned int index)
+  virtual std::unique_ptr<ElemAssembly> build_eim_assembly(unsigned int index)
   {
-    return UniquePtr<ElemAssembly>(new AssemblyEIM(*this, index));
+    return libmesh_make_unique<AssemblyEIM>(*this, index);
   }
 
   /**

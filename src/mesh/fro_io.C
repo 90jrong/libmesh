@@ -73,25 +73,23 @@ void FroIO::write (const std::string & fname)
                    << 0. << '\n';
 
       // Write the elements -- 1-based!
-      MeshBase::const_element_iterator       it  = the_mesh.active_elements_begin();
-      const MeshBase::const_element_iterator end = the_mesh.active_elements_end();
-
-      for (unsigned int e=0 ; it != end; ++it)
+      unsigned int e = 0;
+      for (const auto & elem : the_mesh.active_element_ptr_range())
         {
           // .fro likes TRI3's
-          if ((*it)->type() != TRI3)
+          if (elem->type() != TRI3)
             libmesh_error_msg("ERROR:  .fro format only valid for triangles!\n" \
                               << "  writing of " << fname << " aborted.");
 
           out_stream << ++e << " \t";
 
-          for (unsigned int n=0; n<(*it)->n_nodes(); n++)
-            out_stream << (*it)->node_id(n)+1 << " \t";
+          for (unsigned int n=0; n<elem->n_nodes(); n++)
+            out_stream << elem->node_id(n)+1 << " \t";
 
           //   // LHS -> RHS Mapping, for inverted triangles
-          //   out_stream << (*it)->node_id(0)+1 << " \t";
-          //   out_stream << (*it)->node_id(2)+1 << " \t";
-          //   out_stream << (*it)->node_id(1)+1 << " \t";
+          //   out_stream << elem->node_id(0)+1 << " \t";
+          //   out_stream << elem->node_id(2)+1 << " \t";
+          //   out_stream << elem->node_id(1)+1 << " \t";
 
           out_stream << "1\n";
         }
@@ -133,12 +131,12 @@ void FroIO::write (const std::string & fname)
                   // a---b b---c c---d d---e
                   // and piece them together.
                   //
-                  // so, for an arbitray edge n0---n1, we build the
+                  // so, for an arbitrary edge n0---n1, we build the
                   // "forward_edges"  map n0-->n1
                   // "backward_edges" map n1-->n0
                   // and then start with one chain link, and add on...
                   //
-                  UniquePtr<const Elem> side =
+                  std::unique_ptr<const Elem> side =
                     the_mesh.elem_ref(el[e]).build_side_ptr(sl[e]);
 
                   const dof_id_type

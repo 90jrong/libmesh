@@ -74,6 +74,7 @@ void ExodusII_IO::set_output_variables(const std::vector<std::string> & output_v
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 void ExodusII_IO::copy_nodal_solution(System & system,
                                       std::string var_name,
                                       unsigned int timestep)
@@ -81,6 +82,7 @@ void ExodusII_IO::copy_nodal_solution(System & system,
   libmesh_deprecated();
   copy_nodal_solution(system, var_name, var_name, timestep);
 }
+#endif
 
 
 
@@ -98,6 +100,28 @@ void ExodusII_IO::write_discontinuous_exodusII(const std::string & name,
 }
 
 
+#ifdef LIBMESH_HAVE_EXODUS_API
+void ExodusII_IO::write_timestep_discontinuous (const std::string &fname,
+                                                const EquationSystems &es,
+                                                const int timestep,
+                                                const Real time)
+{
+  _timestep = timestep;
+  write_discontinuous_exodusII(fname,es);
+
+  if (MeshOutput<MeshBase>::mesh().processor_id())
+    return;
+
+  exio_helper->write_timestep(timestep, time);
+}
+
+#else
+void ExodusII_IO::write_timestep_discontinuous (const std::string & /* fname */,
+                                                const EquationSystems & /* es */,
+                                                const int /* timestep */,
+                                                const Real /* time */)
+{ libmesh_error(); }
+#endif
 
 
 // ------------------------------------------------------------
@@ -122,10 +146,6 @@ void ExodusII_IO::read (const std::string & fname)
   // Keep track of what kinds of elements this file contains
   elems_of_dimension.clear();
   elems_of_dimension.resize(4, false);
-
-#ifdef DEBUG
-  this->verbose(true);
-#endif
 
   // Instantiate the ElementMaps interface
   ExodusII_IO_Helper::ElementMaps em;
@@ -372,7 +392,7 @@ void ExodusII_IO::read (const std::string & fname)
         for (std::size_t node=0; node<exio_helper->node_list.size(); node++)
           {
             // As before, the entries in 'node_list' are 1-based
-            // indcies into the node_num_map array, so we have to map
+            // indices into the node_num_map array, so we have to map
             // them.  See comment above.
             int libmesh_node_id = exio_helper->node_num_map[exio_helper->node_list[node] - 1] - 1;
             mesh.get_boundary_info().add_node(cast_int<dof_id_type>(libmesh_node_id),
@@ -419,7 +439,7 @@ void ExodusII_IO::write_as_dimension(unsigned dim)
 
 void ExodusII_IO::set_coordinate_offset(Point p)
 {
-  libmesh_deprecated();
+  libmesh_warning("This method may be deprecated in the future");
   exio_helper->set_coordinate_offset(p);
 }
 
@@ -491,36 +511,36 @@ void ExodusII_IO::copy_elemental_solution(System & system,
                                           std::string exodus_var_name,
                                           unsigned int timestep)
 {
-  if (!exio_helper->opened_for_reading)
-    libmesh_error_msg("ERROR, ExodusII file must be opened for reading before copying an elemental solution!");
-
-  // Map from element ID to elemental variable value.  We need to use
-  // a map here rather than a vector (e.g. elem_var_values) since the
-  // libmesh element numbering can contain "holes".  This is the case
-  // if we are reading elemental var values from an adaptively refined
-  // mesh that has not been sequentially renumbered.
-  std::map<dof_id_type, Real> elem_var_value_map;
-  exio_helper->read_elemental_var_values(exodus_var_name, timestep, elem_var_value_map);
-
-  const unsigned int var_num = system.variable_number(system_var_name);
-  if (system.variable_type(var_num) != FEType(CONSTANT, MONOMIAL))
-    libmesh_error_msg("Error! Trying to copy elemental solution into a variable that is not of CONSTANT MONOMIAL type.");
-
-  std::map<dof_id_type, Real>::iterator
-    it = elem_var_value_map.begin(),
-    end = elem_var_value_map.end();
-
-  for (; it!=end; ++it)
+  if (system.comm().rank() == 0)
     {
-      const Elem * elem = MeshInput<MeshBase>::mesh().query_elem_ptr(it->first);
+      if (!exio_helper->opened_for_reading)
+        libmesh_error_msg("ERROR, ExodusII file must be opened for reading before copying an elemental solution!");
 
-      if (elem && elem->n_comp(system.number(), var_num) > 0)
+      // Map from element ID to elemental variable value.  We need to use
+      // a map here rather than a vector (e.g. elem_var_values) since the
+      // libmesh element numbering can contain "holes".  This is the case
+      // if we are reading elemental var values from an adaptively refined
+      // mesh that has not been sequentially renumbered.
+      std::map<dof_id_type, Real> elem_var_value_map;
+      exio_helper->read_elemental_var_values(exodus_var_name, timestep, elem_var_value_map);
+
+      const unsigned int var_num = system.variable_number(system_var_name);
+      if (system.variable_type(var_num) != FEType(CONSTANT, MONOMIAL))
+        libmesh_error_msg("Error! Trying to copy elemental solution into a variable that is not of CONSTANT MONOMIAL type.");
+
+      std::map<dof_id_type, Real>::iterator
+        it = elem_var_value_map.begin(),
+        end = elem_var_value_map.end();
+
+      for (; it!=end; ++it)
         {
-          dof_id_type dof_index = elem->dof_number(system.number(), var_num, 0);
+          const Elem * elem = MeshInput<MeshBase>::mesh().query_elem_ptr(it->first);
 
-          // If the dof_index is local to this processor, set the value
-          if ((dof_index >= system.solution->first_local_index()) && (dof_index < system.solution->last_local_index()))
-            system.solution->set (dof_index, it->second);
+          if (elem && elem->n_comp(system.number(), var_num) > 0)
+            {
+              dof_id_type dof_index = elem->dof_number(system.number(), var_num, 0);
+              system.solution->set (dof_index, it->second);
+            }
         }
     }
 
@@ -528,7 +548,49 @@ void ExodusII_IO::copy_elemental_solution(System & system,
   system.update();
 }
 
+void ExodusII_IO::read_elemental_variable(std::string elemental_var_name,
+                                          unsigned int timestep,
+                                          std::map<unsigned int, Real> & unique_id_to_value_map)
+{
+  // Note that this function MUST be called before renumbering
+  std::map<dof_id_type, Real> elem_var_value_map;
 
+  exio_helper->read_elemental_var_values(elemental_var_name, timestep, elem_var_value_map);
+  for (auto it = elem_var_value_map.begin(); it != elem_var_value_map.end(); ++it)
+    {
+      const Elem * elem = MeshInput<MeshBase>::mesh().query_elem_ptr(it->first);
+      unique_id_to_value_map.insert(std::make_pair(elem->top_parent()->unique_id(), it->second));
+    }
+}
+
+void ExodusII_IO::read_global_variable(std::vector<std::string> global_var_names,
+                                       unsigned int timestep,
+                                       std::vector<Real> & global_values)
+{
+  unsigned int size = global_var_names.size();
+  if (size == 0)
+    libmesh_error_msg("ERROR, empty list of global variables to read from the Exodus file.");
+
+  // read the values for all global variables
+  std::vector<Real> values_from_exodus;
+  exio_helper->read_var_names(ExodusII_IO_Helper::GLOBAL);
+  exio_helper->read_global_values(values_from_exodus, timestep);
+  std::vector<std::string> global_var_names_exodus = exio_helper->global_var_names;
+
+  global_values.clear();
+  for (unsigned int i = 0; i < size; ++i)
+    {
+      // for each global variable in global_var_names, look the corresponding one in global_var_names_from_exodus
+      // and fill global_values accordingly
+      auto it = find(global_var_names_exodus.begin(), global_var_names_exodus.end(), global_var_names[i]);
+      if (it != global_var_names_exodus.end())
+        global_values.push_back(values_from_exodus[it - global_var_names_exodus.begin()]);
+      else
+        libmesh_error_msg("ERROR, Global variable " << global_var_names[i] << \
+                          " not found in Exodus file.");
+    }
+
+}
 
 void ExodusII_IO::write_element_data (const EquationSystems & es)
 {
@@ -831,10 +893,8 @@ void ExodusII_IO::write_nodal_data_discontinuous (const std::string & fname,
 
   int num_vars = cast_int<int>(names.size());
   int num_nodes = 0;
-  MeshBase::const_element_iterator       it  = mesh.active_elements_begin();
-  const MeshBase::const_element_iterator end = mesh.active_elements_end();
-  for ( ; it != end; ++it)
-    num_nodes += (*it)->n_nodes();
+  for (const auto & elem : mesh.active_element_ptr_range())
+    num_nodes += elem->n_nodes();
 
 #ifdef LIBMESH_USE_COMPLEX_NUMBERS
 

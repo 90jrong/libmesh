@@ -61,22 +61,15 @@ void LocationMap<T>::init(MeshBase & mesh)
   _upper_bound.clear();
   _upper_bound.resize(LIBMESH_DIM, -std::numeric_limits<Real>::max());
 
-  MeshBase::node_iterator       it  = mesh.nodes_begin();
-  const MeshBase::node_iterator end = mesh.nodes_end();
-
-  for (; it != end; ++it)
-    {
-      Node * node = *it;
-
-      for (unsigned int i=0; i != LIBMESH_DIM; ++i)
-        {
-          // Expand the bounding box if necessary
-          _lower_bound[i] = std::min(_lower_bound[i],
-                                     (*node)(i));
-          _upper_bound[i] = std::max(_upper_bound[i],
-                                     (*node)(i));
-        }
-    }
+  for (auto & node : mesh.node_ptr_range())
+    for (unsigned int i=0; i != LIBMESH_DIM; ++i)
+      {
+        // Expand the bounding box if necessary
+        _lower_bound[i] = std::min(_lower_bound[i],
+                                   (*node)(i));
+        _upper_bound[i] = std::max(_upper_bound[i],
+                                   (*node)(i));
+      }
 
   // On a parallel mesh we might not yet have a full bounding box
   if (!mesh.is_serial())
@@ -124,15 +117,9 @@ T * LocationMap<T>::find(const Point & p,
   unsigned int pointkey = this->key(p);
 
   // Look for the exact key first
-  std::pair<typename map_type::iterator,
-            typename map_type::iterator>
-    pos = _map.equal_range(pointkey);
-
-  while (pos.first != pos.second)
-    if (p.absolute_fuzzy_equals(this->point_of(*(pos.first->second)), tol))
-      return pos.first->second;
-    else
-      ++pos.first;
+  for (const auto & pr : as_range(_map.equal_range(pointkey)))
+    if (p.absolute_fuzzy_equals(this->point_of(*(pr.second)), tol))
+      return pr.second;
 
   // Look for neighboring bins' keys next
   for (int xoffset = -1; xoffset != 2; ++xoffset)
@@ -147,11 +134,9 @@ T * LocationMap<T>::find(const Point & p,
                                            xoffset*chunkmax*chunkmax +
                                            yoffset*chunkmax +
                                            zoffset);
-              while (key_pos.first != key_pos.second)
-                if (p.absolute_fuzzy_equals(this->point_of(*(key_pos.first->second)), tol))
-                  return key_pos.first->second;
-                else
-                  ++key_pos.first;
+              for (const auto & pr : as_range(key_pos))
+                if (p.absolute_fuzzy_equals(this->point_of(*(pr.second)), tol))
+                  return pr.second;
             }
         }
     }
@@ -200,10 +185,8 @@ template <>
 void LocationMap<Node>::fill(MeshBase & mesh)
 {
   // Populate the nodes map
-  MeshBase::node_iterator  it = mesh.nodes_begin(),
-    end = mesh.nodes_end();
-  for (; it != end; ++it)
-    this->insert(**it);
+  for (auto & node : mesh.node_ptr_range())
+    this->insert(*node);
 }
 
 
@@ -212,10 +195,8 @@ template <>
 void LocationMap<Elem>::fill(MeshBase & mesh)
 {
   // Populate the elem map
-  MeshBase::element_iterator       it  = mesh.active_elements_begin(),
-    end = mesh.active_elements_end();
-  for (; it != end; ++it)
-    this->insert(**it);
+  for (auto & elem : mesh.active_element_ptr_range())
+    this->insert(*elem);
 }
 
 

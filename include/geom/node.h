@@ -24,7 +24,7 @@
 #include "libmesh/point.h"
 #include "libmesh/dof_object.h"
 #include "libmesh/reference_counted_object.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ includes
 #include <iostream>
@@ -68,8 +68,14 @@ public:
 
   /**
    * Copy-constructor.
+   *
+   * \deprecated - anyone copying a Node would almost certainly be
+   * better off copying the much cheaper Point or taking a reference
+   * to the Node.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Node (const Node & n);
+#endif
 
   /**
    * Copy-constructor from a \p Point.  Optionally assigned the \p id.
@@ -89,23 +95,29 @@ public:
 
   /**
    * \returns A \p Node copied from \p n and wrapped in a smart pointer.
+   *
+   * \deprecated - anyone copying a Node would almost certainly be
+   * better off copying the much cheaper Point or taking a reference
+   * to the Node.
    */
-  static UniquePtr<Node> build (const Node & n);
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  static std::unique_ptr<Node> build (const Node & n);
+#endif
 
   /**
    * \returns A \p Node copied from \p p with id == \id and wrapped in a smart pointer.
    */
-  static UniquePtr<Node> build (const Point & p,
-                                const dof_id_type id);
+  static std::unique_ptr<Node> build (const Point & p,
+                                      const dof_id_type id);
 
   /**
    * \returns A \p Node created from the specified (x,y,z) positions
    * with id == \id and wrapped in a smart pointer.
    */
-  static UniquePtr<Node> build (const Real x,
-                                const Real y,
-                                const Real z,
-                                const dof_id_type id);
+  static std::unique_ptr<Node> build (const Real x,
+                                      const Real y,
+                                      const Real z,
+                                      const dof_id_type id);
 
   /**
    * \returns \p true if the node is active.  An active node is
@@ -222,6 +234,7 @@ Node::Node (const Real x,
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
 Node::Node (const Node & n) :
   Point(n),
@@ -232,7 +245,9 @@ Node::Node (const Node & n) :
   _valence(n._valence)
 #endif
 {
+  libmesh_deprecated();
 }
+#endif
 
 
 
@@ -278,30 +293,33 @@ Node & Node::operator= (const Point & p)
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
-UniquePtr<Node> Node::build(const Node & n)
+std::unique_ptr<Node> Node::build(const Node & n)
 {
-  return UniquePtr<Node>(new Node(n));
+  libmesh_deprecated();
+  return libmesh_make_unique<Node>(n);
+}
+#endif
+
+
+
+inline
+std::unique_ptr<Node> Node::build(const Point & p,
+                                  const dof_id_type id)
+{
+  return libmesh_make_unique<Node>(p,id);
 }
 
 
 
 inline
-UniquePtr<Node> Node::build(const Point & p,
-                            const dof_id_type id)
+std::unique_ptr<Node> Node::build(const Real x,
+                                  const Real y,
+                                  const Real z,
+                                  const dof_id_type id)
 {
-  return UniquePtr<Node>(new Node(p,id));
-}
-
-
-
-inline
-UniquePtr<Node> Node::build(const Real x,
-                            const Real y,
-                            const Real z,
-                            const dof_id_type id)
-{
-  return UniquePtr<Node>(new Node(x,y,z,id));
+  return libmesh_make_unique<Node>(x,y,z,id);
 }
 
 

@@ -50,9 +50,9 @@ public:
   void init () {}
   void clear () {}
 
-  virtual UniquePtr<FunctionBase<Number> > clone () const
+  virtual std::unique_ptr<FunctionBase<Number>> clone () const
   {
-    return UniquePtr<FunctionBase<Number> > (new MeshlessInterpolationFunction (_mfi, _mutex) );
+    return libmesh_make_unique<MeshlessInterpolationFunction>(_mfi, _mutex);
   }
 
   Number operator() (const Point & p,
@@ -111,19 +111,13 @@ MeshfreeSolutionTransfer::transfer(const Variable & from_var,
 
   // We now will loop over every node in the source mesh
   // and add it to a source point list, along with the solution
-  {
-    MeshBase::const_node_iterator nd  = from_mesh.local_nodes_begin();
-    MeshBase::const_node_iterator end = from_mesh.local_nodes_end();
+  for (const auto & node : from_mesh.local_node_ptr_range())
+    {
+      src_pts.push_back(*node);
+      src_vals.push_back((*from_sys->solution)(node->dof_number(from_sys->number(),from_var.number(),0)));
+    }
 
-    for (; nd!=end; ++nd)
-      {
-        const Node * node = *nd;
-        src_pts.push_back(*node);
-        src_vals.push_back((*from_sys->solution)(node->dof_number(from_sys->number(),from_var.number(),0)));
-      }
-  }
-
-  // We have only set local values - prepare for use by gathering remote gata
+  // We have only set local values - prepare for use by gathering remote data
   idi.prepare_for_use();
 
   // Create a MeshlessInterpolationFunction that uses our

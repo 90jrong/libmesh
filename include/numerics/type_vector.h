@@ -217,7 +217,7 @@ public:
   template <typename Scalar>
   typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
-    TypeVector<typename CompareTypes<T, Scalar>::supertype> >::type
+    TypeVector<typename CompareTypes<T, Scalar>::supertype>>::type
   operator * (const Scalar) const;
 
   /**
@@ -235,7 +235,7 @@ public:
   template <typename Scalar>
   typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
-    TypeVector<typename CompareTypes<T, Scalar>::supertype> >::type
+    TypeVector<typename CompareTypes<T, Scalar>::supertype>>::type
   operator / (const Scalar) const;
 
   /**
@@ -280,7 +280,9 @@ public:
    *
    * \deprecated Use the norm() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Real size() const;
+#endif
 
   /**
    * \returns The magnitude of the vector, i.e. the square-root of the
@@ -294,7 +296,9 @@ public:
    *
    * \deprecated Use the norm_sq() function instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   Real size_sq() const;
+#endif
 
   /**
    * \returns The magnitude of the vector squared, i.e. the sum of the
@@ -728,7 +732,7 @@ template <typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeVector<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeVector<typename CompareTypes<T, Scalar>::supertype>>::type
 TypeVector<T>::operator * (const Scalar factor) const
 {
   typedef typename CompareTypes<T, Scalar>::supertype SuperType;
@@ -755,7 +759,7 @@ template <typename T, typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeVector<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeVector<typename CompareTypes<T, Scalar>::supertype>>::type
 operator * (const Scalar factor,
             const TypeVector<T> & v)
 {
@@ -793,7 +797,7 @@ template <typename Scalar>
 inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeVector<typename CompareTypes<T, Scalar>::supertype> >::type
+  TypeVector<typename CompareTypes<T, Scalar>::supertype>>::type
 TypeVector<T>::operator / (const Scalar factor) const
 {
   libmesh_assert_not_equal_to (factor, static_cast<T>(0.));
@@ -888,6 +892,7 @@ TypeVector<T>::cross(const TypeVector<T2> & p) const
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
 Real TypeVector<T>::size() const
@@ -895,6 +900,7 @@ Real TypeVector<T>::size() const
   libmesh_deprecated();
   return this->norm();
 }
+#endif
 
 
 
@@ -917,6 +923,7 @@ void TypeVector<T>::zero()
 
 
 
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
 Real TypeVector<T>::size_sq() const
@@ -924,6 +931,7 @@ Real TypeVector<T>::size_sq() const
   libmesh_deprecated();
   return this->norm_sq();
 }
+#endif
 
 
 

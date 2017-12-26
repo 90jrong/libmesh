@@ -20,6 +20,7 @@
 
 // Local includes
 #include "libmesh/solution_history.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -29,7 +30,7 @@ namespace libMesh
  *
  * \author Vikram Garg
  * \date 2012
- * \brief For storing and retrieiving timestep data.
+ * \brief For storing and retrieving timestep data.
  */
 class NoSolutionHistory : public SolutionHistory
 {
@@ -58,9 +59,9 @@ public:
   /**
    * Definition of the clone function needed for the setter function
    */
-  virtual UniquePtr<SolutionHistory > clone() const libmesh_override
+  virtual std::unique_ptr<SolutionHistory > clone() const libmesh_override
   {
-    return UniquePtr<SolutionHistory >(new NoSolutionHistory());
+    return libmesh_make_unique<NoSolutionHistory>();
   }
 };
 

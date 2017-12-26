@@ -41,12 +41,12 @@ const unsigned int Tet10::side_nodes_map[4][6] =
 
 const unsigned int Tet10::edge_nodes_map[6][3] =
   {
-    {0, 1, 4}, // Side 0
-    {1, 2, 5}, // Side 1
-    {0, 2, 6}, // Side 2
-    {0, 3, 7}, // Side 3
-    {1, 3, 8}, // Side 4
-    {2, 3, 9}  // Side 5
+    {0, 1, 4}, // Edge 0
+    {1, 2, 5}, // Edge 1
+    {0, 2, 6}, // Edge 2
+    {0, 3, 7}, // Edge 3
+    {1, 3, 8}, // Edge 4
+    {2, 3, 9}  // Edge 5
   };
 
 
@@ -164,36 +164,33 @@ unsigned int Tet10::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Tet10::build_side_ptr (const unsigned int i,
-                                       bool proxy)
+std::unique_ptr<Elem> Tet10::build_side_ptr (const unsigned int i,
+                                             bool proxy)
 {
   libmesh_assert_less (i, this->n_sides());
 
   if (proxy)
-    return UniquePtr<Elem>(new Side<Tri6,Tet10>(this,i));
+    return libmesh_make_unique<Side<Tri6,Tet10>>(this,i);
 
   else
     {
-      Elem * face = new Tri6;
+      std::unique_ptr<Elem> face = libmesh_make_unique<Tri6>();
       face->subdomain_id() = this->subdomain_id();
 
       for (unsigned n=0; n<face->n_nodes(); ++n)
         face->set_node(n) = this->node_ptr(Tet10::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(face);
+      return face;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 
 
-UniquePtr<Elem> Tet10::build_edge_ptr (const unsigned int i)
+std::unique_ptr<Elem> Tet10::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
 
-  return UniquePtr<Elem>(new SideEdge<Edge3,Tet10>(this,i));
+  return libmesh_make_unique<SideEdge<Edge3,Tet10>>(this,i);
 }
 
 
@@ -676,7 +673,7 @@ float Tet10::embedding_matrix (const unsigned int i,
   // libMesh::err << "jp=" << jp << std::endl;
   // libMesh::err << "kp=" << kp << std::endl;
 
-  // Call embedding matrx with permuted indices
+  // Call embedding matrix with permuted indices
   return this->_embedding_matrix[i][jp][kp];
 }
 

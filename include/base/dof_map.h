@@ -22,7 +22,7 @@
 
 // Local Includes
 #include "libmesh/libmesh_common.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/enum_order.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h" // libMesh::invalid_uint
@@ -42,6 +42,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -85,7 +86,7 @@ template <typename T> class NumericVector;
  */
 typedef std::map<dof_id_type, Number,
                  std::less<dof_id_type>,
-                 Threads::scalable_allocator<std::pair<const dof_id_type, Number> > > DofConstraintRow;
+                 Threads::scalable_allocator<std::pair<const dof_id_type, Number>>> DofConstraintRow;
 
 /**
  * The constraint matrix storage format.
@@ -96,7 +97,7 @@ typedef std::map<dof_id_type, Number,
 class DofConstraints : public std::map<dof_id_type,
                                        DofConstraintRow,
                                        std::less<dof_id_type>,
-                                       Threads::scalable_allocator<std::pair<const dof_id_type, DofConstraintRow> > >
+                                       Threads::scalable_allocator<std::pair<const dof_id_type, DofConstraintRow>>>
 {
 };
 
@@ -108,7 +109,7 @@ class DofConstraints : public std::map<dof_id_type,
 class DofConstraintValueMap :
     public std::map<dof_id_type, Number,
                     std::less<dof_id_type>,
-                    Threads::scalable_allocator<std::pair<const dof_id_type, Number> > >
+                    Threads::scalable_allocator<std::pair<const dof_id_type, Number>>>
 {
 };
 
@@ -120,7 +121,7 @@ class AdjointDofConstraintValues :
     public std::map<unsigned int, DofConstraintValueMap,
                     std::less<unsigned int>,
                     Threads::scalable_allocator
-                    <std::pair<const unsigned int, DofConstraintValueMap> > >
+                    <std::pair<const unsigned int, DofConstraintValueMap>>>
 {
 };
 
@@ -133,7 +134,7 @@ class AdjointDofConstraintValues :
  */
 typedef std::map<const Node *, Number,
                  std::less<const Node *>,
-                 Threads::scalable_allocator<std::pair<const Node * const, Number> > > NodeConstraintRow;
+                 Threads::scalable_allocator<std::pair<const Node * const, Number>>> NodeConstraintRow;
 
 /**
  * The Node constraint storage format.
@@ -144,7 +145,7 @@ typedef std::map<const Node *, Number,
 class NodeConstraints : public std::map<const Node *,
                                         std::pair<NodeConstraintRow,Point>,
                                         std::less<const Node *>,
-                                        Threads::scalable_allocator<std::pair<const Node * const, std::pair<NodeConstraintRow,Point> > > >
+                                        Threads::scalable_allocator<std::pair<const Node * const, std::pair<NodeConstraintRow,Point>>>>
 {
 };
 #endif // LIBMESH_ENABLE_NODE_CONSTRAINTS
@@ -229,7 +230,7 @@ public:
   bool is_attached (SparseMatrix<Number> & matrix);
 
   /**
-   * Distrubute dofs on the current mesh.  Also builds the send list for
+   * Distribute dofs on the current mesh.  Also builds the send list for
    * processor \p proc_id, which defaults to 0 for ease of use in serial
    * applications.
    */
@@ -556,6 +557,7 @@ public:
    * \deprecated This function returns nonsense in the rare case where
    * \p proc has no local dof indices.  Use end_dof() instead.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   dof_id_type last_dof(const processor_id_type proc) const
   {
     libmesh_deprecated();
@@ -565,6 +567,7 @@ public:
 
   dof_id_type last_dof() const
   { return this->last_dof(this->processor_id()); }
+#endif
 
   /**
    * \returns The first dof index that is after all indices local to
@@ -648,11 +651,20 @@ public:
                            const bool old_dofs=false) const;
 
   /**
+   * \returns \p true if degree of freedom index \p dof_index
+   * is either a local index or in the \p send_list.
+   *
+   * \note This is an O(logN) operation for a send_list of size N; we
+   * don't cache enough information for O(1) right now.
+   */
+  bool semilocal_index (dof_id_type dof_index) const;
+
+  /**
    * \returns \p true if all degree of freedom indices in \p
    * dof_indices are either local indices or in the \p send_list.
    *
-   * \note This is an O(logN) operation, not O(1); we don't cache
-   * enough information for O(1) right now.
+   * \note This is an O(logN) operation for a send_list of size N; we
+   * don't cache enough information for O(1) right now.
    */
   bool all_semilocal_indices (const std::vector<dof_id_type> & dof_indices) const;
 
@@ -1194,7 +1206,7 @@ public:
 #endif // LIBMESH_ENABLE_AMR
 
   /**
-   * Reinitialize the underlying data strucures conformal to the current mesh.
+   * Reinitialize the underlying data structures conformal to the current mesh.
    */
   void reinit (MeshBase & mesh);
 
@@ -1242,7 +1254,7 @@ private:
    * In DEBUG mode, the tot_size parameter will add up the total
    * number of dof indices that should have been added to di.
    */
-  void _dof_indices (const Elem * const elem,
+  void _dof_indices (const Elem & elem,
                      int p_level,
                      std::vector<dof_id_type> & di,
                      const unsigned int v,
@@ -1257,7 +1269,7 @@ private:
   /**
    * Builds a sparsity pattern
    */
-  UniquePtr<SparsityPattern::Build> build_sparsity(const MeshBase & mesh) const;
+  std::unique_ptr<SparsityPattern::Build> build_sparsity(const MeshBase & mesh) const;
 
   /**
    * Invalidates all active DofObject dofs for this system
@@ -1361,7 +1373,7 @@ private:
    *
    * The forcing vector will depend on which solution's heterogenous
    * constraints are being applied.  For the default \p qoi_index this
-   * will be the primal solutoin; for \p qoi_index >= 0 the
+   * will be the primal solution; for \p qoi_index >= 0 the
    * corresponding adjoint solution's constraints will be used.
    */
   void build_constraint_matrix_and_vector (DenseMatrix<Number> & C,
@@ -1441,7 +1453,7 @@ private:
   std::vector<dof_id_type> _send_list;
 
   /**
-   * Funtion object to call to add extra entries to the sparsity pattern
+   * Function object to call to add extra entries to the sparsity pattern
    */
   AugmentSparsityPattern * _augment_sparsity_pattern;
 
@@ -1453,7 +1465,7 @@ private:
                                    std::vector<dof_id_type> & n_oz,
                                    void *);
   /**
-   * A pointer associcated with the extra sparsity that can optionally be passed in
+   * A pointer associated with the extra sparsity that can optionally be passed in
    */
   void * _extra_sparsity_context;
 
@@ -1468,7 +1480,7 @@ private:
   void (*_extra_send_list_function)(std::vector<dof_id_type> &, void *);
 
   /**
-   * A pointer associcated with the extra send list that can optionally be passed in
+   * A pointer associated with the extra send list that can optionally be passed in
    */
   void * _extra_send_list_context;
 
@@ -1476,17 +1488,17 @@ private:
    * The default coupling GhostingFunctor, used to implement standard
    * libMesh sparsity pattern construction.
    *
-   * We use a UniquePtr here to reduce header dependencies.
+   * We use a std::unique_ptr here to reduce header dependencies.
    */
-  UniquePtr<DefaultCoupling> _default_coupling;
+  std::unique_ptr<DefaultCoupling> _default_coupling;
 
   /**
    * The default algebraic GhostingFunctor, used to implement standard
    * libMesh send_list construction.
    *
-   * We use a UniquePtr here to reduce header dependencies.
+   * We use a std::unique_ptr here to reduce header dependencies.
    */
-  UniquePtr<DefaultCoupling> _default_evaluating;
+  std::unique_ptr<DefaultCoupling> _default_evaluating;
 
   /**
    * The list of all GhostingFunctor objects to be used when
@@ -1521,7 +1533,7 @@ private:
    * The sparsity pattern of the global matrix, kept around if it
    * might be needed by future additions of the same type of matrix.
    */
-  UniquePtr<SparsityPattern::Build> _sp;
+  std::unique_ptr<SparsityPattern::Build> _sp;
 
   /**
    * The number of on-processor nonzeros in my portion of the
@@ -1598,7 +1610,7 @@ private:
    * Data structure containing periodic boundaries.  The ith
    * entry is the constraint matrix row for boundaryid i.
    */
-  UniquePtr<PeriodicBoundaries> _periodic_boundaries;
+  std::unique_ptr<PeriodicBoundaries> _periodic_boundaries;
 #endif
 
 #ifdef LIBMESH_ENABLE_DIRICHLET
@@ -1612,7 +1624,7 @@ private:
    * Data structure containing Dirichlet functions.  The ith
    * entry is the constraint matrix row for boundaryid i.
    */
-  UniquePtr<DirichletBoundaries> _dirichlet_boundaries;
+  std::unique_ptr<DirichletBoundaries> _dirichlet_boundaries;
 
   /**
    * Data structure containing Dirichlet functions.  The ith

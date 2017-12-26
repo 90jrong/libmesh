@@ -19,7 +19,9 @@
 
 #include "libmesh/enum_fe_family.h"
 #include "libmesh/fem_system.h"
+#include "libmesh/parameter_pointer.h"
 #include "libmesh/parameter_vector.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 using namespace libMesh;
 
@@ -65,9 +67,9 @@ public:
 
   ParameterVector & get_parameter_vector()
   {
-    parameter_vector.resize(parameters.size());
-    for (std::size_t i = 0; i != parameters.size(); ++i)
-      parameter_vector[i] = &parameters[i];
+    if (!parameter_vector.size())
+      for (std::size_t i = 0; i != parameters.size(); ++i)
+        parameter_vector.push_back(libmesh_make_unique<ParameterPointer<Number>>(&parameters[i]));
 
     return parameter_vector;
   }

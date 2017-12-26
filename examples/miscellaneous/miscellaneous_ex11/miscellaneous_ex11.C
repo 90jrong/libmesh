@@ -114,7 +114,7 @@ int main (int argc, char ** argv)
 
   // Quadrisect the mesh triangles a few times to obtain a
   // finer mesh.  Subdivision surface elements require the
-  // refinement data to be removed afterwards.
+  // refinement data to be removed afterward.
   MeshRefinement mesh_refinement (mesh);
   mesh_refinement.uniformly_refine (3);
   MeshTools::Modification::flatten (mesh);
@@ -288,13 +288,13 @@ void assemble_shell (EquationSystems & es,
   FEType fe_type = system.variable_type (u_var);
 
   // Build a Finite Element object of the specified type.
-  UniquePtr<FEBase> fe (FEBase::build(2, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(2, fe_type));
 
   // A Gauss quadrature rule for numerical integration.
   // For subdivision shell elements, a single Gauss point per
   // element is sufficient, hence we use extraorder = 0.
   const int extraorder = 0;
-  UniquePtr<QBase> qrule (fe_type.default_quadrature_rule (2, extraorder));
+  std::unique_ptr<QBase> qrule (fe_type.default_quadrature_rule (2, extraorder));
 
   // Tell the finite element object to use our quadrature rule.
   fe->attach_quadrature_rule (qrule.get());
@@ -313,9 +313,9 @@ void assemble_shell (EquationSystems & es,
 
   // The element shape function and its derivatives evaluated at the
   // quadrature points.
-  const std::vector<std::vector<Real> > &          phi = fe->get_phi();
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
-  const std::vector<std::vector<RealTensor> > &  d2phi = fe->get_d2phi();
+  const std::vector<std::vector<Real>> &          phi = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealTensor>> &  d2phi = fe->get_d2phi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -349,15 +349,8 @@ void assemble_shell (EquationSystems & es,
 
   // Now we will loop over all the elements in the mesh.  We will
   // compute the element matrix and right-hand-side contribution.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for (; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // The ghost elements at the boundaries need to be excluded
       // here, as they don't belong to the physical shell,
       // but serve for a proper boundary treatment only.
@@ -401,7 +394,7 @@ void assemble_shell (EquationSystems & es,
       //        | Kwu Kwv Kww |        | Fw |
       //         -           -          -  -
       //
-      // The DenseSubMatrix.repostition () member takes the
+      // The DenseSubMatrix.reposition () member takes the
       // (row_offset, column_offset, row_size, column_size).
       //
       // Similarly, the DenseSubVector.reposition () member
@@ -457,7 +450,7 @@ void assemble_shell (EquationSystems & es,
           // covariant components of the first fundamental form rather
           // than the contravariant components, exploiting that the
           // contravariant first fundamental form is the inverse of the
-          // covatiant first fundamental form (hence the determinant etc.).
+          // covariant first fundamental form (hence the determinant etc.).
           RealTensorValue H;
           H(0,0) = a(1) * a(1);
           H(0,1) = H(1,0) = nu * a(1) * a(0) + (1-nu) * a(2) * a(2);
@@ -574,14 +567,8 @@ void assemble_shell (EquationSystems & es,
   // for subdivision shells.  We use the simplest way here,
   // which is known to be overly restrictive and will lead to
   // a slightly too small deformation of the plate.
-  el = mesh.active_local_elements_begin();
-
-  for (; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // For the boundary conditions, we only need to loop over
       // the ghost elements.
       libmesh_assert_equal_to (elem->type(), TRI3SUBDIVISION);
@@ -591,7 +578,7 @@ void assemble_shell (EquationSystems & es,
 
       // Find the side which is part of the physical plate boundary,
       // that is, the boundary of the original mesh without ghosts.
-      for (unsigned int s=0; s<elem->n_sides(); ++s)
+      for (auto s : elem->side_index_range())
         {
           const Tri3Subdivision * nb_elem = static_cast<const Tri3Subdivision *> (elem->neighbor_ptr(s));
           if (nb_elem == libmesh_nullptr || nb_elem->is_ghost())

@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// C++ inlcludes
+// C++ includes
 
 // Local includes
 #include "libmesh/fe.h"
@@ -245,7 +245,7 @@ Real FE<3,L2_LAGRANGE>::shape(const ElemType type,
                 }
             }
 
-            // triquadraic hexahedral shape funcions
+            // triquadratic hexahedral shape functions
           case HEX27:
             {
               libmesh_assert_less (i, 27);
@@ -316,7 +316,7 @@ Real FE<3,L2_LAGRANGE>::shape(const ElemType type,
                 }
             }
 
-            // quadradic prism shape functions
+            // quadratic prism shape functions
           case PRISM18:
             {
               libmesh_assert_less (i, 18);
@@ -348,9 +348,6 @@ Real FE<3,L2_LAGRANGE>::shape(const ElemType type,
     }
 
 #endif
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -945,7 +942,7 @@ Real FE<3,L2_LAGRANGE>::shape_deriv(const ElemType type,
                 }
             }
 
-            // triquadraic hexahedral shape funcions
+            // triquadratic hexahedral shape functions
           case HEX27:
             {
               libmesh_assert_less (i, 27);
@@ -1140,7 +1137,7 @@ Real FE<3,L2_LAGRANGE>::shape_deriv(const ElemType type,
 
 
 
-            // quadradic prism shape functions
+            // quadratic prism shape functions
           case PRISM18:
             {
               libmesh_assert_less (i, 18);
@@ -1190,9 +1187,6 @@ Real FE<3,L2_LAGRANGE>::shape_deriv(const ElemType type,
     }
 
 #endif
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 
@@ -1248,9 +1242,10 @@ Real FE<3,L2_LAGRANGE>::shape_second_deriv(const ElemType type,
                              << std::endl;
               warning_given_HEX20 = true;
             }
+            libmesh_fallthrough();
 
-            // triquadraic hexahedral shape funcions
           case HEX27:
+            // triquadratic hexahedral shape functions
             {
               libmesh_assert_less (i, 27);
 
@@ -1379,7 +1374,7 @@ Real FE<3,L2_LAGRANGE>::shape_second_deriv(const ElemType type,
             }
 
 
-            // quadradic prism shape functions
+            // quadratic prism shape functions
           case PRISM18:
             {
               libmesh_assert_less (i, 18);
@@ -1445,9 +1440,6 @@ Real FE<3,L2_LAGRANGE>::shape_second_deriv(const ElemType type,
     }
 
 #endif
-
-  libmesh_error_msg("We'll never get here!");
-  return 0.;
 }
 
 

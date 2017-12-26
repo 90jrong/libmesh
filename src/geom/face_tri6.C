@@ -167,9 +167,6 @@ dof_id_type Tri6::key (const unsigned int s) const
     default:
       libmesh_error_msg("Invalid side s = " << s);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -185,28 +182,25 @@ unsigned int Tri6::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Tri6::build_side_ptr (const unsigned int i,
-                                      bool proxy)
+std::unique_ptr<Elem> Tri6::build_side_ptr (const unsigned int i,
+                                            bool proxy)
 {
   libmesh_assert_less (i, this->n_sides());
 
   if (proxy)
-    return UniquePtr<Elem>(new Side<Edge3,Tri6>(this,i));
+    return libmesh_make_unique<Side<Edge3,Tri6>>(this,i);
 
   else
     {
-      Elem * edge = new Edge3;
+      std::unique_ptr<Elem> edge = libmesh_make_unique<Edge3>();
       edge->subdomain_id() = this->subdomain_id();
 
       // Set the nodes
       for (unsigned n=0; n<edge->n_nodes(); ++n)
         edge->set_node(n) = this->node_ptr(Tri6::side_nodes_map[i][n]);
 
-      return UniquePtr<Elem>(edge);
+      return edge;
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<Elem>();
 }
 
 

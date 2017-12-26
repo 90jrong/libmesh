@@ -5,7 +5,6 @@
 #include <libmesh/restore_warnings.h>
 
 // libmesh includes
-#include "libmesh/auto_ptr.h"
 #include "libmesh/elem.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/mesh.h"
@@ -13,6 +12,8 @@
 #include "libmesh/numeric_vector.h"
 #include "libmesh/parsed_function.h"
 #include "libmesh/system.h"
+
+#ifdef LIBMESH_HAVE_FPARSER
 
 // test includes
 #include "test_comm.h"
@@ -127,3 +128,5 @@ private:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ParsedFunctionTest);
+
+#endif // #ifdef LIBMESH_HAVE_FPARSER

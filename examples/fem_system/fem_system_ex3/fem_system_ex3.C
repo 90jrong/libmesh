@@ -67,7 +67,7 @@ int main (int argc, char ** argv)
   // Parse the input file
   GetPot infile("fem_system_ex3.in");
 
-  // Override input file arguments from the commannd line
+  // Override input file arguments from the command line
   infile.parse_command_line(argc, argv);
 
   // Read in parameters from the input file
@@ -102,19 +102,15 @@ int main (int argc, char ** argv)
   // Let's add some node and edge boundary conditions.
   // Each processor should know about each boundary condition it can
   // see, so we loop over all elements, not just local elements.
-  MeshBase::const_element_iterator       el     = mesh.elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.elements_end();
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.element_ptr_range())
     {
-      const Elem * elem = *el;
-
       unsigned int
         side_max_x = 0, side_min_y = 0,
         side_max_y = 0, side_max_z = 0;
       bool
         found_side_max_x = false, found_side_max_y = false,
         found_side_min_y = false, found_side_max_z = false;
-      for (unsigned int side=0; side<elem->n_sides(); side++)
+      for (auto side : elem->side_index_range())
         {
           if (mesh.get_boundary_info().has_boundary_id(elem, side, BOUNDARY_ID_MAX_X))
             {
@@ -145,7 +141,7 @@ int main (int argc, char ** argv)
       // BOUNDARY_ID_MAX_X, BOUNDARY_ID_MAX_Y, BOUNDARY_ID_MAX_Z
       // then let's set a node boundary condition
       if (found_side_max_x && found_side_max_y && found_side_max_z)
-        for (unsigned int n=0; n<elem->n_nodes(); n++)
+        for (auto n : elem->node_index_range())
           if (elem->is_node_on_side(n, side_max_x) &&
               elem->is_node_on_side(n, side_max_y) &&
               elem->is_node_on_side(n, side_max_z))
@@ -155,7 +151,7 @@ int main (int argc, char ** argv)
       // BOUNDARY_ID_MAX_X and BOUNDARY_ID_MIN_Y
       // then let's set an edge boundary condition
       if (found_side_max_x && found_side_min_y)
-        for (unsigned int e=0; e<elem->n_edges(); e++)
+        for (auto e : elem->edge_index_range())
           if (elem->is_edge_on_side(e, side_max_x) &&
               elem->is_edge_on_side(e, side_min_y))
             mesh.get_boundary_info().add_edge(elem, e, EDGE_BOUNDARY_ID);
@@ -195,14 +191,14 @@ int main (int argc, char ** argv)
   else if( time_solver == std::string("euler") )
     {
       system.time_solver.reset(new EulerSolver(system));
-      EulerSolver & euler_solver = libmesh_cast_ref<EulerSolver &>(*(system.time_solver.get()));
+      EulerSolver & euler_solver = cast_ref<EulerSolver &>(*(system.time_solver.get()));
       euler_solver.theta = infile("theta", 1.0);
     }
 
   else if( time_solver == std::string("euler2") )
     {
       system.time_solver.reset(new Euler2Solver(system));
-      Euler2Solver & euler_solver = libmesh_cast_ref<Euler2Solver &>(*(system.time_solver.get()));
+      Euler2Solver & euler_solver = cast_ref<Euler2Solver &>(*(system.time_solver.get()));
       euler_solver.theta = infile("theta", 1.0);
     }
 
@@ -212,7 +208,7 @@ int main (int argc, char ** argv)
       libmesh_assert_equal_to (n_timesteps, 1);
     }
   else
-    libmesh_error_msg(std::string("ERROR: invalud time_solver ")+time_solver);
+    libmesh_error_msg(std::string("ERROR: invalid time_solver ")+time_solver);
 
   // Initialize the system
   equation_systems.init ();

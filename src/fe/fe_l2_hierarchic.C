@@ -113,6 +113,7 @@ unsigned int l2_hierarchic_n_dofs(const ElemType t, const Order o)
     case QUAD4:
     case QUADSHELL4:
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       return ((o+1)*(o+1));
     case HEX8:
@@ -121,6 +122,7 @@ unsigned int l2_hierarchic_n_dofs(const ElemType t, const Order o)
       return ((o+1)*(o+1)*(o+1));
     case TRI3:
       libmesh_assert_less (o, 2);
+      libmesh_fallthrough();
     case TRI6:
       return ((o+1)*(o+2)/2);
     case INVALID_ELEM:
@@ -128,9 +130,6 @@ unsigned int l2_hierarchic_n_dofs(const ElemType t, const Order o)
     default:
       libmesh_error_msg("ERROR: Invalid ElemType " << Utility::enum_to_string(t) << " selected for L2_HIERARCHIC FE family!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 } // l2_hierarchic_n_dofs()
 
 
@@ -203,7 +202,7 @@ template <> bool FE<2,L2_HIERARCHIC>::is_hierarchic() const { return true; }
 template <> bool FE<3,L2_HIERARCHIC>::is_hierarchic() const { return true; }
 
 #ifdef LIBMESH_ENABLE_AMR
-// compute_constraints() is a NOOP for DISCONTINOUS FE's
+// compute_constraints() is a NOOP for DISCONTINUOUS FE's
 template <>
 void FE<2,L2_HIERARCHIC>::compute_constraints (DofConstraints &,
                                                DofMap &,

@@ -16,7 +16,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// C++ inlcludes
+// C++ includes
 
 // Local includes
 #include "libmesh/fe.h"
@@ -107,9 +107,8 @@ Real FE<2,MONOMIAL>::shape(const ElemType,
       return val;
     }
 
-  libmesh_error_msg("We'll never get here!");
+#else
   return 0.;
-
 #endif
 }
 
@@ -294,9 +293,8 @@ Real FE<2,MONOMIAL>::shape_deriv(const ElemType,
       libmesh_error_msg("Invalid shape function derivative j = " << j);
     }
 
-  libmesh_error_msg("We'll never get here!");
+#else
   return 0.;
-
 #endif
 }
 
@@ -529,9 +527,8 @@ Real FE<2,MONOMIAL>::shape_second_deriv(const ElemType,
       libmesh_error_msg("Invalid shape function derivative j = " << j);
     }
 
-  libmesh_error_msg("We'll never get here!");
+#else
   return 0.;
-
 #endif
 }
 

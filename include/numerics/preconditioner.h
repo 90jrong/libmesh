@@ -54,7 +54,7 @@ template <typename T> class ShellMatrix;
  * \date 2009
  */
 template <typename T>
-class Preconditioner : public ReferenceCountedObject<Preconditioner<T> >,
+class Preconditioner : public ReferenceCountedObject<Preconditioner<T>>,
                        public ParallelObject
 {
 public:
@@ -70,12 +70,25 @@ public:
   virtual ~Preconditioner ();
 
   /**
+   * Builds a \p Preconditioner using the linear solver package
+   * specified by \p solver_package, returning the result wrapped in a
+   * std::unique_ptr for safety.
+   */
+  static std::unique_ptr<Preconditioner<T>>
+  build_preconditioner(const libMesh::Parallel::Communicator & comm LIBMESH_CAN_DEFAULT_TO_COMMWORLD,
+                       const SolverPackage solver_package = libMesh::default_solver_package());
+
+  /**
    * Builds a \p Preconditioner using the linear solver package specified by
    * \p solver_package
+   *
+   * \deprecated Use build_preconditioner() instead.
    */
-  static Preconditioner<T> * build(const libMesh::Parallel::Communicator & comm
-                                   LIBMESH_CAN_DEFAULT_TO_COMMWORLD,
-                                   const SolverPackage solver_package = libMesh::default_solver_package());
+#ifdef LIBMESH_ENABLE_DEPRECATED
+  static Preconditioner<T> *
+  build(const libMesh::Parallel::Communicator & comm LIBMESH_CAN_DEFAULT_TO_COMMWORLD,
+        const SolverPackage solver_package = libMesh::default_solver_package());
+#endif
 
   /**
    * \returns \p true if the data structures are initialized, \p false
@@ -128,12 +141,12 @@ protected:
 
   /**
    * The matrix P... ie the matrix to be preconditioned.
-   * This is often the actual system matrix of a linear sytem.
+   * This is often the actual system matrix of a linear system.
    */
   SparseMatrix<T> * _matrix;
 
   /**
-   * Enum statitng with type of preconditioner to use.
+   * Enum stating with type of preconditioner to use.
    */
   PreconditionerType _preconditioner_type;
 

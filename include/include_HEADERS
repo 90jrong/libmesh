@@ -144,6 +144,7 @@ include_HEADERS =  \
         geom/face_quad4.h \
         geom/face_quad4_shell.h \
         geom/face_quad8.h \
+        geom/face_quad8_shell.h \
         geom/face_quad9.h \
         geom/face_tri.h \
         geom/face_tri3.h \
@@ -220,6 +221,7 @@ include_HEADERS =  \
         numerics/coupling_matrix.h \
         numerics/dense_matrix.h \
         numerics/dense_matrix_base.h \
+        numerics/dense_matrix_impl.h \
         numerics/dense_submatrix.h \
         numerics/dense_subvector.h \
         numerics/dense_vector.h \
@@ -381,6 +383,7 @@ include_HEADERS =  \
         systems/fem_context.h \
         systems/fem_system.h \
         systems/frequency_system.h \
+        systems/generic_projector.h \
         systems/implicit_system.h \
         systems/linear_implicit_system.h \
         systems/newmark_system.h \
@@ -403,6 +406,7 @@ include_HEADERS =  \
         utils/error_vector.h \
         utils/hashword.h \
         utils/ignore_warnings.h \
+        utils/int_range.h \
         utils/libmesh_nullptr.h \
         utils/location_maps.h \
         utils/mapvector.h \
@@ -415,9 +419,10 @@ include_HEADERS =  \
         utils/plt_loader.h \
         utils/point_locator_base.h \
         utils/point_locator_tree.h \
+        utils/pointer_to_pointer_iter.h \
         utils/pool_allocator.h \
         utils/restore_warnings.h \
-        utils/safe_bool.h \
+        utils/simple_range.h \
         utils/statistics.h \
         utils/string_to_enum.h \
         utils/timestamp.h \

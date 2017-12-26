@@ -21,7 +21,7 @@
 #define LIBMESH_TIME_SOLVER_H
 
 // Local includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/libmesh_common.h"
 #include "libmesh/linear_solver.h"
 #include "libmesh/numeric_vector.h"
@@ -29,6 +29,7 @@
 #include "libmesh/solution_history.h"
 
 // C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -178,12 +179,12 @@ public:
   /**
    * An implicit linear or nonlinear solver to use at each timestep.
    */
-  virtual UniquePtr<DiffSolver> & diff_solver() { return _diff_solver; }
+  virtual std::unique_ptr<DiffSolver> & diff_solver() { return _diff_solver; }
 
   /**
    * An implicit linear solver to use for adjoint and sensitivity problems.
    */
-  virtual UniquePtr<LinearSolver<Number> > & linear_solver() { return _linear_solver; }
+  virtual std::unique_ptr<LinearSolver<Number>> & linear_solver() { return _linear_solver; }
 
   /**
    * Print extra debugging information if quiet ==  false.
@@ -244,12 +245,12 @@ protected:
   /**
    * An implicit linear or nonlinear solver to use at each timestep.
    */
-  UniquePtr<DiffSolver> _diff_solver;
+  std::unique_ptr<DiffSolver> _diff_solver;
 
   /**
    * An implicit linear solver to use for adjoint problems.
    */
-  UniquePtr<LinearSolver<Number> > _linear_solver;
+  std::unique_ptr<LinearSolver<Number>> _linear_solver;
 
   /**
    * A reference to the system we are solving.
@@ -257,11 +258,11 @@ protected:
   sys_type & _system;
 
   /**
-   * A UniquePtr to a SolutionHistory object. Default is
+   * A std::unique_ptr to a SolutionHistory object. Default is
    * NoSolutionHistory, which the user can override by declaring a
    * different kind of SolutionHistory in the application
    */
-  UniquePtr<SolutionHistory> solution_history;
+  std::unique_ptr<SolutionHistory> solution_history;
 
   /**
    * Definitions of argument types for use in refactoring subclasses.

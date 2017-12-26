@@ -31,7 +31,10 @@
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/parallel_object.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
+
+// C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -51,7 +54,7 @@ class SolverConfiguration;
  * \brief Base class which defines the interface for solving eigenproblems.
  */
 template <typename T>
-class EigenSolver : public ReferenceCountedObject<EigenSolver<T> >,
+class EigenSolver : public ReferenceCountedObject<EigenSolver<T>>,
                     public ParallelObject
 {
 public:
@@ -71,9 +74,9 @@ public:
    * Builds an \p EigenSolver using the linear solver package specified by
    * \p solver_package
    */
-  static UniquePtr<EigenSolver<T> > build(const Parallel::Communicator & comm_in
-                                          LIBMESH_CAN_DEFAULT_TO_COMMWORLD,
-                                          const SolverPackage solver_package = SLEPC_SOLVERS);
+  static std::unique_ptr<EigenSolver<T>> build(const Parallel::Communicator & comm_in
+                                               LIBMESH_CAN_DEFAULT_TO_COMMWORLD,
+                                               const SolverPackage solver_package = SLEPC_SOLVERS);
 
   /**
    * \returns \p true if the data structures are
@@ -81,6 +84,26 @@ public:
    */
   bool initialized () const { return _is_initialized; }
 
+  /**
+   * \returns \p The value of the flag which controls whether libmesh
+   * closes the eigenproblem matrices before solving. \true by
+   * default.
+   */
+  bool get_close_matrix_before_solve() const
+  {
+    libmesh_experimental();
+    return _close_matrix_before_solve;
+  }
+
+  /**
+   * Set the flag which controls whether libmesh closes the
+   * eigenproblem matrices before solving.
+   */
+  void set_close_matrix_before_solve(bool val)
+  {
+    libmesh_experimental();
+    _close_matrix_before_solve = val;
+  }
 
   /**
    * Release all memory and clear data structures.
@@ -269,6 +292,8 @@ protected:
   SolverConfiguration * _solver_configuration;
 
   Real _target_val;
+
+  bool _close_matrix_before_solve;
 };
 
 
@@ -283,7 +308,8 @@ EigenSolver<T>::EigenSolver (const Parallel::Communicator & comm_in) :
   _eigen_problem_type   (NHEP),
   _position_of_spectrum (LARGEST_MAGNITUDE),
   _is_initialized       (false),
-  _solver_configuration(libmesh_nullptr)
+  _solver_configuration(libmesh_nullptr),
+  _close_matrix_before_solve(true)
 {
 }
 

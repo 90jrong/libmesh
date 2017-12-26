@@ -34,6 +34,7 @@
 #include "libmesh/mesh_generation.h"
 #include "libmesh/exact_solution.h"
 #include "libmesh/ucd_io.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // The systems and solvers we may use
 #include "laplace_system.h"
@@ -91,8 +92,7 @@ int main (int argc, char** argv)
     equation_systems.add_system<LaplaceSystem> ("Laplace");
 
   // This example only implements the steady-state problem
-  system.time_solver =
-    UniquePtr<TimeSolver>(new SteadySolver(system));
+  system.time_solver = libmesh_make_unique<SteadySolver>(system);
 
   // Initialize the system
   equation_systems.init();

@@ -460,10 +460,10 @@ ImplicitSystem::weighted_sensitivity_adjoint_solve (const ParameterVector & para
   // We'll use temporary rhs vectors, because we haven't (yet) found
   // any good reasons why users might want to save these:
 
-  std::vector<NumericVector<Number> *> temprhs(this->qoi.size());
+  std::vector<std::unique_ptr<NumericVector<Number>>> temprhs(this->qoi.size());
   for (std::size_t i=0; i != this->qoi.size(); ++i)
     if (qoi_indices.has_index(i))
-      temprhs[i] = this->rhs->zero_clone().release();
+      temprhs[i] = this->rhs->zero_clone();
 
   // We approximate the _l partial derivatives via a central
   // differencing perturbation in the w_l direction:
@@ -560,10 +560,6 @@ ImplicitSystem::weighted_sensitivity_adjoint_solve (const ParameterVector & para
 
   this->release_linear_solver(linear_solver);
 
-  for (std::size_t i=0; i != this->qoi.size(); ++i)
-    if (qoi_indices.has_index(i))
-      delete temprhs[i];
-
   // The linear solver may not have fit our constraints exactly
 #ifdef LIBMESH_ENABLE_CONSTRAINTS
   for (std::size_t i=0; i != this->qoi.size(); ++i)
@@ -616,7 +612,7 @@ ImplicitSystem::weighted_sensitivity_solve (const ParameterVector & parameters_i
   this->assembly(true, false, true);
   this->rhs->close();
 
-  UniquePtr<NumericVector<Number> > temprhs = this->rhs->clone();
+  std::unique_ptr<NumericVector<Number>> temprhs = this->rhs->clone();
 
   oldparameters.value_copy(parameters);
   parameterperturbation *= -1.0;
@@ -737,7 +733,7 @@ void ImplicitSystem::adjoint_qoi_parameter_sensitivity (const QoISet & qoi_indic
 
   this->assemble_residual_derivatives(parameters_in);
 
-  // Get ready to fill in senstivities:
+  // Get ready to fill in sensitivities:
   sensitivities.allocate_data(qoi_indices, *this, parameters);
 
   // We use the identities:
@@ -843,7 +839,7 @@ void ImplicitSystem::forward_qoi_parameter_sensitivity (const QoISet & qoi_indic
 
   this->sensitivity_solve(parameters);
 
-  // Get ready to fill in senstivities:
+  // Get ready to fill in sensitivities:
   sensitivities.allocate_data(qoi_indices, *this, parameters);
 
   // We use the identity:
@@ -919,7 +915,7 @@ void ImplicitSystem::qoi_parameter_hessian_vector_product (const QoISet & qoi_in
     const_cast<ParameterVector &>(parameters_in);
 
   // We'll use a single temporary vector for matrix-vector-vector products
-  UniquePtr<NumericVector<Number> > tempvec = this->solution->zero_clone();
+  std::unique_ptr<NumericVector<Number>> tempvec = this->solution->zero_clone();
 
   const unsigned int Np = cast_int<unsigned int>
     (parameters.size());
@@ -950,7 +946,7 @@ void ImplicitSystem::qoi_parameter_hessian_vector_product (const QoISet & qoi_in
       this->adjoint_solve(qoi_indices);
     }
 
-  // Get ready to fill in senstivities:
+  // Get ready to fill in sensitivities:
   sensitivities.allocate_data(qoi_indices, *this, parameters);
 
   // We can't solve for all the solution sensitivities u'_l or for all
@@ -967,12 +963,12 @@ void ImplicitSystem::qoi_parameter_hessian_vector_product (const QoISet & qoi_in
   for (unsigned int k=0; k != Np; ++k)
     {
       // We approximate sum_l(w_l * Q''_{kl}) with a central
-      // differencing pertubation:
+      // differencing perturbation:
       // sum_l(w_l * Q''_{kl}) ~=
       // (Q(p + dp*w_l*e_l + dp*e_k) - Q(p - dp*w_l*e_l + dp*e_k) -
       // Q(p + dp*w_l*e_l - dp*e_k) + Q(p - dp*w_l*e_l - dp*e_k))/(4*dp^2)
 
-      // The sum(w_l*R''_kl) term requires the same sort of pertubation,
+      // The sum(w_l*R''_kl) term requires the same sort of perturbation,
       // and so we subtract it in at the same time:
       // sum_l(w_l * R''_{kl}) ~=
       // (R(p + dp*w_l*e_l + dp*e_k) - R(p - dp*w_l*e_l + dp*e_k) -
@@ -1124,11 +1120,11 @@ void ImplicitSystem::qoi_parameter_hessian (const QoISet & qoi_indices,
     const_cast<ParameterVector &>(parameters_in);
 
   // We'll use one temporary vector for matrix-vector-vector products
-  UniquePtr<NumericVector<Number> > tempvec = this->solution->zero_clone();
+  std::unique_ptr<NumericVector<Number>> tempvec = this->solution->zero_clone();
 
   // And another temporary vector to hold a copy of the true solution
   // so we can safely perturb this->solution.
-  UniquePtr<NumericVector<Number> > oldsolution = this->solution->clone();
+  std::unique_ptr<NumericVector<Number>> oldsolution = this->solution->clone();
 
   const unsigned int Np = cast_int<unsigned int>
     (parameters.size());

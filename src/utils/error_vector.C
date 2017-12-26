@@ -208,7 +208,7 @@ bool ErrorVector::is_active_elem (dof_id_type i) const
 void ErrorVector::plot_error(const std::string & filename,
                              const MeshBase & oldmesh) const
 {
-  UniquePtr<MeshBase> meshptr = oldmesh.clone();
+  std::unique_ptr<MeshBase> meshptr = oldmesh.clone();
   MeshBase & mesh = *meshptr;
 
   // The all_first_order routine will prepare_for_use(), which would
@@ -219,19 +219,11 @@ void ErrorVector::plot_error(const std::string & filename,
 #ifdef LIBMESH_ENABLE_AMR
   // We don't want p elevation when plotting a single constant value
   // per element
-  {
-    MeshBase::element_iterator       el     =
-      mesh.elements_begin();
-    const MeshBase::element_iterator end_el =
-      mesh.elements_end();
-
-    for ( ; el != end_el; ++el)
-      {
-        Elem * elem = *el;
-        elem->set_p_refinement_flag(Elem::DO_NOTHING);
-        elem->set_p_level(0);
-      }
-  }
+  for (auto & elem : mesh.element_ptr_range())
+    {
+      elem->set_p_refinement_flag(Elem::DO_NOTHING);
+      elem->set_p_level(0);
+    }
 #endif // LIBMESH_ENABLE_AMR
 
   EquationSystems temp_es (mesh);
@@ -241,17 +233,10 @@ void ErrorVector::plot_error(const std::string & filename,
   temp_es.init();
 
   const DofMap & error_dof_map = error_system.get_dof_map();
-
-  MeshBase::const_element_iterator       el     =
-    mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el =
-    mesh.active_local_elements_end();
   std::vector<dof_id_type> dof_indices;
 
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
-
       error_dof_map.dof_indices(elem, dof_indices);
 
       const dof_id_type elem_id = elem->id();

@@ -25,10 +25,11 @@
 
 // Local Includes
 #include "libmesh/point.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 
 // C++ Includes
 #include <set>
+#include <memory>
 
 namespace libMesh
 {
@@ -92,7 +93,7 @@ public:
    * PeriodicBoundaryBase objects using the appropriate DofMap
    * interface instead.
    */
-  virtual UniquePtr<PeriodicBoundaryBase> clone(TransformationType t = FORWARD) const = 0;
+  virtual std::unique_ptr<PeriodicBoundaryBase> clone(TransformationType t = FORWARD) const = 0;
 
   void set_variable(unsigned int var);
 

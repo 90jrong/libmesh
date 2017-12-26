@@ -206,14 +206,14 @@ void Biharmonic::JR::residual_and_jacobian(const NumericVector<Number> & u,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(_biharmonic._dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(_biharmonic._dim, fe_type));
 
   // Quadrature rule for numerical integration.
   // With 2D triangles, the Clough quadrature rule puts a Gaussian
   // quadrature rule on each of the 3 subelements
-  UniquePtr<QBase> qrule(fe_type.default_quadrature_rule(_biharmonic._dim));
+  std::unique_ptr<QBase> qrule(fe_type.default_quadrature_rule(_biharmonic._dim));
 
   // Tell the finite element object to use our quadrature rule.
   fe->attach_quadrature_rule (qrule.get());
@@ -225,13 +225,13 @@ void Biharmonic::JR::residual_and_jacobian(const NumericVector<Number> & u,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape functions' derivatives evaluated at the quadrature points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // The element shape functions'  second derivatives evaluated at the quadrature points.
-  const std::vector<std::vector<RealTensor> > & d2phi = fe->get_d2phi();
+  const std::vector<std::vector<RealTensor>> & d2phi = fe->get_d2phi();
 
   // For efficiency we will compute shape function laplacians n times,
   // not n^2
@@ -255,16 +255,8 @@ void Biharmonic::JR::residual_and_jacobian(const NumericVector<Number> & u,
   // Now we will loop over all the elements in the mesh.  We will
   // compute the element matrix and right-hand-side contribution.  See
   // example 3 for a discussion of the element iterators.
-
-  MeshBase::const_element_iterator       el     = _biharmonic._mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = _biharmonic._mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : _biharmonic._mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -508,9 +500,9 @@ void Biharmonic::JR::bounds(NumericVector<Number> & XL,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(_biharmonic._dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(_biharmonic._dim, fe_type));
 
   // Define data structures to contain the bound vectors contributions.
   DenseVector<Number> XLe, XUe;
@@ -520,18 +512,15 @@ void Biharmonic::JR::bounds(NumericVector<Number> & XL,
   // the element degrees of freedom get mapped.
   std::vector<dof_id_type> dof_indices;
 
-  MeshBase::const_element_iterator       el     = _biharmonic._mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = _biharmonic._mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : _biharmonic._mesh.active_local_element_ptr_range())
     {
       // Extract the shape function to be evaluated at the nodes
-      const std::vector<std::vector<Real> > & phi = fe->get_phi();
+      const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
       // Get the degree of freedom indices for the current element.
       // They are in 1-1 correspondence with shape functions phi
       // and define where in the global vector this element will.
-      dof_map.dof_indices (*el, dof_indices);
+      dof_map.dof_indices (elem, dof_indices);
 
       // Resize the local bounds vectors (zeroing them out in the process).
       XLe.resize(dof_indices.size());
@@ -539,10 +528,10 @@ void Biharmonic::JR::bounds(NumericVector<Number> & XL,
 
       // Extract the element node coordinates in the reference frame
       std::vector<Point> nodes;
-      fe->get_refspace_nodes((*el)->type(), nodes);
+      fe->get_refspace_nodes(elem->type(), nodes);
 
       // Evaluate the shape functions at the nodes
-      fe->reinit(*el, &nodes);
+      fe->reinit(elem, &nodes);
 
       // Construct the bounds based on the value of the i-th phi at the nodes.
       // Observe that this doesn't really work in general: we rely on the fact

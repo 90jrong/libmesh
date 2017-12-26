@@ -31,6 +31,7 @@
 #include "libmesh/elem.h"
 #include "libmesh/error_vector.h"
 #include "libmesh/mesh_base.h"
+#include "libmesh/mesh_refinement.h"
 #include "libmesh/quadrature.h"
 #include "libmesh/system.h"
 #include "libmesh/tensor_value.h"
@@ -51,8 +52,8 @@ void HPCoarsenTest::add_projection(const System & system,
   if (!elem->active())
     {
       libmesh_assert(!elem->subactive());
-      for (unsigned int c = 0; c != elem->n_children(); ++c)
-        this->add_projection(system, elem->child_ptr(c), var);
+      for (auto & child : elem->child_ref_range())
+        this->add_projection(system, &child, var);
       return;
     }
 
@@ -228,27 +229,21 @@ void HPCoarsenTest::select_refinement (System & system)
           dphi_coarse = &(fe_coarse->get_dphi());
         }
 
-#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
       // The shape function second derivatives
       if (cont == C_ONE)
         {
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
           d2phi = &(fe->get_d2phi());
           d2phi_coarse = &(fe_coarse->get_d2phi());
+#else
+          libmesh_error_msg("Minimization of H2 error without second derivatives is not possible.");
+#endif
         }
-#endif // defined (LIBMESH_ENABLE_SECOND_DERIVATIVES)
 
       // Iterate over all the active elements in the mesh
       // that live on this processor.
-
-      MeshBase::const_element_iterator       elem_it  =
-        mesh.active_local_elements_begin();
-      const MeshBase::const_element_iterator elem_end =
-        mesh.active_local_elements_end();
-
-      for (; elem_it != elem_end; ++elem_it)
+      for (const auto & elem : mesh.active_local_element_ptr_range())
         {
-          const Elem * elem = *elem_it;
-
           // We're only checking elements that are already flagged for h
           // refinement
           if (elem->refinement_flag() != Elem::REFINE)
@@ -516,16 +511,8 @@ void HPCoarsenTest::select_refinement (System & system)
 
   // Iterate over all the active elements in the mesh
   // that live on this processor.
-
-  MeshBase::element_iterator       elem_it  =
-    mesh.active_local_elements_begin();
-  const MeshBase::element_iterator elem_end =
-    mesh.active_local_elements_end();
-
-  for (; elem_it != elem_end; ++elem_it)
+  for (auto & elem : mesh.active_local_element_ptr_range())
     {
-      Elem * elem = *elem_it;
-
       // We're only checking elements that are already flagged for h
       // refinement
       if (elem->refinement_flag() != Elem::REFINE)
@@ -580,6 +567,13 @@ void HPCoarsenTest::select_refinement (System & system)
           elem->set_refinement_flag(Elem::DO_NOTHING);
         }
     }
+
+  // libMesh::MeshRefinement will now assume that users have set
+  // refinement flags consistently on all processors, but all we've
+  // done so far is set refinement flags on local elements.  Let's
+  // make sure that flags on geometrically ghosted elements are all
+  // set to whatever their owners decided.
+  MeshRefinement(mesh).make_flags_parallel_consistent();
 }
 
 } // namespace libMesh

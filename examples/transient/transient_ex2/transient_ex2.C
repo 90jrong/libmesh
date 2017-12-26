@@ -366,9 +366,9 @@ void assemble_wave(EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A 2nd order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, SECOND);
@@ -380,11 +380,11 @@ void assemble_wave(EquationSystems & es,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -404,15 +404,8 @@ void assemble_wave(EquationSystems & es,
   // Now we will loop over all the elements in the mesh.
   // We will compute the element matrix and right-hand-side
   // contribution.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -446,7 +439,7 @@ void assemble_wave(EquationSystems & es,
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
         {
           // Now we will build the element matrix.  This involves
-          // a double loop to integrate the test funcions (i) against
+          // a double loop to integrate the test functions (i) against
           // the trial functions (j).
           for (std::size_t i=0; i<phi.size(); i++)
             for (std::size_t j=0; j<phi.size(); j++)
@@ -466,26 +459,26 @@ void assemble_wave(EquationSystems & es,
         // be extended.
         //
         // don't do this for any side
-        for (unsigned int side=0; side<elem->n_sides(); side++)
+        for (auto side : elem->side_index_range())
           if (!true)
             // if (elem->neighbor_ptr(side) == libmesh_nullptr)
             {
               // Declare a special finite element object for
               // boundary integration.
-              UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+              std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
-              // Boundary integration requires one quadraure rule,
+              // Boundary integration requires one quadrature rule,
               // with dimensionality one less than the dimensionality
               // of the element.
               QGauss qface(dim-1, SECOND);
 
-              // Tell the finte element object to use our
+              // Tell the finite element object to use our
               // quadrature rule.
               fe_face->attach_quadrature_rule (&qface);
 
               // The value of the shape functions at the quadrature
               // points.
-              const std::vector<std::vector<Real> > &  phi_face = fe_face->get_phi();
+              const std::vector<std::vector<Real>> &  phi_face = fe_face->get_phi();
 
               // The Jacobian * Quadrature Weight at the quadrature
               // points on the face.
@@ -513,7 +506,7 @@ void assemble_wave(EquationSystems & es,
             } // end if (elem->neighbor_ptr(side) == libmesh_nullptr)
 
         // In this example the Dirichlet boundary conditions will be
-        // imposed via panalty method after the
+        // imposed via penalty method after the
         // system is assembled.
 
       } // end boundary condition section
@@ -558,7 +551,7 @@ void apply_initial(EquationSystems & es,
 
   // Assume our fluid to be at rest, which would
   // also be the default conditions in class NewmarkSystem,
-  // but let us do it explicetly here.
+  // but let us do it explicitly here.
   pres_vec.zero();
   vel_vec.zero();
   acc_vec.zero();
@@ -624,7 +617,7 @@ void fill_dirichlet_bc(EquationSystems & es,
           // Now add the contributions to the matrix and the rhs.
           rhs.add(dn, p_value*penalty);
 
-          // Add the panalty parameter to the global matrix
+          // Add the penalty parameter to the global matrix
           // if desired.
           if (do_for_matrix)
             matrix.add(dn, dn, penalty);

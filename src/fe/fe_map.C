@@ -33,6 +33,7 @@
 #include "libmesh/dense_matrix.h"
 #include "libmesh/dense_vector.h"
 #include "libmesh/tensor_value.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -47,19 +48,16 @@ FEMap::FEMap() :
 
 
 
-UniquePtr<FEMap> FEMap::build( FEType fe_type )
+std::unique_ptr<FEMap> FEMap::build( FEType fe_type )
 {
   switch( fe_type.family )
     {
     case XYZ:
-      return UniquePtr<FEMap>(new FEXYZMap);
+      return libmesh_make_unique<FEXYZMap>();
 
     default:
-      return UniquePtr<FEMap>(new FEMap);
+      return libmesh_make_unique<FEMap>();
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<FEMap>();
 }
 
 
@@ -82,7 +80,7 @@ void FEMap::init_reference_to_physical_map(const std::vector<Point> & qp,
   const Order    mapping_order     (elem->default_order());
   const ElemType mapping_elem_type (elem->type());
 
-  // Number of shape functions used to construt the map
+  // Number of shape functions used to construct the map
   // (Lagrange shape functions are used for mapping)
   const unsigned int n_mapping_shape_functions =
     FE<Dim,LAGRANGE>::n_shape_functions (mapping_elem_type,
@@ -452,7 +450,7 @@ void FEMap::compute_single_point_map(const unsigned int dim,
         for (std::size_t i=0; i<elem_nodes.size(); i++) // sum over the nodes
           {
             // Reference to the point, helps eliminate
-            // exessive temporaries in the inner loop
+            // excessive temporaries in the inner loop
             libmesh_assert(elem_nodes[i]);
             const Point & elem_point = *elem_nodes[i];
 
@@ -691,7 +689,7 @@ void FEMap::compute_single_point_map(const unsigned int dim,
         for (std::size_t i=0; i<elem_nodes.size(); i++) // sum over the nodes
           {
             // Reference to the point, helps eliminate
-            // exessive temporaries in the inner loop
+            // excessive temporaries in the inner loop
             libmesh_assert(elem_nodes[i]);
             const Point & elem_point = *elem_nodes[i];
 
@@ -1013,7 +1011,7 @@ void FEMap::compute_single_point_map(const unsigned int dim,
         for (std::size_t i=0; i<elem_nodes.size(); i++) // sum over the nodes
           {
             // Reference to the point, helps eliminate
-            // exessive temporaries in the inner loop
+            // excessive temporaries in the inner loop
             libmesh_assert(elem_nodes[i]);
             const Point & elem_point = *elem_nodes[i];
 
@@ -1693,7 +1691,7 @@ Point FE<Dim,T>::inverse_map (const Elem * elem,
             //
             //  Where {X}, {X_n} are 3x1 vectors, [J] is a 3x2 matrix
             //  d(x,y,z)/d(xi,eta), and we seek {dp}, a 2x1 vector.  Since
-            //  the above system is either overdermined or rank-deficient,
+            //  the above system is either over-determined or rank-deficient,
             //  we will solve the normal equations for this system
             //
             //  [J]^T ({X} - {X_n}) = [J]^T [J] {dp}
@@ -1742,7 +1740,7 @@ Point FE<Dim,T>::inverse_map (const Elem * elem,
           //  Here we find the point in a 3D reference element that maps to
           //  the point \p physical_point in a 3D domain. Nothing special
           //  has to happen here, since (unless the map is singular because
-          //  you have a BAD element) the map will be invertable and we can
+          //  you have a BAD element) the map will be invertible and we can
           //  apply Newton's method directly.
         case 3:
           {
@@ -1756,7 +1754,7 @@ Point FE<Dim,T>::inverse_map (const Elem * elem,
             //
             //  Where {X}, {X_n} are 3x1 vectors, [J] is a 3x3 matrix
             //  d(x,y,z)/d(xi,eta,zeta), and we seek {dp}, a 3x1 vector.
-            //  Since the above system is nonsingular for invertable maps
+            //  Since the above system is nonsingular for invertible maps
             //  we will solve
             //
             //  {dp} = [J]^-1 ({X} - {X_n})

@@ -172,7 +172,7 @@ public:
   /**
    * \returns The vector of assembly objects that point to this RBEIMConstruction.
    */
-  std::vector<ElemAssembly *> get_eim_assembly_objects();
+  std::vector<std::unique_ptr<ElemAssembly>> & get_eim_assembly_objects();
 
   /**
    * Build an element assembly object that will access basis function
@@ -180,7 +180,7 @@ public:
    * This is pure virtual, override in subclasses to specify the appropriate
    * ElemAssembly object.
    */
-  virtual UniquePtr<ElemAssembly> build_eim_assembly(unsigned int bf_index) = 0;
+  virtual std::unique_ptr<ElemAssembly> build_eim_assembly(unsigned int bf_index) = 0;
 
   /**
    * Get the ExplicitSystem associated with this system.
@@ -290,20 +290,20 @@ protected:
    * The libMesh vectors storing the finite element coefficients
    * of the RB basis functions.
    */
-  std::vector< NumericVector<Number> * > _parametrized_functions_in_training_set;
+  std::vector<std::unique_ptr<NumericVector<Number>>> _parametrized_functions_in_training_set;
 
 private:
 
   /**
    * A mesh function to interpolate on the mesh.
    */
-  UniquePtr<MeshFunction> _mesh_function;
+  std::unique_ptr<MeshFunction> _mesh_function;
 
   /**
    * We also need an extra vector in which we can store a ghosted
    * copy of the vector that we wish to use MeshFunction on.
    */
-  UniquePtr< NumericVector<Number> > _ghosted_meshfunction_vector;
+  std::unique_ptr<NumericVector<Number>> _ghosted_meshfunction_vector;
 
   /**
    * We initialize RBEIMConstruction so that it has an "empty" RBAssemblyExpansion,
@@ -315,7 +315,7 @@ private:
    * The vector of assembly objects that are created to point to
    * this RBEIMConstruction.
    */
-  std::vector<ElemAssembly *> _rb_eim_assembly_objects;
+  std::vector<std::unique_ptr<ElemAssembly>> _rb_eim_assembly_objects;
 
   /**
    * We use an ExplicitSystem to store the EIM basis functions.
@@ -329,13 +329,13 @@ private:
   /**
    * The index map between the explicit system and the implicit system.
    */
-  std::vector< std::vector<dof_id_type> > _dof_map_between_systems;
+  std::vector<std::vector<dof_id_type>> _dof_map_between_systems;
 
   /**
    * This vector is used to store inner_product_matrix * basis_function[i] for each i,
    * since we frequently use this data.
    */
-  std::vector< NumericVector<Number>* > _matrix_times_bfs;
+  std::vector<std::unique_ptr<NumericVector<Number>>> _matrix_times_bfs;
 
   /**
    * The point locator tolerance.

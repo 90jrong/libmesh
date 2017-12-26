@@ -26,11 +26,12 @@
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/parallel_object.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/optimization_system.h"
 
 // C++ includes
 #include <cstddef>
+#include <memory>
 
 namespace libMesh
 {
@@ -42,14 +43,14 @@ template <typename T> class Preconditioner;
 
 /**
  * This base class can be inherited from to provide interfaces to
- * optimziation solvers from different packages like PETSc/TAO and
+ * optimization solvers from different packages like PETSc/TAO and
  * nlopt.
  *
  * \author David Knezevic
  * \date 2015
  */
 template <typename T>
-class OptimizationSolver : public ReferenceCountedObject<OptimizationSolver<T> >,
+class OptimizationSolver : public ReferenceCountedObject<OptimizationSolver<T>>,
                            public ParallelObject
 {
 public:
@@ -73,8 +74,8 @@ public:
    * Builds an \p OptimizationSolver using the package specified by
    * \p solver_package
    */
-  static UniquePtr<OptimizationSolver<T> > build(sys_type & s,
-                                                 const SolverPackage solver_package = libMesh::default_solver_package());
+  static std::unique_ptr<OptimizationSolver<T>> build(sys_type & s,
+                                                      const SolverPackage solver_package = libMesh::default_solver_package());
 
   /**
    * \returns \p true if the data structures are

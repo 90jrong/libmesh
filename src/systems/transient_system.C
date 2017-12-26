@@ -52,7 +52,7 @@ TransientSystem<Base>::~TransientSystem ()
 {
   this->clear();
 
-  // We still have UniquePtrs for API compatibility, but
+  // We still have std::unique_ptrs for API compatibility, but
   // now that we're System::add_vector()ing these, we can trust
   // the base class to handle memory management
   old_local_solution.release();
@@ -79,20 +79,6 @@ void TransientSystem<Base>::clear ()
 
   // Restore us to a "basic" state
   this->add_old_vectors();
-}
-
-
-
-template <class Base>
-void TransientSystem<Base>::reinit ()
-{
-  // initialize parent data
-  Base::reinit();
-
-  // Project the old & older vectors to the new mesh
-  // The System::reinit handles this now
-  // this->project_vector (*old_local_solution);
-  // this->project_vector (*older_local_solution);
 }
 
 
@@ -161,17 +147,17 @@ void TransientSystem<Base>::add_old_vectors()
 {
 #ifdef LIBMESH_ENABLE_GHOSTED
   old_local_solution =
-    UniquePtr<NumericVector<Number> >
+    std::unique_ptr<NumericVector<Number>>
     (&(this->add_vector("_transient_old_local_solution", true, GHOSTED)));
   older_local_solution =
-    UniquePtr<NumericVector<Number> >
+    std::unique_ptr<NumericVector<Number>>
     (&(this->add_vector("_transient_older_local_solution", true, GHOSTED)));
 #else
   old_local_solution =
-    UniquePtr<NumericVector<Number> >
+    std::unique_ptr<NumericVector<Number>>
     (&(this->add_vector("_transient_old_local_solution", true, SERIAL)));
   older_local_solution =
-    UniquePtr<NumericVector<Number> >
+    std::unique_ptr<NumericVector<Number>>
     (&(this->add_vector("_transient_older_local_solution", true, SERIAL)));
 #endif
 }

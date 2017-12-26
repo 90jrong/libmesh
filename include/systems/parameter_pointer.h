@@ -24,6 +24,7 @@
 // Local Includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/parameter_accessor.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -66,6 +67,7 @@ public:
    * \deprecated This is included for backward compatibility, but
    * should no longer be used.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   virtual ParameterAccessor<T> &
   operator= (T * new_ptr) libmesh_override
   {
@@ -73,13 +75,14 @@ public:
     _ptr = new_ptr;
     return *this;
   }
+#endif
 
   /**
    * \returns A new copy of the accessor.
    */
-  virtual UniquePtr<ParameterAccessor<T> > clone() const libmesh_override
+  virtual std::unique_ptr<ParameterAccessor<T>> clone() const libmesh_override
   {
-    return UniquePtr<ParameterAccessor<T> >(new ParameterPointer<T>(_ptr));
+    return libmesh_make_unique<ParameterPointer<T>>(_ptr);
   }
 
 private:

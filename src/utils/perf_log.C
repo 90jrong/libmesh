@@ -18,8 +18,10 @@
 #include "libmesh/perf_log.h"
 
 // C++ includes
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <cstring>
 #include <ctime>
 #include <unistd.h>
 #include <sys/types.h>
@@ -42,7 +44,7 @@ namespace libMesh
 
 
 // ------------------------------------------------------------
-// PerfLog class member funcions
+// PerfLog class member functions
 
 bool PerfLog::called = false;
 
@@ -65,6 +67,9 @@ PerfLog::~PerfLog()
 {
   if (log_events)
     this->print_log();
+
+  for (const auto & pos : non_temporary_strings)
+    delete [] pos.second;
 }
 
 
@@ -74,13 +79,12 @@ void PerfLog::clear()
   if (log_events)
     {
       //  check that all events are closed
-      for (std::map<std::pair<std::string,std::string>, PerfData>::iterator
-             pos = log.begin(); pos != log.end(); ++pos)
-        if (pos->second.open)
-          libmesh_error_msg("ERROR clearning performance log for class " \
+      for (auto pos : log)
+        if (pos.second.open)
+          libmesh_error_msg("ERROR clearing performance log for class " \
                             << label_name                             \
                             << "\nevent "                             \
-                            << pos->first.second                      \
+                            << pos.first.second                      \
                             << " is still being monitored!");
 
       gettimeofday (&tstart, libmesh_nullptr);
@@ -91,6 +95,76 @@ void PerfLog::clear()
         log_stack.pop();
     }
 }
+
+
+
+void PerfLog::push (const std::string & label,
+                    const std::string & header)
+{
+  const char * label_c_str;
+  const char * header_c_str;
+  if (non_temporary_strings.count(label))
+    label_c_str = non_temporary_strings[label];
+  else
+    {
+      char * newcopy = new char [label.size()+1];
+      strcpy(newcopy, label.c_str());
+      label_c_str = newcopy;
+      non_temporary_strings[label] = label_c_str;
+    }
+
+  if (non_temporary_strings.count(header))
+    header_c_str = non_temporary_strings[header];
+  else
+    {
+      char * newcopy = new char [header.size()+1];
+      strcpy(newcopy, header.c_str());
+      header_c_str = newcopy;
+      non_temporary_strings[header] = header_c_str;
+    }
+
+  if (this->log_events)
+    this->fast_push(label_c_str, header_c_str);
+}
+
+
+
+void PerfLog::push (const char * label,
+                    const char * header)
+{
+  this->push(std::string(label), std::string(header));
+}
+
+
+
+
+
+void PerfLog::pop (const std::string & label,
+                   const std::string & header)
+{
+
+  const char * label_c_str = non_temporary_strings[label];
+  const char * header_c_str = non_temporary_strings[header];
+
+  // This could happen if users are *mixing* string and char* APIs for
+  // the same label/header combination.  For perfect backwards
+  // compatibility we should handle that, but there's just no fast way
+  // to do so.
+  libmesh_assert(label_c_str);
+  libmesh_assert(header_c_str);
+
+  if (this->log_events)
+    this->fast_pop(label_c_str, header_c_str);
+}
+
+
+
+void PerfLog::pop (const char * label,
+                   const char * header)
+{
+  this->pop(std::string(label), std::string(header));
+}
+
 
 
 std::string PerfLog::get_info_header() const
@@ -286,15 +360,12 @@ std::string PerfLog::get_perf_info() const
       const unsigned int pct_active_col_width = 9;
       const unsigned int pct_active_incl_sub_col_width = 9;
 
-      // Iterator to be used to loop over the map of timed events
-      std::map<std::pair<std::string,std::string>, PerfData>::const_iterator pos;
-
       // Reset the event column width based on the longest event name plus
       // a possible 2-character indentation, plus a space.
-      for (pos = log.begin(); pos != log.end(); ++pos)
-        if (pos->first.second.size()+3 > event_col_width)
+      for (auto pos : log)
+        if (std::strlen(pos.first.second)+3 > event_col_width)
           event_col_width = cast_int<unsigned int>
-            (pos->first.second.size()+3);
+            (std::strlen(pos.first.second)+3);
 
       // Set the total width of the column
       const unsigned int total_col_width =
@@ -404,9 +475,17 @@ std::string PerfLog::get_perf_info() const
 
       std::string last_header("");
 
-      for (pos = log.begin(); pos != log.end(); ++pos)
+      // Make a new log to sort entries alphabetically
+      std::map<std::pair<std::string, std::string>, PerfData> string_log;
+
+      for (auto char_data : log)
+        string_log[std::make_pair(char_data.first.first,
+                                  char_data.first.second)] =
+          char_data.second;
+
+      for (auto pos : string_log)
         {
-          const PerfData & perf_data = pos->second;
+          const PerfData & perf_data = pos.second;
 
           // Only print the event if the count is non-zero.
           if (perf_data.count != 0)
@@ -424,17 +503,17 @@ std::string PerfLog::get_perf_info() const
               summed_percentage     += perf_percent;
 
               // Print the event name
-              if (pos->first.first == "")
+              if (pos.first.first == "")
                 oss << "| "
                     << std::setw(event_col_width)
                     << std::left
-                    << pos->first.second;
+                    << pos.first.second;
 
               else
                 {
-                  if (last_header != pos->first.first)
+                  if (last_header != pos.first.first)
                     {
-                      last_header = pos->first.first;
+                      last_header = pos.first.first;
 
                       // print blank line followed by header name
                       // (account for additional space before the
@@ -444,14 +523,14 @@ std::string PerfLog::get_perf_info() const
                           << "|\n| "
                           << std::setw(total_col_width-1)
                           << std::left
-                          << pos->first.first
+                          << pos.first.first
                           << "|\n";
                     }
 
                   oss << "|   "
                       << std::setw(event_col_width-2)
                       << std::left
-                      << pos->first.second;
+                      << pos.first.second;
                 }
 
 
@@ -616,7 +695,26 @@ void PerfLog::print_log() const
 
 PerfData PerfLog::get_perf_data(const std::string & label, const std::string & header)
 {
-  return log[std::make_pair(header, label)];
+  if (non_temporary_strings.count(label) &&
+      non_temporary_strings.count(header))
+    {
+      const char * label_c_str = non_temporary_strings[label];
+      const char * header_c_str = non_temporary_strings[header];
+      return log[std::make_pair(header_c_str, label_c_str)];
+    }
+
+  auto iter = std::find_if
+    (log.begin(), log.end(),
+     [&label, &header] (log_type::const_reference a)
+     {
+       return
+       !std::strcmp(header.c_str(), a.first.first) &&
+       !std::strcmp(label.c_str(), a.first.second);
+     });
+
+  libmesh_assert(iter != log.end());
+
+  return iter->second;
 }
 
 void PerfLog::start_event(const std::string & label,

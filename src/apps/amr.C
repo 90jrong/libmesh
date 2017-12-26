@@ -140,12 +140,12 @@ void assemble(EquationSystems & es,
   // about the geometry of the problem and the quadrature rule
   FEType fe_type (FIRST);
 
-  UniquePtr<FEBase> fe(FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe(FEBase::build(dim, fe_type));
   QGauss qrule(dim, FIFTH);
 
   fe->attach_quadrature_rule (&qrule);
 
-  UniquePtr<FEBase> fe_face(FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_face(FEBase::build(dim, fe_type));
   QGauss qface(dim-1, FIFTH);
 
   fe_face->attach_quadrature_rule(&qface);
@@ -158,8 +158,8 @@ void assemble(EquationSystems & es,
   const std::vector<Real> & JxW_face                   = fe_face->get_JxW();
   const std::vector<Real> & JxW                        = fe->get_JxW();
   const std::vector<Point> & q_point                   = fe->get_xyz();
-  const std::vector<std::vector<Real> > & phi          = fe->get_phi();
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<Real>> & phi          = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   std::vector<dof_id_type> dof_indices_U;
   std::vector<dof_id_type> dof_indices_V;
@@ -172,13 +172,8 @@ void assemble(EquationSystems & es,
 
   Real vol=0., area=0.;
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for (; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
-
       // recompute the element-specific data for the current element
       fe->reinit (elem);
 
@@ -235,7 +230,7 @@ void assemble(EquationSystems & es,
       // You can't compute "area" (perimeter) if you are in 2D
       if (dim == 3)
         {
-          for (unsigned int side=0; side<elem->n_sides(); side++)
+          for (auto side : elem->side_index_range())
             if (elem->neighbor_ptr(side) == libmesh_nullptr)
               {
                 fe_face->reinit (elem, side);

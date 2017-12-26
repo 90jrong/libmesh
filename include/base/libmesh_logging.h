@@ -36,7 +36,7 @@ namespace libMesh
 
 
 // Forward declaration, required when included
-// in perf_log.{C,h} because the preceeding
+// in perf_log.{C,h} because the preceding
 // #include "libmesh/perf_log.h" is ineffective.
 // Multiple inclusion avoidance problem...
 // LIBMESH_PERF_LOG_H already #define'd, but the
@@ -71,13 +71,13 @@ struct PerfItem
     _enabled(enabled)
   {
     if (_enabled)
-      libMesh::perflog.push(label, header);
+      libMesh::perflog.fast_push(label, header);
   }
 
   ~PerfItem()
   {
     if (_enabled)
-      libMesh::perflog.pop(_label, _header);
+      libMesh::perflog.fast_pop(_label, _header);
   }
 
 private:
@@ -100,8 +100,10 @@ private:
 
 #  define START_LOG(a,b)   { libMesh::perflog.push(a,b); }
 #  define STOP_LOG(a,b)    { libMesh::perflog.pop(a,b); }
+#ifdef LIBMESH_ENABLE_DEPRECATED
 #  define PALIBMESH_USE_LOG(a,b)   { libmesh_deprecated(); }
 #  define RESTART_LOG(a,b) { libmesh_deprecated(); }
+#endif
 #  define LOG_SCOPE(a,b)   libMesh::PerfItem TOKENPASTE2(perf_item_, __LINE__)(a,b);
 #  define LOG_SCOPE_IF(a,b,enabled)   libMesh::PerfItem TOKENPASTE2(perf_item_, __LINE__)(a,b,enabled);
 

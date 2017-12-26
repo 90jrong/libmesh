@@ -31,6 +31,7 @@
 #include "libmesh/trilinos_epetra_vector.h"
 #include "libmesh/shell_matrix.h"
 #include "libmesh/tensor_tools.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -42,7 +43,7 @@ namespace libMesh
 
 // Full specialization for Real datatypes
 template <typename T>
-UniquePtr<NumericVector<T> >
+std::unique_ptr<NumericVector<T>>
 NumericVector<T>::build(const Parallel::Communicator & comm, const SolverPackage solver_package)
 {
   // Build the appropriate vector
@@ -51,41 +52,40 @@ NumericVector<T>::build(const Parallel::Communicator & comm, const SolverPackage
 
 #ifdef LIBMESH_HAVE_LASPACK
     case LASPACK_SOLVERS:
-      return UniquePtr<NumericVector<T> >(new LaspackVector<T>(comm, AUTOMATIC));
+      return libmesh_make_unique<LaspackVector<T>>(comm, AUTOMATIC);
 #endif
 
 #ifdef LIBMESH_HAVE_PETSC
     case PETSC_SOLVERS:
-      return UniquePtr<NumericVector<T> >(new PetscVector<T>(comm, AUTOMATIC));
+      return libmesh_make_unique<PetscVector<T>>(comm, AUTOMATIC);
 #endif
 
 #ifdef LIBMESH_TRILINOS_HAVE_EPETRA
     case TRILINOS_SOLVERS:
-      return UniquePtr<NumericVector<T> >(new EpetraVector<T>(comm, AUTOMATIC));
+      return libmesh_make_unique<EpetraVector<T>>(comm, AUTOMATIC);
 #endif
 
 #ifdef LIBMESH_HAVE_EIGEN
     case EIGEN_SOLVERS:
-      return UniquePtr<NumericVector<T> >(new EigenSparseVector<T>(comm, AUTOMATIC));
+      return libmesh_make_unique<EigenSparseVector<T>>(comm, AUTOMATIC);
 #endif
 
     default:
-      return UniquePtr<NumericVector<T> >(new DistributedVector<T>(comm, AUTOMATIC));
+      return libmesh_make_unique<DistributedVector<T>>(comm, AUTOMATIC);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return UniquePtr<NumericVector<T> >();
 }
 
 
 #ifndef LIBMESH_DISABLE_COMMWORLD
+#ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
-UniquePtr<NumericVector<T> >
+std::unique_ptr<NumericVector<T>>
 NumericVector<T>::build(const SolverPackage solver_package)
 {
   libmesh_deprecated();
   return NumericVector<T>::build(CommWorld, solver_package);
 }
+#endif
 #endif
 
 

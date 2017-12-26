@@ -27,7 +27,7 @@ public:
   ~FEMParameters();
 
   void read(GetPot & input,
-            const std::vector<std::string> * other_variable_names = NULL);
+            const std::vector<std::string> * other_variable_names = libmesh_nullptr);
 
   // Parameters applicable to entire EquationSystems:
 
@@ -50,6 +50,9 @@ public:
   unsigned int coarsegridx, coarsegridy, coarsegridz;
   unsigned int coarserefinements, extrarefinements;
   std::string mesh_redistribute_func;
+
+  //   Mesh partitioning
+  std::string mesh_partitioner_type;
 
   //   Mesh refinement
 
@@ -77,21 +80,23 @@ public:
 
   //   Boundary and initial conditions
 
+#ifdef LIBMESH_ENABLE_PERIODIC
   std::vector<libMesh::PeriodicBoundary> periodic_boundaries;
+#endif
 
   std::map<libMesh::subdomain_id_type, libMesh::FunctionBase<libMesh::Number> *>
   initial_conditions;
   std::map<libMesh::boundary_id_type, libMesh::FunctionBase<libMesh::Number> *>
   dirichlet_conditions,
     neumann_conditions;
-  std::map<libMesh::boundary_id_type, std::vector<unsigned int> >
+  std::map<libMesh::boundary_id_type, std::vector<unsigned int>>
   dirichlet_condition_variables,
     neumann_condition_variables;
   std::map<int, std::map<libMesh::subdomain_id_type,
-                         libMesh::FunctionBase<libMesh::Number> *> >
+                         libMesh::FunctionBase<libMesh::Number> *>>
   other_interior_functions;
   std::map<int, std::map<libMesh::boundary_id_type,
-                         libMesh::FunctionBase<libMesh::Number> *> >
+                         libMesh::FunctionBase<libMesh::Number> *>>
   other_boundary_functions;
 
   //   Execution type
@@ -146,4 +151,4 @@ public:
   std::string system_config_file;
 };
 
-#endif // __fem_parameters_h__
+#endif // FEMPARAMETERS_H

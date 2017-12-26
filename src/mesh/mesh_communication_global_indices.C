@@ -309,7 +309,7 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
 
     communicator.allgather (my_max, /* identical_buffer_sizes = */ true);
 
-    // Be cereful here.  The *_upper_bounds will be used to find the processor
+    // Be careful here.  The *_upper_bounds will be used to find the processor
     // a given object belongs to.  So, if a processor contains no objects (possible!)
     // then copy the bound from the lower processor id.
     for (processor_id_type p=0; p<communicator.size(); p++)
@@ -335,35 +335,29 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
     // Nodes first -- all nodes, not just local ones
     {
       // Request sets to send to each processor
-      std::vector<std::vector<Parallel::DofObjectKey> >
+      std::vector<std::vector<Parallel::DofObjectKey>>
         requested_ids (communicator.size());
       // Results to gather from each processor
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         filled_request (communicator.size());
 
-      {
-        MeshBase::const_node_iterator       it  = mesh.nodes_begin();
-        const MeshBase::const_node_iterator end = mesh.nodes_end();
+      // build up list of requests
+      for (const auto & node : mesh.node_ptr_range())
+        {
+          libmesh_assert(node);
+          const Parallel::DofObjectKey hi =
+            get_hilbert_index (node, bbox);
+          const processor_id_type pid =
+            cast_int<processor_id_type>
+            (std::distance (node_upper_bounds.begin(),
+                            std::lower_bound(node_upper_bounds.begin(),
+                                             node_upper_bounds.end(),
+                                             hi)));
 
-        // build up list of requests
-        for (; it != end; ++it)
-          {
-            const Node * node = (*it);
-            libmesh_assert(node);
-            const Parallel::DofObjectKey hi =
-              get_hilbert_index (node, bbox);
-            const processor_id_type pid =
-              cast_int<processor_id_type>
-              (std::distance (node_upper_bounds.begin(),
-                              std::lower_bound(node_upper_bounds.begin(),
-                                               node_upper_bounds.end(),
-                                               hi)));
+          libmesh_assert_less (pid, communicator.size());
 
-            libmesh_assert_less (pid, communicator.size());
-
-            requested_ids[pid].push_back(hi);
-          }
-      }
+          requested_ids[pid].push_back(hi);
+        }
 
       // The number of objects in my_node_bin on each processor
       std::vector<dof_id_type> node_bin_sizes(communicator.size());
@@ -419,33 +413,27 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
         for (processor_id_type pid=0; pid<communicator.size(); pid++)
           next_obj_on_proc.push_back(filled_request[pid].begin());
 
-        {
-          MeshBase::node_iterator       it  = mesh.nodes_begin();
-          const MeshBase::node_iterator end = mesh.nodes_end();
+        for (auto & node : mesh.node_ptr_range())
+          {
+            libmesh_assert(node);
+            const Parallel::DofObjectKey hi =
+              get_hilbert_index (node, bbox);
+            const processor_id_type pid =
+              cast_int<processor_id_type>
+              (std::distance (node_upper_bounds.begin(),
+                              std::lower_bound(node_upper_bounds.begin(),
+                                               node_upper_bounds.end(),
+                                               hi)));
 
-          for (; it != end; ++it)
-            {
-              Node * node = (*it);
-              libmesh_assert(node);
-              const Parallel::DofObjectKey hi =
-                get_hilbert_index (node, bbox);
-              const processor_id_type pid =
-                cast_int<processor_id_type>
-                (std::distance (node_upper_bounds.begin(),
-                                std::lower_bound(node_upper_bounds.begin(),
-                                                 node_upper_bounds.end(),
-                                                 hi)));
+            libmesh_assert_less (pid, communicator.size());
+            libmesh_assert (next_obj_on_proc[pid] != filled_request[pid].end());
 
-              libmesh_assert_less (pid, communicator.size());
-              libmesh_assert (next_obj_on_proc[pid] != filled_request[pid].end());
+            const dof_id_type global_index = *next_obj_on_proc[pid];
+            libmesh_assert_less (global_index, mesh.n_nodes());
+            node->set_id() = global_index;
 
-              const dof_id_type global_index = *next_obj_on_proc[pid];
-              libmesh_assert_less (global_index, mesh.n_nodes());
-              node->set_id() = global_index;
-
-              ++next_obj_on_proc[pid];
-            }
-        }
+            ++next_obj_on_proc[pid];
+          }
       }
     }
 
@@ -453,34 +441,28 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
     // elements next -- all elements, not just local ones
     {
       // Request sets to send to each processor
-      std::vector<std::vector<Parallel::DofObjectKey> >
+      std::vector<std::vector<Parallel::DofObjectKey>>
         requested_ids (communicator.size());
       // Results to gather from each processor
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         filled_request (communicator.size());
 
-      {
-        MeshBase::const_element_iterator       it  = mesh.elements_begin();
-        const MeshBase::const_element_iterator end = mesh.elements_end();
+      for (const auto & elem : mesh.element_ptr_range())
+        {
+          libmesh_assert(elem);
+          const Parallel::DofObjectKey hi =
+            get_hilbert_index (elem, bbox);
+          const processor_id_type pid =
+            cast_int<processor_id_type>
+            (std::distance (elem_upper_bounds.begin(),
+                            std::lower_bound(elem_upper_bounds.begin(),
+                                             elem_upper_bounds.end(),
+                                             hi)));
 
-        for (; it != end; ++it)
-          {
-            const Elem * elem = (*it);
-            libmesh_assert(elem);
-            const Parallel::DofObjectKey hi =
-              get_hilbert_index (elem, bbox);
-            const processor_id_type pid =
-              cast_int<processor_id_type>
-              (std::distance (elem_upper_bounds.begin(),
-                              std::lower_bound(elem_upper_bounds.begin(),
-                                               elem_upper_bounds.end(),
-                                               hi)));
+          libmesh_assert_less (pid, communicator.size());
 
-            libmesh_assert_less (pid, communicator.size());
-
-            requested_ids[pid].push_back(hi);
-          }
-      }
+          requested_ids[pid].push_back(hi);
+        }
 
       // The number of objects in my_elem_bin on each processor
       std::vector<dof_id_type> elem_bin_sizes(communicator.size());
@@ -536,33 +518,27 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
         for (processor_id_type pid=0; pid<communicator.size(); pid++)
           next_obj_on_proc.push_back(filled_request[pid].begin());
 
-        {
-          MeshBase::element_iterator       it  = mesh.elements_begin();
-          const MeshBase::element_iterator end = mesh.elements_end();
+        for (auto & elem : mesh.element_ptr_range())
+          {
+            libmesh_assert(elem);
+            const Parallel::DofObjectKey hi =
+              get_hilbert_index (elem, bbox);
+            const processor_id_type pid =
+              cast_int<processor_id_type>
+              (std::distance (elem_upper_bounds.begin(),
+                              std::lower_bound(elem_upper_bounds.begin(),
+                                               elem_upper_bounds.end(),
+                                               hi)));
 
-          for (; it != end; ++it)
-            {
-              Elem * elem = (*it);
-              libmesh_assert(elem);
-              const Parallel::DofObjectKey hi =
-                get_hilbert_index (elem, bbox);
-              const processor_id_type pid =
-                cast_int<processor_id_type>
-                (std::distance (elem_upper_bounds.begin(),
-                                std::lower_bound(elem_upper_bounds.begin(),
-                                                 elem_upper_bounds.end(),
-                                                 hi)));
+            libmesh_assert_less (pid, communicator.size());
+            libmesh_assert (next_obj_on_proc[pid] != filled_request[pid].end());
 
-              libmesh_assert_less (pid, communicator.size());
-              libmesh_assert (next_obj_on_proc[pid] != filled_request[pid].end());
+            const dof_id_type global_index = *next_obj_on_proc[pid];
+            libmesh_assert_less (global_index, mesh.n_elem());
+            elem->set_id() = global_index;
 
-              const dof_id_type global_index = *next_obj_on_proc[pid];
-              libmesh_assert_less (global_index, mesh.n_elem());
-              elem->set_id() = global_index;
-
-              ++next_obj_on_proc[pid];
-            }
-        }
+            ++next_obj_on_proc[pid];
+          }
       }
     }
   }
@@ -748,7 +724,7 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
 
   communicator.allgather (upper_bounds, /* identical_buffer_sizes = */ true);
 
-  // Be cereful here.  The *_upper_bounds will be used to find the processor
+  // Be careful here.  The *_upper_bounds will be used to find the processor
   // a given object belongs to.  So, if a processor contains no objects (possible!)
   // then copy the bound from the lower processor id.
   for (unsigned int p=1; p<communicator.size(); p++)
@@ -763,10 +739,10 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
     // all objects, not just local ones
 
     // Request sets to send to each processor
-    std::vector<std::vector<Parallel::DofObjectKey> >
+    std::vector<std::vector<Parallel::DofObjectKey>>
       requested_ids (communicator.size());
     // Results to gather from each processor
-    std::vector<std::vector<dof_id_type> >
+    std::vector<std::vector<dof_id_type>>
       filled_request (communicator.size());
 
     // build up list of requests

@@ -53,7 +53,8 @@ void HeatSystem::init_data ()
   // Set equation system parameters _k and theta, so they can be read by the exact solution
   this->get_equation_systems().parameters.set<Real>("_k") = _k;
 
-  this->time_evolving(T_var);
+  // The temperature is evolving, with a first order time derivative
+  this->time_evolving(T_var, 1);
 
   const boundary_id_type all_ids[4] = {0, 1, 2, 3};
   std::set<boundary_id_type> all_bdys(all_ids, all_ids+(2*2));
@@ -122,7 +123,7 @@ bool HeatSystem::element_time_derivative (bool request_jacobian,
   const std::vector<Real> & JxW = elem_fe->get_JxW();
 
   // Element basis functions
-  const std::vector<std::vector<RealGradient> > & dphi = elem_fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = elem_fe->get_dphi();
 
   // Workaround for weird FC6 bug
   optassert(c.get_dof_indices().size() > 0);
@@ -173,7 +174,7 @@ void HeatSystem::perturb_accumulate_residuals(ParameterVector & parameters_in)
 
       this->rhs->close();
 
-      UniquePtr<NumericVector<Number> > R_minus = this->rhs->clone();
+      std::unique_ptr<NumericVector<Number>> R_minus = this->rhs->clone();
 
       // The contribution at a single time step would be [f(z;p+dp) - <partialu/partialt, z>(p+dp) - <g(u),z>(p+dp)] * dt
       // But since we compute the residual already scaled by dt, there is no need for the * dt
@@ -185,7 +186,7 @@ void HeatSystem::perturb_accumulate_residuals(ParameterVector & parameters_in)
 
       this->rhs->close();
 
-      UniquePtr<NumericVector<Number> > R_plus = this->rhs->clone();
+      std::unique_ptr<NumericVector<Number>> R_plus = this->rhs->clone();
 
       R_plus_dp += -R_plus->dot(this->get_adjoint_solution(0));
 

@@ -253,16 +253,13 @@ int main (int argc, char ** argv)
         // Find the closest local node.  On a DistributedMesh we may
         // not even know about the existence of closer non-local
         // nodes.
-        libMesh::MeshBase::const_node_iterator it = mesh.local_nodes_begin();
-        const libMesh::MeshBase::const_node_iterator end = mesh.local_nodes_end();
-        for (; it != end; ++it)
+        for (auto & node : mesh.local_node_ptr_range())
           {
-            Node * n = *it;
-            const Real dist_sq = (*n-point_C).norm_sq();
+            const Real dist_sq = (*node - point_C).norm_sq();
             if (dist_sq < nearest_dist_sq)
               {
                 nearest_dist_sq = dist_sq;
-                node_C = n;
+                node_C = node;
               }
           }
 
@@ -377,7 +374,7 @@ void assemble_shell (EquationSystems & es,
   // the same for all variables.
   FEType fe_type = system.variable_type (0);
 
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
   QGauss qrule (dim, fe_type.default_quadrature_order());
   fe->attach_quadrature_rule (&qrule);
 
@@ -391,9 +388,9 @@ void assemble_shell (EquationSystems & es,
   const std::vector<RealGradient> & d2xyzdxi2 = fe->get_d2xyzdxi2();
   const std::vector<RealGradient> & d2xyzdeta2 = fe->get_d2xyzdeta2();
   const std::vector<RealGradient> & d2xyzdxideta = fe->get_d2xyzdxideta();
-  const std::vector<std::vector<Real> > & dphidxi = fe->get_dphidxi();
-  const std::vector<std::vector<Real> > & dphideta = fe->get_dphideta();
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & dphidxi = fe->get_dphidxi();
+  const std::vector<std::vector<Real>> & dphideta = fe->get_dphideta();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // A reference to the DofMap object for this system.  The DofMap
   // object handles the index translation from node and element numbers
@@ -423,19 +420,12 @@ void assemble_shell (EquationSystems & es,
   DenseSubVector<Number> Fe_w(Fe);
 
   std::vector<dof_id_type> dof_indices;
-  std::vector< std::vector<dof_id_type> > dof_indices_var(6);
+  std::vector<std::vector<dof_id_type>> dof_indices_var(6);
 
   // Now we will loop over all the elements in the mesh.  We will
   // compute the element matrix and right-hand-side contribution.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for (; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       dof_map.dof_indices (elem, dof_indices);
       for (unsigned int var=0; var<6; var++)
         dof_map.dof_indices (elem, dof_indices_var[var], var);
@@ -445,7 +435,7 @@ void assemble_shell (EquationSystems & es,
 
       // First compute element data at the nodes
       std::vector<Point> nodes;
-      for (unsigned int i=0; i<elem->n_nodes(); ++i)
+      for (auto i : elem->node_index_range())
         nodes.push_back(elem->reference_elem()->node_ref(i));
       fe->reinit (elem, &nodes);
 
@@ -458,7 +448,7 @@ void assemble_shell (EquationSystems & es,
       //Store covariant basis and local orthonormal basis at the nodes
       std::vector<Eigen::Matrix3d> F0node;
       std::vector<Eigen::Matrix3d> Qnode;
-      for (unsigned int i=0; i<elem->n_nodes(); ++i)
+      for (auto i : elem->node_index_range())
         {
           Eigen::Vector3d a1;
           a1 << dxyzdxi[i](0), dxyzdxi[i](1), dxyzdxi[i](2);

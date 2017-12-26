@@ -36,6 +36,7 @@
 #include "libmesh/transient_system.h"
 #include "libmesh/node.h"
 #include "libmesh/elem.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 #include "nonlinear_neohooke_cc.h"
 #include "solid_system.h"
@@ -55,7 +56,7 @@ SolidSystem::SolidSystem(EquationSystems & es,
 {
 
   // Add a time solver. We are just looking at a steady state problem here.
-  this->time_solver = UniquePtr<TimeSolver>(new SteadySolver(*this));
+  this->time_solver = libmesh_make_unique<SteadySolver>(*this);
 }
 
 void SolidSystem::save_initial_mesh()
@@ -66,19 +67,14 @@ void SolidSystem::save_initial_mesh()
 
   // Loop over all nodes and copy the location from the current system to
   // the auxiliary system.
-  MeshBase::const_node_iterator nd = this->get_mesh().local_nodes_begin();
-  const MeshBase::const_node_iterator nd_end = this->get_mesh().local_nodes_end();
-  for (; nd != nd_end; ++nd)
-    {
-      const Node * node = *nd;
-      for (unsigned int d = 0; d < dim; ++d)
-        {
-          unsigned int source_dof = node->dof_number(this->number(), var[d], 0);
-          unsigned int dest_dof = node->dof_number(aux_sys.number(), undefo_var[d], 0);
-          Number value = this->current_local_solution->el(source_dof);
-          aux_sys.current_local_solution->set(dest_dof, value);
-        }
-    }
+  for (const auto & node : this->get_mesh().local_node_ptr_range())
+    for (unsigned int d = 0; d < dim; ++d)
+      {
+        unsigned int source_dof = node->dof_number(this->number(), var[d], 0);
+        unsigned int dest_dof = node->dof_number(aux_sys.number(), undefo_var[d], 0);
+        Number value = this->current_local_solution->el(source_dof);
+        aux_sys.current_local_solution->set(dest_dof, value);
+      }
 }
 
 void SolidSystem::init_data()
@@ -190,7 +186,7 @@ bool SolidSystem::element_time_derivative(bool request_jacobian,
   const std::vector<Real> & JxW = elem_fe->get_JxW();
 
   // Element basis functions
-  const std::vector<std::vector<RealGradient> > & dphi = elem_fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = elem_fe->get_dphi();
 
   // Dimension of the mesh
   const unsigned int dim = this->get_mesh().mesh_dimension();
@@ -246,7 +242,7 @@ bool SolidSystem::element_time_derivative(bool request_jacobian,
       // gradient
       material.init_for_qp(grad_u, qp);
 
-      // Aquire, scale and assemble residual and stiffness
+      // Acquire, scale and assemble residual and stiffness
       for (unsigned int i = 0; i < n_u_dofs; i++)
         {
           res.resize(dim);
@@ -324,7 +320,7 @@ bool SolidSystem::side_time_derivative(bool request_jacobian,
       FEBase * fe = libmesh_nullptr;
       c.get_side_fe(0, fe);
 
-      const std::vector<std::vector<Real> > & phi = fe->get_phi();
+      const std::vector<std::vector<Real>> & phi = fe->get_phi();
       const std::vector<Real> & JxW = fe->get_JxW();
       const std::vector<Point> & coords = fe->get_xyz();
 

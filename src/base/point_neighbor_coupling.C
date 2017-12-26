@@ -25,7 +25,7 @@
 #include "libmesh/remote_elem.h"
 
 // C++ Includes
-#include LIBMESH_INCLUDE_UNORDERED_SET
+#include <unordered_set>
 
 namespace libMesh
 {
@@ -61,7 +61,7 @@ void PointNeighborCoupling::operator()
 #ifdef LIBMESH_ENABLE_PERIODIC
   bool check_periodic_bcs =
     (_periodic_bcs && !_periodic_bcs->empty());
-  UniquePtr<PointLocatorBase> point_locator;
+  std::unique_ptr<PointLocatorBase> point_locator;
   if (check_periodic_bcs)
     {
       libmesh_assert(_mesh);
@@ -82,7 +82,7 @@ void PointNeighborCoupling::operator()
       return;
     }
 
-  typedef LIBMESH_BEST_UNORDERED_SET<const Elem*> set_type;
+  typedef std::unordered_set<const Elem*> set_type;
   set_type next_elements_to_check(range_begin, range_end);
   set_type elements_to_check;
   set_type elements_checked;

@@ -85,7 +85,7 @@ public:
     const Variable & var_description = _dof_map.variable(_variable_number);
 
 #ifdef LIBMESH_ENABLE_PERIODIC
-    UniquePtr<PointLocatorBase> point_locator;
+    std::unique_ptr<PointLocatorBase> point_locator;
     const bool have_periodic_boundaries =
       !_periodic_boundaries.empty();
     if (have_periodic_boundaries && !range.empty())
@@ -154,7 +154,7 @@ public:
   void operator()(const ConstElemRange & range) const
   {
 #ifdef LIBMESH_ENABLE_PERIODIC
-    UniquePtr<PointLocatorBase> point_locator;
+    std::unique_ptr<PointLocatorBase> point_locator;
     bool have_periodic_boundaries = !_periodic_boundaries.empty();
     if (have_periodic_boundaries && !range.empty())
       point_locator = _mesh.sub_point_locator();
@@ -345,20 +345,20 @@ private:
       variable.first_scalar_number();
 
     // Get FE objects of the appropriate type
-    UniquePtr<FEGenericBase<OutputType> > fe = FEGenericBase<OutputType>::build(dim, fe_type);
+    std::unique_ptr<FEGenericBase<OutputType>> fe = FEGenericBase<OutputType>::build(dim, fe_type);
 
     // Prepare variables for projection
-    UniquePtr<QBase> qedgerule (fe_type.default_quadrature_rule(1));
-    UniquePtr<QBase> qsiderule (fe_type.default_quadrature_rule(dim-1));
-    UniquePtr<QBase> qrule (fe_type.default_quadrature_rule(dim));
+    std::unique_ptr<QBase> qedgerule (fe_type.default_quadrature_rule(1));
+    std::unique_ptr<QBase> qsiderule (fe_type.default_quadrature_rule(dim-1));
+    std::unique_ptr<QBase> qrule (fe_type.default_quadrature_rule(dim));
 
     // The values of the shape functions at the quadrature
     // points
-    const std::vector<std::vector<OutputShape> > & phi = fe->get_phi();
+    const std::vector<std::vector<OutputShape>> & phi = fe->get_phi();
 
     // The gradients of the shape functions at the quadrature
     // points on the child element.
-    const std::vector<std::vector<OutputGradient> > * dphi = libmesh_nullptr;
+    const std::vector<std::vector<OutputGradient>> * dphi = libmesh_nullptr;
 
     const FEContinuity cont = fe->get_continuity();
 
@@ -373,7 +373,7 @@ private:
         libmesh_assert(!(f && g_fem));
         libmesh_assert(!(f_fem && g));
 
-        const std::vector<std::vector<OutputGradient> > & ref_dphi = fe->get_dphi();
+        const std::vector<std::vector<OutputGradient>> & ref_dphi = fe->get_dphi();
         dphi = &ref_dphi;
       }
 
@@ -391,13 +391,13 @@ private:
     // If our supplied functions require a FEMContext, and if we have
     // an initialized solution to use with that FEMContext, then
     // create one
-    UniquePtr<FEMContext> context;
+    std::unique_ptr<FEMContext> context;
     if (f_fem)
       {
         libmesh_assert(f_system);
         if (f_system->current_local_solution->initialized())
           {
-            context = UniquePtr<FEMContext>(new FEMContext(*f_system));
+            context = libmesh_make_unique<FEMContext>(*f_system);
             f_fem->init_context(*context);
             if (g_fem)
               g_fem->init_context(*context);
@@ -434,21 +434,25 @@ private:
         if (f_system && context.get())
           context->pre_fe_reinit(*f_system, elem);
 
+        const unsigned short n_sides = elem->n_sides();
+        const unsigned short n_edges = elem->n_edges();
+        const unsigned short n_nodes = elem->n_nodes();
+
         // Find out which nodes, edges, sides and shellfaces are on a requested
         // boundary:
-        std::vector<bool> is_boundary_node(elem->n_nodes(), false),
-          is_boundary_edge(elem->n_edges(), false),
-          is_boundary_side(elem->n_sides(), false),
+        std::vector<bool> is_boundary_node(n_nodes, false),
+          is_boundary_edge(n_edges, false),
+          is_boundary_side(n_sides, false),
           is_boundary_shellface(2, false);
 
         // We also maintain a separate list of nodeset-based boundary nodes
-        std::vector<bool> is_boundary_nodeset(elem->n_nodes(), false);
+        std::vector<bool> is_boundary_nodeset(n_nodes, false);
 
         // Container to catch boundary ids handed back for sides,
         // nodes, and edges in the loops below.
         std::vector<boundary_id_type> ids_vec;
 
-        for (unsigned char s=0; s != elem->n_sides(); ++s)
+        for (unsigned char s = 0; s != n_sides; ++s)
           {
             // First see if this side has been requested
             boundary_info.boundary_ids (elem, s, ids_vec);
@@ -467,17 +471,17 @@ private:
             is_boundary_side[s] = true;
 
             // Then see what nodes and what edges are on it
-            for (unsigned int n=0; n != elem->n_nodes(); ++n)
+            for (unsigned int n = 0; n != n_nodes; ++n)
               if (elem->is_node_on_side(n,s))
                 is_boundary_node[n] = true;
-            for (unsigned int e=0; e != elem->n_edges(); ++e)
+            for (unsigned int e = 0; e != n_edges; ++e)
               if (elem->is_edge_on_side(e,s))
                 is_boundary_edge[e] = true;
           }
 
         // We can also impose Dirichlet boundary conditions on nodes, so we should
         // also independently check whether the nodes have been requested
-        for (unsigned int n=0; n != elem->n_nodes(); ++n)
+        for (unsigned int n=0; n != n_nodes; ++n)
           {
             boundary_info.boundary_ids (elem->node_ptr(n), ids_vec);
 
@@ -492,7 +496,7 @@ private:
 
         // We can also impose Dirichlet boundary conditions on edges, so we should
         // also independently check whether the edges have been requested
-        for (unsigned short e=0; e != elem->n_edges(); ++e)
+        for (unsigned short e=0; e != n_edges; ++e)
           {
             boundary_info.edge_boundary_ids (elem, e, ids_vec);
 
@@ -528,9 +532,6 @@ private:
 
         // The element type
         const ElemType elem_type = elem->type();
-
-        // The number of nodes on the new element
-        const unsigned int n_nodes = elem->n_nodes();
 
         // Zero the interpolated values
         Ue.resize (n_dofs); Ue.zero();
@@ -706,7 +707,7 @@ private:
 
         // In 3D, project any edge values next
         if (dim > 2 && cont != DISCONTINUOUS)
-          for (unsigned int e=0; e != elem->n_edges(); ++e)
+          for (unsigned int e=0; e != n_edges; ++e)
             {
               if (!is_boundary_edge[e])
                 continue;
@@ -826,7 +827,7 @@ private:
 
         // Project any side values (edges in 2D, faces in 3D)
         if (dim > 1 && cont != DISCONTINUOUS)
-          for (unsigned int s=0; s != elem->n_sides(); ++s)
+          for (unsigned int s=0; s != n_sides; ++s)
             {
               if (!is_boundary_side[s])
                 continue;
@@ -2091,7 +2092,7 @@ void DofMap::enforce_constraints_exactly (const System & system,
 
   NumericVector<Number> * v_local  = libmesh_nullptr; // will be initialized below
   NumericVector<Number> * v_global = libmesh_nullptr; // will be initialized below
-  UniquePtr<NumericVector<Number> > v_built;
+  std::unique_ptr<NumericVector<Number>> v_built;
   if (v->type() == SERIAL)
     {
       v_built = NumericVector<Number>::build(this->comm());
@@ -2186,7 +2187,7 @@ void DofMap::enforce_adjoint_constraints_exactly (NumericVector<Number> & v,
 
   NumericVector<Number> * v_local  = libmesh_nullptr; // will be initialized below
   NumericVector<Number> * v_global = libmesh_nullptr; // will be initialized below
-  UniquePtr<NumericVector<Number> > v_built;
+  std::unique_ptr<NumericVector<Number>> v_built;
   if (v.type() == SERIAL)
     {
       v_built = NumericVector<Number>::build(this->comm());
@@ -2297,15 +2298,8 @@ DofMap::max_constraint_error (const System & system,
   // indices on each element
   std::vector<dof_id_type> local_dof_indices;
 
-  MeshBase::const_element_iterator       elem_it  =
-    mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator elem_end =
-    mesh.active_local_elements_end();
-
-  for ( ; elem_it != elem_end; ++elem_it)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      const Elem * elem = *elem_it;
-
       this->dof_indices(elem, local_dof_indices);
       std::vector<dof_id_type> raw_dof_indices = local_dof_indices;
 
@@ -2646,10 +2640,10 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
   // which have support on other processors.
   // Push these out first.
   {
-    std::vector<std::set<dof_id_type> > pushed_ids(this->n_processors());
+    std::vector<std::set<dof_id_type>> pushed_ids(this->n_processors());
 
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
-    std::vector<std::set<dof_id_type> > pushed_node_ids(this->n_processors());
+    std::vector<std::set<dof_id_type>> pushed_node_ids(this->n_processors());
 #endif
 
     const unsigned int sys_num = this->sys_number();
@@ -2662,6 +2656,8 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
     for (; foreign_elem_it != foreign_elem_end; ++foreign_elem_it)
       {
         const Elem * elem = *foreign_elem_it;
+
+        const unsigned short n_nodes = elem->n_nodes();
 
         // Just checking dof_indices on the foreign element isn't
         // enough.  Consider a central hanging node between a coarse
@@ -2688,7 +2684,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
             }
         }
 
-        for (unsigned int n=0; n != elem->n_nodes(); ++n)
+        for (unsigned short n = 0; n != n_nodes; ++n)
           {
             const Node & node = elem->node_ref(n);
             const unsigned int n_vars = node.n_vars(sys_num);
@@ -2706,7 +2702,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
           }
 
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
-        for (unsigned int n=0; n != elem->n_nodes(); ++n)
+        for (unsigned short n = 0; n != n_nodes; ++n)
           if (this->is_constrained_node(elem->node_ptr(n)))
             pushed_node_ids[elem->processor_id()].insert(elem->node_id(n));
 #endif
@@ -2726,11 +2722,11 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
 
         // Pack the dof constraint rows and rhs's to push to procup
         const std::size_t pushed_ids_size = pushed_ids[procup].size();
-        std::vector<std::vector<dof_id_type> > pushed_keys(pushed_ids_size);
-        std::vector<std::vector<Number> > pushed_vals(pushed_ids_size);
+        std::vector<std::vector<dof_id_type>> pushed_keys(pushed_ids_size);
+        std::vector<std::vector<Number>> pushed_vals(pushed_ids_size);
         std::vector<Number> pushed_rhss(pushed_ids_size);
 
-        std::vector<std::vector<Number> >
+        std::vector<std::vector<Number>>
           pushed_adj_rhss(max_qoi_num,
                           std::vector<Number>(pushed_ids_size));
         std::set<dof_id_type>::const_iterator it = pushed_ids[procup].begin();
@@ -2778,8 +2774,8 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
         // Pack the node constraint rows to push to procup
         const std::size_t pushed_nodes_size = pushed_node_ids[procup].size();
-        std::vector<std::vector<dof_id_type> > pushed_node_keys(pushed_nodes_size);
-        std::vector<std::vector<Number> > pushed_node_vals(pushed_nodes_size);
+        std::vector<std::vector<dof_id_type>> pushed_node_keys(pushed_nodes_size);
+        std::vector<std::vector<Number>> pushed_node_vals(pushed_nodes_size);
         std::vector<Point> pushed_node_offsets(pushed_nodes_size);
         std::set<dof_id_type>::const_iterator node_it = pushed_node_ids[procup].begin();
         for (std::size_t i = 0; node_it != pushed_node_ids[procup].end();
@@ -2804,10 +2800,10 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
         std::vector<dof_id_type> pushed_ids_from_me
           (pushed_ids[procup].begin(), pushed_ids[procup].end());
         std::vector<dof_id_type> pushed_ids_to_me;
-        std::vector<std::vector<dof_id_type> > pushed_keys_to_me;
-        std::vector<std::vector<Number> > pushed_vals_to_me;
+        std::vector<std::vector<dof_id_type>> pushed_keys_to_me;
+        std::vector<std::vector<Number>> pushed_vals_to_me;
         std::vector<Number> pushed_rhss_to_me;
-        std::vector<std::vector<Number> > pushed_adj_rhss_to_me;
+        std::vector<std::vector<Number>> pushed_adj_rhss_to_me;
         this->comm().send_receive(procup, pushed_ids_from_me,
                                   procdown, pushed_ids_to_me);
         this->comm().send_receive(procup, pushed_keys,
@@ -2827,8 +2823,8 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
         std::vector<dof_id_type> pushed_node_ids_from_me
           (pushed_node_ids[procup].begin(), pushed_node_ids[procup].end());
         std::vector<dof_id_type> pushed_node_ids_to_me;
-        std::vector<std::vector<dof_id_type> > pushed_node_keys_to_me;
-        std::vector<std::vector<Number> > pushed_node_vals_to_me;
+        std::vector<std::vector<dof_id_type>> pushed_node_keys_to_me;
+        std::vector<std::vector<Number>> pushed_node_vals_to_me;
         std::vector<Point> pushed_node_offsets_to_me;
         this->comm().send_receive(procup, pushed_node_ids_from_me,
                                   procdown, pushed_node_ids_to_me);
@@ -2966,7 +2962,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
       Node_RCSet node_request_set;
 
       // Request sets to send to each processor
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         requested_node_ids(this->n_processors());
 
       // And the sizes of each
@@ -3034,9 +3030,9 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
                                     procdown, node_request_to_fill);
 
           // Fill those requests
-          std::vector<std::vector<dof_id_type> >
+          std::vector<std::vector<dof_id_type>>
             node_row_keys(node_request_to_fill.size());
-          std::vector<std::vector<Real> >
+          std::vector<std::vector<Real>>
             node_row_vals(node_request_to_fill.size());
           std::vector<Point>
             node_row_rhss(node_request_to_fill.size());
@@ -3069,7 +3065,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
                         nodes_requested.insert(node);
 
                       // We can have 0 nodal constraint
-                      // coefficients, where no Lagrange constrant
+                      // coefficients, where no Lagrange constraint
                       // exists but non-Lagrange basis constraints
                       // might.
                       // libmesh_assert(j->second);
@@ -3079,8 +3075,8 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
             }
 
           // Trade back the results
-          std::vector<std::vector<dof_id_type> > node_filled_keys;
-          std::vector<std::vector<Real> > node_filled_vals;
+          std::vector<std::vector<dof_id_type>> node_filled_keys;
+          std::vector<std::vector<Real>> node_filled_vals;
           std::vector<Point> node_filled_rhss;
 
           this->comm().send_receive(procdown, node_row_keys,
@@ -3263,10 +3259,10 @@ void DofMap::scatter_constraints(MeshBase & mesh)
     return;
 
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
-  std::vector<std::set<dof_id_type> > pushed_node_ids(this->n_processors());
+  std::vector<std::set<dof_id_type>> pushed_node_ids(this->n_processors());
 #endif // LIBMESH_ENABLE_NODE_CONSTRAINTS
 
-  std::vector<std::set<dof_id_type> > pushed_ids(this->n_processors());
+  std::vector<std::set<dof_id_type>> pushed_ids(this->n_processors());
 
   // Collect the dof constraints I need to push to each processor
   dof_id_type constrained_proc_id = 0;
@@ -3333,8 +3329,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
 
       // Pack the dof constraint rows and rhs's to push to procup
       const std::size_t pushed_ids_size = pushed_ids[procup].size();
-      std::vector<std::vector<dof_id_type> > pushed_keys(pushed_ids_size);
-      std::vector<std::vector<Number> > pushed_vals(pushed_ids_size);
+      std::vector<std::vector<dof_id_type>> pushed_keys(pushed_ids_size);
+      std::vector<std::vector<Number>> pushed_vals(pushed_ids_size);
       std::vector<Number> pushed_rhss(pushed_ids_size);
 
       std::set<dof_id_type>::const_iterator it;
@@ -3363,8 +3359,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
 #ifdef LIBMESH_ENABLE_NODE_CONSTRAINTS
       // Pack the node constraint rows to push to procup
       const std::size_t pushed_node_ids_size = pushed_node_ids[procup].size();
-      std::vector<std::vector<dof_id_type> > pushed_node_keys(pushed_node_ids_size);
-      std::vector<std::vector<Real> > pushed_node_vals(pushed_node_ids_size);
+      std::vector<std::vector<dof_id_type>> pushed_node_keys(pushed_node_ids_size);
+      std::vector<std::vector<Real>> pushed_node_vals(pushed_node_ids_size);
       std::vector<Point> pushed_node_offsets(pushed_node_ids_size);
       std::set<const Node *> pushed_nodes;
 
@@ -3399,8 +3395,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
       std::vector<dof_id_type> pushed_ids_from_me
         (pushed_ids[procup].begin(), pushed_ids[procup].end());
       std::vector<dof_id_type> pushed_ids_to_me;
-      std::vector<std::vector<dof_id_type> > pushed_keys_to_me;
-      std::vector<std::vector<Number> > pushed_vals_to_me;
+      std::vector<std::vector<dof_id_type>> pushed_keys_to_me;
+      std::vector<std::vector<Number>> pushed_vals_to_me;
       std::vector<Number> pushed_rhss_to_me;
       this->comm().send_receive(procup, pushed_ids_from_me,
                                 procdown, pushed_ids_to_me);
@@ -3419,8 +3415,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
       std::vector<dof_id_type> pushed_node_ids_from_me
         (pushed_node_ids[procup].begin(), pushed_node_ids[procup].end());
       std::vector<dof_id_type> pushed_node_ids_to_me;
-      std::vector<std::vector<dof_id_type> > pushed_node_keys_to_me;
-      std::vector<std::vector<Number> > pushed_node_vals_to_me;
+      std::vector<std::vector<dof_id_type>> pushed_node_keys_to_me;
+      std::vector<std::vector<Number>> pushed_node_vals_to_me;
       std::vector<Point> pushed_node_offsets_to_me;
       this->comm().send_receive(procup, pushed_node_ids_from_me,
                                 procdown, pushed_node_ids_to_me);
@@ -3503,7 +3499,7 @@ void DofMap::scatter_constraints(MeshBase & mesh)
   //
   // Getting distributed adaptive sparsity patterns right is hard.
 
-  typedef std::map<dof_id_type, std::set<dof_id_type> > DofConstrainsMap;
+  typedef std::map<dof_id_type, std::set<dof_id_type>> DofConstrainsMap;
   DofConstrainsMap dof_id_constrains;
 
   for (DofConstraints::iterator i = _dof_constraints.begin();
@@ -3577,8 +3573,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
 
       // Pack the dof constraint rows and rhs's to push to procup
       const std::size_t pushed_ids_size = pushed_ids[procup].size();
-      std::vector<std::vector<dof_id_type> > pushed_keys(pushed_ids_size);
-      std::vector<std::vector<Number> > pushed_vals(pushed_ids_size);
+      std::vector<std::vector<dof_id_type>> pushed_keys(pushed_ids_size);
+      std::vector<std::vector<Number>> pushed_vals(pushed_ids_size);
       std::vector<Number> pushed_rhss(pushed_ids_size);
 
       // As long as we're declaring them outside the loop, let's initialize them too!
@@ -3608,8 +3604,8 @@ void DofMap::scatter_constraints(MeshBase & mesh)
       std::vector<dof_id_type> pushed_ids_from_me
         (pushed_ids[procup].begin(), pushed_ids[procup].end());
       std::vector<dof_id_type> pushed_ids_to_me;
-      std::vector<std::vector<dof_id_type> > pushed_keys_to_me;
-      std::vector<std::vector<Number> > pushed_vals_to_me;
+      std::vector<std::vector<dof_id_type>> pushed_keys_to_me;
+      std::vector<std::vector<Number>> pushed_vals_to_me;
       std::vector<Number> pushed_rhss_to_me;
       this->comm().send_receive(procup, pushed_ids_from_me,
                                 procdown, pushed_ids_to_me);
@@ -3715,7 +3711,7 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
       DoF_RCSet   dof_request_set;
 
       // Request sets to send to each processor
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         requested_dof_ids(this->n_processors());
 
       // And the sizes of each
@@ -3805,11 +3801,12 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
                                     procdown, dof_request_to_fill);
 
           // Fill those requests
-          std::vector<std::vector<dof_id_type> > dof_row_keys(dof_request_to_fill.size());
+          std::vector<std::vector<dof_id_type>> dof_row_keys(dof_request_to_fill.size());
 
-          std::vector<std::vector<Number> > dof_row_vals(dof_request_to_fill.size());
+          std::vector<std::vector<Number>> dof_row_vals(dof_request_to_fill.size());
+          std::vector<std::vector<Real>> dof_row_vals(dof_request_to_fill.size());
           std::vector<Number> dof_row_rhss(dof_request_to_fill.size());
-          std::vector<std::vector<Number> >
+          std::vector<std::vector<Number>>
             dof_adj_rhss(max_qoi_num,
                          std::vector<Number>(dof_request_to_fill.size()));
           for (std::size_t i=0; i != dof_request_to_fill.size(); ++i)
@@ -3860,7 +3857,7 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
                   // from Number, which may be std::complex, in which
                   // case quiet_NaN() silently returns zero, rather
                   // than sanely returning NaN or throwing an
-                  // exception or sending Stroustrop hate mail.
+                  // exception or sending Stroustrup hate mail.
                   dof_row_rhss[i] =
                     std::numeric_limits<Real>::quiet_NaN();
 
@@ -3871,10 +3868,10 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
             }
 
           // Trade back the results
-          std::vector<std::vector<dof_id_type> > dof_filled_keys;
-          std::vector<std::vector<Number> > dof_filled_vals;
+          std::vector<std::vector<dof_id_type>> dof_filled_keys;
+          std::vector<std::vector<Number>> dof_filled_vals;
           std::vector<Number> dof_filled_rhss;
-          std::vector<std::vector<Number> > adj_filled_rhss;
+          std::vector<std::vector<Number>> adj_filled_rhss;
           this->comm().send_receive(procdown, dof_row_keys,
                                     procup, dof_filled_keys);
           this->comm().send_receive(procdown, dof_row_vals,

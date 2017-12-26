@@ -21,14 +21,11 @@
 #define LIBMESH_PARALLEL_GHOST_SYNC_H
 
 // Local Includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/elem.h"
 #include "libmesh/location_maps.h"
 #include "libmesh/mesh_base.h"
 #include "libmesh/parallel.h"
-
-// C++ Includes
-#include LIBMESH_INCLUDE_UNORDERED_SET
 
 
 namespace libMesh
@@ -193,7 +190,7 @@ void sync_dofobject_data_by_xyz(const Communicator & comm,
   libmesh_assert(!need_map_update);
 #endif
 
-  // Count the objectss to ask each processor about
+  // Count the objects to ask each processor about
   std::vector<dof_id_type>
     ghost_objects_from_proc(comm.size(), 0);
 
@@ -207,12 +204,12 @@ void sync_dofobject_data_by_xyz(const Communicator & comm,
     }
 
   // Request sets to send to each processor
-  std::vector<std::vector<Real> >
+  std::vector<std::vector<Real>>
     requested_objs_x(comm.size()),
     requested_objs_y(comm.size()),
     requested_objs_z(comm.size());
   // Corresponding ids to keep track of
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_objs_id(comm.size());
 
   // We know how many objects live on each processor, so reserve()
@@ -326,7 +323,7 @@ void sync_dofobject_data_by_id(const Communicator & comm,
 
   for (Iterator it = range_begin; it != range_end; ++it)
     {
-       DofObject * obj = *it;
+      DofObject * obj = *it;
       libmesh_assert (obj);
 
       // We may want to pass Elem* or Node* to the check function, not
@@ -340,7 +337,7 @@ void sync_dofobject_data_by_id(const Communicator & comm,
     }
 
   // Request sets to send to each processor
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_objs_id(comm.size());
 
   // We know how many objects live on each processor, so reserve()
@@ -426,10 +423,10 @@ void sync_element_data_by_parent_id(MeshBase &       mesh,
     }
 
   // Request sets to send to each processor
-  std::vector<std::vector<dof_id_type> >
+  std::vector<std::vector<dof_id_type>>
     requested_objs_id(comm.size()),
     requested_objs_parent_id(comm.size());
-  std::vector<std::vector<unsigned char> >
+  std::vector<std::vector<unsigned char>>
     requested_objs_child_num(comm.size());
 
   // We know how many objects live on each processor, so reserve()
@@ -536,7 +533,7 @@ void sync_node_data_by_element_id(MeshBase &       mesh,
 
   // Keep track of which nodes we've asked about, so we only hit each
   // once?
-  // LIBMESH_BEST_UNORDERED_SET<dof_id_type> queried_nodes;
+  // std::unordered_set<dof_id_type> queried_nodes;
 
   // No.  We need to ask every neighboring processor about every node,
   // probably repeatedly.  Imagine a vertex surrounded by triangles,
@@ -572,7 +569,7 @@ void sync_node_data_by_element_id(MeshBase &       mesh,
               proc_id == DofObject::invalid_processor_id)
             continue;
 
-          for (unsigned int n=0; n != elem->n_nodes(); ++n)
+          for (auto n : elem->node_index_range())
             {
               if (!node_check(elem, n))
                 continue;
@@ -584,13 +581,13 @@ void sync_node_data_by_element_id(MeshBase &       mesh,
       // Now repeat that iteration, filling request sets this time.
 
       // Request sets to send to each processor
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         requested_objs_elem_id(comm.size());
-      std::vector<std::vector<unsigned char> >
+      std::vector<std::vector<unsigned char>>
         requested_objs_node_num(comm.size());
 
       // Keep track of current local ids for each too
-      std::vector<std::vector<dof_id_type> >
+      std::vector<std::vector<dof_id_type>>
         requested_objs_id(comm.size());
 
       // We know how many objects live on each processor, so reserve()
@@ -619,7 +616,7 @@ void sync_node_data_by_element_id(MeshBase &       mesh,
 
           const dof_id_type elem_id = elem->id();
 
-          for (unsigned int n=0; n != elem->n_nodes(); ++n)
+          for (auto n : elem->node_index_range())
             {
               if (!node_check(elem, n))
                 continue;
@@ -673,7 +670,7 @@ void sync_node_data_by_element_id(MeshBase &       mesh,
               const Node & node = elem.node_ref(n);
 
               // This isn't a safe assertion in the case where we're
-              // synching processor ids
+              // syncing processor ids
               // libmesh_assert_equal_to (node->processor_id(), comm.rank());
 
               request_to_fill_id[i] = node.id();

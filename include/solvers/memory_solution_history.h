@@ -23,6 +23,7 @@
 // Local includes
 #include "libmesh/numeric_vector.h"
 #include "libmesh/solution_history.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ includes
 #include <list>
@@ -68,21 +69,23 @@ public:
    * Typedef for Stored Solutions iterator, a list of pairs of the current
    * system time, map of strings and saved vectors
    */
-  typedef std::list<std::pair<Real, std::map<std::string, NumericVector<Number> *> > >::iterator stored_solutions_iterator;
+  typedef std::map<std::string, std::unique_ptr<NumericVector<Number>>> map_type;
+  typedef std::list<std::pair<Real, map_type>> list_type;
+  typedef list_type::iterator stored_solutions_iterator;
 
   /**
    * Definition of the clone function needed for the setter function
    */
-  virtual UniquePtr<SolutionHistory > clone() const libmesh_override
+  virtual std::unique_ptr<SolutionHistory > clone() const libmesh_override
   {
-    return UniquePtr<SolutionHistory >(new MemorySolutionHistory(_system));
+    return libmesh_make_unique<MemorySolutionHistory>(_system);
   }
 
 private:
 
   // This list of pairs will hold the current time and stored vectors
   // from each timestep
-  std::list<std::pair<Real, std::map<std::string, NumericVector<Number> *> > > stored_solutions;
+  list_type stored_solutions;
 
   // The stored solutions iterator
   stored_solutions_iterator stored_sols;

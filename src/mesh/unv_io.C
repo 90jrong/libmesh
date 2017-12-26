@@ -32,7 +32,6 @@
 #include "libmesh/cell_hex20.h"
 #include "libmesh/cell_tet10.h"
 #include "libmesh/cell_prism6.h"
-#include LIBMESH_INCLUDE_UNORDERED_MAP
 
 // C++ includes
 #include <iomanip>
@@ -40,6 +39,7 @@
 #include <fstream>
 #include <ctype.h> // isspace
 #include <sstream> // std::istringstream
+#include <unordered_map>
 
 #ifdef LIBMESH_HAVE_GZSTREAM
 # include "gzstream.h" // For reading/writing compressed streams
@@ -234,23 +234,16 @@ void UNVIO::read_implementation (std::istream & in_stream)
 #endif
 
     // Delete any lower-dimensional elements that might have been
-    // added to the mesh stricly for setting BCs.
+    // added to the mesh strictly for setting BCs.
     {
       // Grab reference to the Mesh
       MeshBase & mesh = MeshInput<MeshBase>::mesh();
 
       unsigned char max_dim = this->max_elem_dimension_seen();
 
-      MeshBase::const_element_iterator       el     = mesh.elements_begin();
-      const MeshBase::const_element_iterator end_el = mesh.elements_end();
-
-      for (; el != end_el; ++el)
-        {
-          Elem * elem = *el;
-
-          if (elem->dim() < max_dim)
-            mesh.delete_elem(elem);
-        }
+      for (const auto & elem : mesh.element_ptr_range())
+        if (elem->dim() < max_dim)
+          mesh.delete_elem(elem);
     }
 
     if (this->verbose())
@@ -424,7 +417,7 @@ void UNVIO::groups_in (std::istream & in_file)
   // this turns out to be much slower on the search side, since we
   // have to build an entire side in order to search, rather than just
   // calling elem->key(side) to compute a key.
-  typedef LIBMESH_BEST_UNORDERED_MULTIMAP<dof_id_type, Elem *> map_type;
+  typedef std::unordered_multimap<dof_id_type, Elem *> map_type;
   map_type provide_bcs;
 
   // Read groups until there aren't any more to read...
@@ -552,14 +545,10 @@ void UNVIO::groups_in (std::istream & in_file)
     } // end while (true)
 
   // Loop over elements and try to assign boundary information
-  {
-    MeshBase::element_iterator       it  = mesh.active_elements_begin();
-    const MeshBase::element_iterator end = mesh.active_elements_end();
-    for ( ; it != end; ++it)
-      {
-        Elem * elem = *it;
-
-        if (elem->dim() == max_dim)
+  for (auto & elem : mesh.active_element_ptr_range())
+    if (elem->dim() == max_dim)
+      for (auto sn : elem->side_index_range())
+        for (const auto & pr : as_range(provide_bcs.equal_range (elem->key(sn))))
           {
             // This is a max-dimension element that may require BCs.
             // For each of its sides, including internal sides, we'll
@@ -567,31 +556,17 @@ void UNVIO::groups_in (std::istream & in_file)
             // information for it.  Note that we have not yet called
             // find_neighbors(), so we can't use elem->neighbor(sn) in
             // this algorithm...
-            for (unsigned short sn=0; sn<elem->n_sides(); sn++)
-              {
-                // Look for this key in the provide_bcs map
-                std::pair<map_type::const_iterator,
-                          map_type::const_iterator>
-                  range = provide_bcs.equal_range (elem->key(sn));
 
-                // Add boundary information for each side in the range.
-                for (map_type::const_iterator iter = range.first;
-                     iter != range.second; ++iter)
-                  {
-                    // Build a side to confirm the hash mapped to the correct side.
-                    UniquePtr<Elem> side (elem->build_side_ptr(sn));
+            // Build a side to confirm the hash mapped to the correct side.
+            std::unique_ptr<Elem> side (elem->build_side_ptr(sn));
 
-                    // Get a pointer to the lower-dimensional element
-                    Elem * lower_dim_elem = iter->second;
+            // Get a pointer to the lower-dimensional element
+            Elem * lower_dim_elem = pr.second;
 
-                    // This was a hash, so it might not be perfect.  Let's verify...
-                    if (*lower_dim_elem == *side)
-                      mesh.get_boundary_info().add_side(elem, sn, lower_dim_elem->subdomain_id());
-                  }
-              }
+            // This was a hash, so it might not be perfect.  Let's verify...
+            if (*lower_dim_elem == *side)
+              mesh.get_boundary_info().add_side(elem, sn, lower_dim_elem->subdomain_id());
           }
-      }
-  }
 }
 
 
@@ -905,16 +880,11 @@ void UNVIO::nodes_out (std::ostream & out_file)
   // A reference to the parent class's mesh
   const MeshBase & mesh = MeshOutput<MeshBase>::mesh();
 
-  // Use scientific notation with captial E and 16 digits for printing out the coordinates
+  // Use scientific notation with capital E and 16 digits for printing out the coordinates
   out_file << std::scientific << std::setprecision(16) << std::uppercase;
 
-  MeshBase::const_node_iterator       nd  = mesh.nodes_begin();
-  const MeshBase::const_node_iterator end = mesh.nodes_end();
-
-  for (; nd != end; ++nd)
+  for (const auto & current_node : mesh.node_ptr_range())
     {
-      const Node * current_node = *nd;
-
       dof_id_type node_id = current_node->id();
 
       out_file << std::setw(10) << node_id
@@ -990,15 +960,8 @@ void UNVIO::elements_out(std::ostream & out_file)
   // A reference to the parent class's mesh
   const MeshBase & mesh = MeshOutput<MeshBase>::mesh();
 
-  MeshBase::const_element_iterator it  = mesh.elements_begin();
-  const MeshBase::const_element_iterator end = mesh.elements_end();
-
-  for (; it != end; ++it)
+  for (const auto & elem : mesh.element_ptr_range())
     {
-      const Elem * elem = *it;
-
-      elem->n_nodes();
-
       switch (elem->type())
         {
 
@@ -1158,7 +1121,7 @@ void UNVIO::elements_out(std::ostream & out_file)
                << std::setw(10) << elem->n_nodes()     // No. of nodes per element
                << '\n';
 
-      for (unsigned int j=0; j<elem->n_nodes(); j++)
+      for (auto j : elem->node_index_range())
         {
           // assign_elem_nodes[j]-th node: i.e., j loops over the
           // libMesh numbering, and assign_elem_nodes[j] over the
@@ -1353,7 +1316,7 @@ void UNVIO::read_dataset(std::string file_name)
 const std::vector<Number> *
 UNVIO::get_data (Node * node) const
 {
-  std::map<Node *, std::vector<Number> >::const_iterator
+  std::map<Node *, std::vector<Number>>::const_iterator
     it = _node_data.find(node);
 
   if (it == _node_data.end())

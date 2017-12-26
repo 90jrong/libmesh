@@ -88,19 +88,23 @@ unsigned int hermite_n_dofs(const ElemType t, const Order o)
       return 1;
     case EDGE2:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case EDGE3:
       return (o+1);
 
     case QUAD4:
     case QUADSHELL4:
     case QUAD8:
+    case QUADSHELL8:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case QUAD9:
       return ((o+1)*(o+1));
 
     case HEX8:
     case HEX20:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case HEX27:
       return ((o+1)*(o+1)*(o+1));
 
@@ -110,9 +114,6 @@ unsigned int hermite_n_dofs(const ElemType t, const Order o)
     default:
       libmesh_error_msg("ERROR: Bad ElemType = " << Utility::enum_to_string(t) << " for " << Utility::enum_to_string(o) << " order approximation!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 } // hermite_n_dofs()
 
 
@@ -149,7 +150,9 @@ unsigned int hermite_n_dofs_at_node(const ElemType t,
     case QUAD4:
     case QUADSHELL4:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       {
         switch (n)
@@ -179,6 +182,7 @@ unsigned int hermite_n_dofs_at_node(const ElemType t,
     case HEX8:
     case HEX20:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case HEX27:
       {
         switch (n)
@@ -231,9 +235,6 @@ unsigned int hermite_n_dofs_at_node(const ElemType t,
     default:
       libmesh_error_msg("ERROR: Bad ElemType = " << Utility::enum_to_string(t) << " for " << Utility::enum_to_string(o) << " order approximation!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 } // hermite_n_dofs_at_node()
 
 
@@ -253,11 +254,14 @@ unsigned int hermite_n_dofs_per_elem(const ElemType t,
     case QUAD4:
     case QUADSHELL4:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case QUAD8:
+    case QUADSHELL8:
     case QUAD9:
       return ((o-3)*(o-3));
     case HEX8:
       libmesh_assert_less (o, 4);
+      libmesh_fallthrough();
     case HEX20:
     case HEX27:
       return ((o-3)*(o-3)*(o-3));
@@ -268,9 +272,6 @@ unsigned int hermite_n_dofs_per_elem(const ElemType t,
     default:
       libmesh_error_msg("ERROR: Bad ElemType = " << Utility::enum_to_string(t) << " for " << Utility::enum_to_string(o) << " order approximation!");
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 } // hermite_n_dofs_per_elem()
 
 

@@ -39,7 +39,7 @@ std::string get_timestamp()
 #ifdef LIBMESH_HAVE_LOCALE
   // Create time_put "facet"
   std::locale loc;
-  const std::time_put<char> & tp = std::use_facet <std::time_put<char> > (loc);
+  const std::time_put<char> & tp = std::use_facet <std::time_put<char>> (loc);
 
   // Call C-style time getting functions
   time_t now = time(NULL);
@@ -67,7 +67,7 @@ std::string get_timestamp()
 
   return date_stream.str();
 #else
-  // C-stye code originally found here:
+  // C-style code originally found here:
   // http://people.sc.fsu.edu/~burkardt/cpp_src/timestamp/timestamp.C
   // Author: John Burkardt, 24 September 2003
   const unsigned int time_size = 40;

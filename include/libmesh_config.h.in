@@ -18,9 +18,6 @@
 /* size of boundary_id */
 #undef BOUNDARY_ID_BYTES
 
-/* This compiler is known not to support some iostream functionality */
-#undef BROKEN_IOSTREAM
-
 /* Architecture of the build host */
 #undef BUILD_ARCH
 
@@ -124,6 +121,9 @@
 /* Flag indicating if the library should use blocked matrix/vector storage */
 #undef ENABLE_BLOCKED_STORAGE
 
+/* Flag indicating if the library should support deprecated code */
+#undef ENABLE_DEPRECATED
+
 /* Flag indicating if the library should be built with Dirichlet boundary
    constraint support */
 #undef ENABLE_DIRICHLET
@@ -179,8 +179,7 @@
 /* Flag indicating if the library should be built with unique id support */
 #undef ENABLE_UNIQUE_ID
 
-/* Flag indicating if the library should use a non-deprecated UniquePtr
-   implementation */
+/* Flag indicating the library uses std::unique_ptr */
 #undef ENABLE_UNIQUE_PTR
 
 /* Flag indicating if the library should be built with variational smoother
@@ -241,7 +240,7 @@
 /* Flag indicating whether compiler supports constexpr */
 #undef HAVE_CXX11_CONSTEXPR
 
-/* Compiler supports constexper, but it is disabled in libmesh */
+/* Compiler supports constexpr, but it is disabled in libmesh */
 #undef HAVE_CXX11_CONSTEXPR_BUT_DISABLED
 
 /* Flag indicating whether compiler supports decltype */
@@ -417,6 +416,12 @@
 /* Compiler supports std::make_unique, but it is disabled in libmesh */
 #undef HAVE_CXX14_MAKE_UNIQUE_BUT_DISABLED
 
+/* Flag indicating whether compiler supports fallthrough attribute */
+#undef HAVE_CXX17_FALLTHROUGH_ATTRIBUTE
+
+/* Compiler supports fallthrough attribute, but it is disabled in libmesh */
+#undef HAVE_CXX17_FALLTHROUGH_ATTRIBUTE_BUT_DISABLED
+
 /* Define to 1 if you have the declaration of `sigaction', and to 0 if you
    don't. */
 #undef HAVE_DECL_SIGACTION
@@ -434,6 +439,9 @@
 /* define if the compiler supports dlopen/dlsym/dlclose */
 #undef HAVE_DLOPEN
 
+/* Flag indicating whether compiler supports __attribute__ ((fallthrough)) */
+#undef HAVE_DOUBLE_UNDERSCORE_ATTRIBUTE_FALLTHROUGH
+
 /* Flag indicating whether the library will be compiled with Eigen support */
 #undef HAVE_EIGEN
 
@@ -448,21 +456,6 @@
 
 /* Flag indicating whether an external Boost was found */
 #undef HAVE_EXTERNAL_BOOST
-
-/* define if the compiler supports __gnu_cxx::hash */
-#undef HAVE_EXT_HASH
-
-/* define if the compiler supports __gnu_cxx::hash_map */
-#undef HAVE_EXT_HASH_MAP
-
-/* define if the compiler supports __gnu_cxx::hash_multimap */
-#undef HAVE_EXT_HASH_MULTIMAP
-
-/* define if the compiler supports __gnu_cxx::hash_multiset */
-#undef HAVE_EXT_HASH_MULTISET
-
-/* define if the compiler supports __gnu_cxx::hash_set */
-#undef HAVE_EXT_HASH_SET
 
 /* define if the compiler supports fedisableexcept */
 #undef HAVE_FEDISABLEEXCEPT
@@ -505,27 +498,11 @@
 /* Flag indicating whether or not gzstreams are available */
 #undef HAVE_GZSTREAM
 
-/* define if the compiler supports std::hash_map */
-#undef HAVE_HASH_MAP
-
-/* define if the compiler supports std::hash_multimap */
-#undef HAVE_HASH_MULTIMAP
-
-/* define if the compiler supports std::hash_multiset */
-#undef HAVE_HASH_MULTISET
-
-/* define if the compiler supports std::hash_set */
-#undef HAVE_HASH_SET
-
 /* Define if HDF5 is available */
 #undef HAVE_HDF5
 
 /* Define if the HDF5 C++ interface is available */
 #undef HAVE_HDF5_CXX
-
-/* Flag indicating whether the library will be compiled with Howard Hinnant's
-   C++03 unique_ptr implementation */
-#undef HAVE_HINNANT_UNIQUE_PTR
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -543,6 +520,10 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Flag indicating whether the library will be compiled with MetaPhysicL
+   support */
+#undef HAVE_METAPHYSICL
 
 /* Flag indicating whether the library will be compiled with Metis support */
 #undef HAVE_METIS
@@ -676,21 +657,6 @@
 /* Flag indicating whether the library will be compiled with Tetgen support */
 #undef HAVE_TETGEN
 
-/* define if the compiler supports std::tr1::hash */
-#undef HAVE_TR1_HASH
-
-/* define if the compiler supports std::tr1::unordered_map */
-#undef HAVE_TR1_UNORDERED_MAP
-
-/* define if the compiler supports std::tr1::unordered_multimap */
-#undef HAVE_TR1_UNORDERED_MULTIMAP
-
-/* define if the compiler supports std::tr1::unordered_multiset */
-#undef HAVE_TR1_UNORDERED_MULTISET
-
-/* define if the compiler supports std::tr1::unordered_set */
-#undef HAVE_TR1_UNORDERED_SET
-
 /* Flag indicating whether the library will be compiled with Triangle support
    */
 #undef HAVE_TRIANGLE
@@ -732,7 +698,7 @@
 /* header file for the final detected unordered_set type */
 #undef INCLUDE_UNORDERED_SET
 
-/* libMesh I/O file format compatiblity string */
+/* libMesh I/O file format compatibility string */
 #undef IO_COMPATIBILITY_VERSION
 
 /* libMesh source code version */
@@ -866,7 +832,7 @@
 /* size of unique_id */
 #undef UNIQUE_ID_BYTES
 
-/* Flag indicating if the library should be built using complxex numbers */
+/* Flag indicating if the library should be built using complex numbers */
 #undef USE_COMPLEX_NUMBERS
 
 /* Flag indicating if the library should be built using real numbers */

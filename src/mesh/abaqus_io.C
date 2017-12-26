@@ -28,7 +28,7 @@
 #include "libmesh/string_to_enum.h"
 #include "libmesh/boundary_info.h"
 #include "libmesh/utility.h"
-#include LIBMESH_INCLUDE_UNORDERED_MAP
+#include <unordered_map>
 
 // Anonymous namespace to hold mapping Data for Abaqus/libMesh element types
 namespace
@@ -85,7 +85,7 @@ void add_eletype_entry(ElemType libmesh_elem_type,
 void init_eletypes ()
 {
   // This should happen only once.  The first time this method is
-  // called the eletypes data struture will be empty, and we will
+  // called the eletypes data structure will be empty, and we will
   // fill it.  Any subsequent calls will find an initialized
   // eletypes map and will do nothing.
   if (eletypes.empty())
@@ -403,16 +403,9 @@ void AbaqusIO::read (const std::string & fname)
   {
     unsigned char max_dim = this->max_elem_dimension_seen();
 
-    MeshBase::element_iterator       el     = the_mesh.elements_begin();
-    const MeshBase::element_iterator end_el = the_mesh.elements_end();
-
-    for (; el != end_el; ++el)
-      {
-        Elem * elem = *el;
-
-        if (elem->dim() < max_dim)
-          the_mesh.delete_elem(elem);
-      }
+    for (auto & elem : the_mesh.element_ptr_range())
+      if (elem->dim() < max_dim)
+        the_mesh.delete_elem(elem);
   }
 }
 
@@ -820,7 +813,7 @@ void AbaqusIO::generate_ids(std::string set_name, container_t & container)
 void AbaqusIO::read_sideset(std::string sideset_name, sideset_container_t & container)
 {
   // Grab a reference to a vector that will hold all the IDs
-  std::vector<std::pair<dof_id_type, unsigned> > & id_storage = container[sideset_name];
+  std::vector<std::pair<dof_id_type, unsigned>> & id_storage = container[sideset_name];
 
   // Variables for storing values read in from file
   dof_id_type elem_id=0;
@@ -972,7 +965,7 @@ void AbaqusIO::assign_sideset_ids()
         the_mesh.get_boundary_info().sideset_name(current_id) = it->first;
 
         // Get a reference to the current vector of nodeset ID values
-        std::vector<std::pair<dof_id_type,unsigned> > & sideset_ids = it->second;
+        std::vector<std::pair<dof_id_type,unsigned>> & sideset_ids = it->second;
 
         for (std::size_t i=0; i<sideset_ids.size(); ++i)
           {
@@ -1024,8 +1017,7 @@ void AbaqusIO::assign_sideset_ids()
     // because the lower-dimensional elements can belong to more than
     // 1 sideset, and multiple lower-dimensional elements can hash to
     // the same value, but this is very rare.
-    typedef LIBMESH_BEST_UNORDERED_MULTIMAP<dof_id_type,
-                                            std::pair<Elem *, boundary_id_type> > provide_bcs_t;
+    typedef std::unordered_multimap<dof_id_type, std::pair<Elem *, boundary_id_type>> provide_bcs_t;
     provide_bcs_t provide_bcs;
 
     // The elemset_id counter assigns a logical numbering to the
@@ -1073,49 +1065,35 @@ void AbaqusIO::assign_sideset_ids()
       }
 
     // Loop over elements and try to assign boundary information
-    {
-      MeshBase::element_iterator       e_it  = the_mesh.active_elements_begin();
-      const MeshBase::element_iterator end = the_mesh.active_elements_end();
-      for ( ; e_it != end; ++e_it)
-        {
-          Elem * elem = *e_it;
+    for (auto & elem : the_mesh.active_element_ptr_range())
+      if (elem->dim() == max_dim)
+        for (auto sn : elem->side_index_range())
+          {
+            // This is a max-dimension element that may require BCs.
+            // For each of its sides, including internal sides, we'll
+            // see if a lower-dimensional element provides boundary
+            // information for it.  Note that we have not yet called
+            // find_neighbors(), so we can't use elem->neighbor(sn) in
+            // this algorithm...
+            std::pair<provide_bcs_t::const_iterator,
+                      provide_bcs_t::const_iterator>
+              bounds = provide_bcs.equal_range (elem->key(sn));
 
-          if (elem->dim() == max_dim)
-            {
-              // This is a max-dimension element that may require BCs.
-              // For each of its sides, including internal sides, we'll
-              // see if a lower-dimensional element provides boundary
-              // information for it.  Note that we have not yet called
-              // find_neighbors(), so we can't use elem->neighbor(sn) in
-              // this algorithm...
-              for (unsigned short sn=0; sn<elem->n_sides(); sn++)
-                {
-                  std::pair<provide_bcs_t::const_iterator,
-                            provide_bcs_t::const_iterator>
-                    range = provide_bcs.equal_range (elem->key(sn));
+            // Add boundary information for each side in the range.
+            for (const auto & pr : as_range(bounds))
+              {
+                // We'll need to compare the lower dimensional element against the current side.
+                std::unique_ptr<Elem> side (elem->build_side_ptr(sn));
 
-                  // Add boundary information for each side in the range.
-                  for (provide_bcs_t::const_iterator s_it = range.first;
-                       s_it != range.second; ++s_it)
-                    {
-                      // We'll need to compare the lower dimensional element against the current side.
-                      UniquePtr<Elem> side (elem->build_side_ptr(sn));
+                // Extract the relevant data. We don't need the key for anything.
+                Elem * lower_dim_elem = pr.second.first;
+                boundary_id_type bid = pr.second.second;
 
-                      // Get the value mapped by the iterator.
-                      std::pair<Elem *, boundary_id_type> p = s_it->second;
-
-                      // Extract the relevant data from the iterator.
-                      Elem * lower_dim_elem = p.first;
-                      boundary_id_type bid = p.second;
-
-                      // This was a hash, so it might not be perfect.  Let's verify...
-                      if (*lower_dim_elem == *side)
-                        the_mesh.get_boundary_info().add_side(elem, sn, bid);
-                    }
-                }
-            }
-        }
-    }
+                // This was a hash, so it might not be perfect.  Let's verify...
+                if (*lower_dim_elem == *side)
+                  the_mesh.get_boundary_info().add_side(elem, sn, bid);
+              }
+          }
   }
 }
 

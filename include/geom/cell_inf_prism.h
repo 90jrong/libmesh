@@ -81,7 +81,7 @@ public:
   virtual unsigned int n_vertices() const libmesh_override { return 6; }
 
   /**
-   * \returns 6.  All infinite prismahedrals have 6 edges,
+   * \returns 6.  All infinite prisms have 6 edges,
    * 3 lying in the base, and 3 perpendicular to the base.
    */
   virtual unsigned int n_edges() const libmesh_override { return 6; }
@@ -137,7 +137,14 @@ public:
    * \returns A primitive (3-noded) tri or (4-noded) infquad for
    * face i.
    */
-  virtual UniquePtr<Elem> side_ptr (const unsigned int i) libmesh_override;
+  virtual std::unique_ptr<Elem> side_ptr (const unsigned int i) libmesh_override;
+
+  /**
+   * @returns \p true when this element contains the point
+   * \p p.  Customized for infinite elements, since knowledge
+   * about the envelope can be helpful.
+   */
+  virtual bool contains_point (const Point & p, Real tol=TOLERANCE) const libmesh_override;
 
 
 protected:

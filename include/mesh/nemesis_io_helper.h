@@ -193,7 +193,7 @@ public:
   /**
    * Outputs initial information for communication maps.
    *
-   * \note The order of the arguments specified in the Nemsis User's
+   * \note The order of the arguments specified in the Nemesis User's
    * Manual is \e wrong.  The correct order is (ids, counts, ids,
    * counts).  Must be called after put_loadbal_param().
    */
@@ -210,7 +210,7 @@ public:
    * .) node_cmap_node_ids = Nodal IDs of the FEM nodes in this communication map
    * .) node_cmap_proc_ids = processor IDs associated with each of the nodes in node_ids
    *
-   * In the Nemesis file, these all appeart to be written to the same chunks of data:
+   * In the Nemesis file, these all appear to be written to the same chunks of data:
    * n_comm_nids and n_comm_proc, but don't rely on these names...
    *
    * \note This class contains \p node_cmap_node_ids and \p
@@ -218,8 +218,8 @@ public:
    *
    * Must be called after put_cmap_params().
    */
-  void put_node_cmap(std::vector<std::vector<int> > & node_cmap_node_ids,
-                     std::vector<std::vector<int> > & node_cmap_proc_ids);
+  void put_node_cmap(std::vector<std::vector<int>> & node_cmap_node_ids,
+                     std::vector<std::vector<int>> & node_cmap_proc_ids);
 
   /**
    * Outputs IDs of internal, border, and external nodes.
@@ -239,9 +239,9 @@ public:
    *
    * Must be called after put_cmap_params().
    */
-  void put_elem_cmap(std::vector<std::vector<int> > & elem_cmap_elem_ids,
-                     std::vector<std::vector<int> > & elem_cmap_side_ids,
-                     std::vector<std::vector<int> > & elem_cmap_proc_ids);
+  void put_elem_cmap(std::vector<std::vector<int>> & elem_cmap_elem_ids,
+                     std::vector<std::vector<int>> & elem_cmap_side_ids,
+                     std::vector<std::vector<int>> & elem_cmap_proc_ids);
 
   /**
    * Outputs IDs of internal and border elements.
@@ -403,13 +403,13 @@ public:
   /**
    * Map of subdomains to element numbers.
    */
-  std::map<subdomain_id_type, std::vector<unsigned int>  > subdomain_map;
+  std::map<subdomain_id_type, std::vector<unsigned int>> subdomain_map;
 
   /**
    * This is the block connectivity, i.e. for each subdomain (block) there
    * is an element connectivity list. This map associates the block ID to that vector.
    */
-  std::map<int, std::vector<int> > block_id_to_elem_connectivity;
+  std::map<int, std::vector<int>> block_id_to_elem_connectivity;
 
   /**
    * To be used with the Nemesis::ne_get_loadbal_param() routine.
@@ -522,8 +522,8 @@ public:
    * Remark: node_cmap_proc_ids is a vector, all entries of which are = node_cmap_ids[i]
    * Not sure what the point of that is...
    */
-  std::vector<std::vector<int> > node_cmap_node_ids;
-  std::vector<std::vector<int> > node_cmap_proc_ids;
+  std::vector<std::vector<int>> node_cmap_node_ids;
+  std::vector<std::vector<int>> node_cmap_proc_ids;
 
 
   /**
@@ -531,9 +531,9 @@ public:
    * There will be num_elem_cmaps rows, row i will have elem_cmap_elem_cnts[i] entries.
    * To be used with Nemesis::ne_get_elem_cmap().
    */
-  std::vector<std::vector<int> > elem_cmap_elem_ids;
-  std::vector<std::vector<int> > elem_cmap_side_ids;
-  std::vector<std::vector<int> > elem_cmap_proc_ids;
+  std::vector<std::vector<int>> elem_cmap_elem_ids;
+  std::vector<std::vector<int>> elem_cmap_side_ids;
+  std::vector<std::vector<int>> elem_cmap_proc_ids;
 
 
 private:
@@ -554,22 +554,22 @@ private:
    * (other than ourself, of course).  A node which appears in one of these
    * vectors belongs to element owned by at least this processor and one other.
    */
-  std::map<unsigned, std::set<unsigned> > proc_nodes_touched_intersections;
+  std::map<unsigned, std::set<unsigned>> proc_nodes_touched_intersections;
 
   /**
    * Typedef for an iterator into the data structure above.
    */
-  typedef std::map<unsigned, std::set<unsigned> >::iterator proc_nodes_touched_iterator;
+  typedef std::map<unsigned, std::set<unsigned>>::iterator proc_nodes_touched_iterator;
 
   /**
    * Map between processor ID and (element,side) pairs bordering that processor ID.
    */
-  std::map<unsigned, std::set<std::pair<unsigned,unsigned> > > proc_border_elem_sets;
+  std::map<unsigned, std::set<std::pair<unsigned,unsigned>>> proc_border_elem_sets;
 
   /**
    * Typedef for an iterator into the data structure above.
    */
-  typedef std::map<unsigned, std::set<std::pair<unsigned,unsigned> > >::iterator proc_border_elem_sets_iterator;
+  typedef std::map<unsigned, std::set<std::pair<unsigned,unsigned>>>::iterator proc_border_elem_sets_iterator;
 
   /**
    * A set of internal node IDs for this processor.
@@ -632,7 +632,7 @@ private:
   void compute_communication_map_parameters();
 
   /**
-   * Compute the node communcation maps (really just pack vectors)
+   * Compute the node communication maps (really just pack vectors)
    * in preparation for writing them to file.
    */
   void compute_node_communication_maps();

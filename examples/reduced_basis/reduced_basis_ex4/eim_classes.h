@@ -1,16 +1,21 @@
 #ifndef EIM_CLASSES_H
 #define EIM_CLASSES_H
 
-// local includes
+// libMesh includes
 #include "libmesh/rb_eim_construction.h"
 #include "libmesh/rb_eim_evaluation.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
+
+// Example includes
 #include "assembly.h"
 
 // Bring in bits from the libMesh namespace.
 // Just the bits we're using, since this is a header.
 using libMesh::EquationSystems;
 using libMesh::RBEIMEvaluation;
-using libMesh::UniquePtr;
+#ifndef LIBMESH_HAVE_CXX14_MAKE_UNIQUE
+using libMesh::make_unique;
+#endif
 
 // A simple subclass of RBEIMEvaluation. Overload
 // evaluate_parametrized_function to define the
@@ -54,9 +59,9 @@ public:
   /**
    * Provide an implementation of build_eim_assembly
    */
-  virtual UniquePtr<ElemAssembly> build_eim_assembly(unsigned int index)
+  virtual std::unique_ptr<ElemAssembly> build_eim_assembly(unsigned int index)
   {
-    return UniquePtr<ElemAssembly>(new EIM_F(*this, index));
+    return libmesh_make_unique<EIM_F>(*this, index);
   }
 
   /**

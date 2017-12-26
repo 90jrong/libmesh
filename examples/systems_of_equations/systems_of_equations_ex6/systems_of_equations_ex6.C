@@ -165,17 +165,17 @@ public:
 
     const DofMap & dof_map = system.get_dof_map();
     FEType fe_type = dof_map.variable_type(u_var);
-    UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+    std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
     QGauss qrule (dim, fe_type.default_quadrature_order());
     fe->attach_quadrature_rule (&qrule);
 
-    UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+    std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
     QGauss qface(dim-1, fe_type.default_quadrature_order());
     fe_face->attach_quadrature_rule (&qface);
 
     const std::vector<Real> & JxW = fe->get_JxW();
-    const std::vector<std::vector<Real> > & phi = fe->get_phi();
-    const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+    const std::vector<std::vector<Real>> & phi = fe->get_phi();
+    const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
     DenseMatrix<Number> Ke;
     DenseSubMatrix<Number> Ke_var[3][3] =
@@ -193,15 +193,10 @@ public:
        DenseSubVector<Number>(Fe)};
 
     std::vector<dof_id_type> dof_indices;
-    std::vector< std::vector<dof_id_type> > dof_indices_var(3);
+    std::vector<std::vector<dof_id_type>> dof_indices_var(3);
 
-    MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-    const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-    for ( ; el != end_el; ++el)
+    for (const auto & elem : mesh.active_local_element_ptr_range())
       {
-        const Elem * elem = *el;
-
         dof_map.dof_indices (elem, dof_indices);
         for (unsigned int var=0; var<3; var++)
           dof_map.dof_indices (elem, dof_indices_var[var], var);
@@ -248,10 +243,10 @@ public:
         g_vec(1) = 0.;
         g_vec(2) = -1.;
         {
-          for (unsigned int side=0; side<elem->n_sides(); side++)
+          for (auto side : elem->side_index_range())
             if (elem->neighbor_ptr(side) == libmesh_nullptr)
               {
-                const std::vector<std::vector<Real> > & phi_face = fe_face->get_phi();
+                const std::vector<std::vector<Real>> & phi_face = fe_face->get_phi();
                 const std::vector<Real> & JxW_face = fe_face->get_JxW();
 
                 fe_face->reinit(elem, side);
@@ -288,13 +283,13 @@ public:
 
     const DofMap & dof_map = system.get_dof_map();
     FEType fe_type = dof_map.variable_type(u_var);
-    UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+    std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
     QGauss qrule (dim, fe_type.default_quadrature_order());
     fe->attach_quadrature_rule (&qrule);
 
     const std::vector<Real> & JxW = fe->get_JxW();
-    const std::vector<std::vector<Real> > & phi = fe->get_phi();
-    const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+    const std::vector<std::vector<Real>> & phi = fe->get_phi();
+    const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
     // Also, get a reference to the ExplicitSystem
     ExplicitSystem & stress_system = es.get_system<ExplicitSystem>("StressSystem");
@@ -309,17 +304,12 @@ public:
     unsigned int vonMises_var = stress_system.variable_number ("vonMises");
 
     // Storage for the stress dof indices on each element
-    std::vector< std::vector<dof_id_type> > dof_indices_var(system.n_vars());
+    std::vector<std::vector<dof_id_type>> dof_indices_var(system.n_vars());
     std::vector<dof_id_type> stress_dof_indices_var;
     std::vector<dof_id_type> vonmises_dof_indices_var;
 
-    MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-    const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-    for ( ; el != end_el; ++el)
+    for (const auto & elem : mesh.active_local_element_ptr_range())
       {
-        const Elem * elem = *el;
-
         for (unsigned int var=0; var<3; var++)
           dof_map.dof_indices (elem, dof_indices_var[var], displacement_vars[var]);
 
@@ -327,7 +317,7 @@ public:
 
         fe->reinit (elem);
 
-        std::vector< DenseMatrix<Number> > stress_tensor_qp(qrule.n_points());
+        std::vector<DenseMatrix<Number>> stress_tensor_qp(qrule.n_points());
         for (unsigned int qp=0; qp<qrule.n_points(); qp++)
           {
             stress_tensor_qp[qp].resize(3,3);
@@ -347,7 +337,7 @@ public:
           }
 
         stress_dof_map.dof_indices (elem, vonmises_dof_indices_var, vonMises_var);
-        std::vector< DenseMatrix<Number> > elem_sigma_vec(vonmises_dof_indices_var.size());
+        std::vector<DenseMatrix<Number>> elem_sigma_vec(vonmises_dof_indices_var.size());
         for (std::size_t index=0; index<elem_sigma_vec.size(); index++)
           elem_sigma_vec[index].resize(3,3);
 
@@ -457,12 +447,8 @@ int main (int argc, char ** argv)
   // Let's add some node and edge boundary conditions
   // Each processor should know about each boundary condition it can
   // see, so we loop over all elements, not just local elements.
-  MeshBase::const_element_iterator       el     = mesh.elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.elements_end();
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.element_ptr_range())
     {
-      const Elem * elem = *el;
-
       unsigned int
         side_max_x = 0, side_min_y = 0,
         side_max_y = 0, side_max_z = 0;
@@ -471,7 +457,7 @@ int main (int argc, char ** argv)
         found_side_max_x = false, found_side_max_y = false,
         found_side_min_y = false, found_side_max_z = false;
 
-      for (unsigned int side=0; side<elem->n_sides(); side++)
+      for (auto side : elem->side_index_range())
         {
           if (mesh.get_boundary_info().has_boundary_id(elem, side, BOUNDARY_ID_MAX_X))
             {
@@ -502,7 +488,7 @@ int main (int argc, char ** argv)
       // BOUNDARY_ID_MAX_X, BOUNDARY_ID_MAX_Y, BOUNDARY_ID_MAX_Z
       // then let's set a node boundary condition
       if (found_side_max_x && found_side_max_y && found_side_max_z)
-        for (unsigned int n=0; n<elem->n_nodes(); n++)
+        for (auto n : elem->node_index_range())
           if (elem->is_node_on_side(n, side_max_x) &&
               elem->is_node_on_side(n, side_max_y) &&
               elem->is_node_on_side(n, side_max_z))
@@ -513,7 +499,7 @@ int main (int argc, char ** argv)
       // BOUNDARY_ID_MAX_X and BOUNDARY_ID_MIN_Y
       // then let's set an edge boundary condition
       if (found_side_max_x && found_side_min_y)
-        for (unsigned int e=0; e<elem->n_edges(); e++)
+        for (auto e : elem->edge_index_range())
           if (elem->is_edge_on_side(e, side_max_x) &&
               elem->is_edge_on_side(e, side_min_y))
             mesh.get_boundary_info().add_edge(elem, e, EDGE_BOUNDARY_ID);
@@ -530,7 +516,7 @@ int main (int argc, char ** argv)
 #ifdef LIBMESH_HAVE_PETSC
   // Attach a SolverConfiguration object to system.linear_solver
   PetscLinearSolver<Number> * petsc_linear_solver =
-    libmesh_cast_ptr<PetscLinearSolver<Number>*>(system.get_linear_solver());
+    cast_ptr<PetscLinearSolver<Number>*>(system.get_linear_solver());
   libmesh_assert(petsc_linear_solver);
   PetscSolverConfiguration petsc_solver_config(*petsc_linear_solver);
   petsc_linear_solver->set_solver_configuration(petsc_solver_config);

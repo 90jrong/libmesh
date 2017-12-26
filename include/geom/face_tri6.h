@@ -123,7 +123,7 @@ public:
    * The id is not necessarily unique, but should be close.  This is
    * particularly useful in the \p MeshBase::find_neighbors() routine.
    *
-   * We reimplemenet this method here for the \p Quad8 since we can
+   * We reimplement this method here for the \p Quad8 since we can
    * use the center node of each edge to provide a perfect (unique)
    * key.
    */
@@ -135,8 +135,8 @@ public:
   virtual unsigned int which_node_am_i(unsigned int side,
                                        unsigned int side_node) const libmesh_override;
 
-  virtual UniquePtr<Elem> build_side_ptr (const unsigned int i,
-                                          bool proxy) libmesh_override;
+  virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
+                                                bool proxy) libmesh_override;
 
   virtual void connectivity(const unsigned int sf,
                             const IOPackage iop,

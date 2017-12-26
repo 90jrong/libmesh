@@ -133,7 +133,7 @@ private:
 // Begin the main program.
 int main (int argc, char ** argv)
 {
-  // Initialize libMesh and any dependent libaries, like in example 2.
+  // Initialize libMesh and any dependent libraries, like in example 2.
   LibMeshInit init (argc, argv);
 
   // This example requires a NonlinearSolver.
@@ -192,7 +192,7 @@ int main (int argc, char ** argv)
   if (command_line.search(2, "-FEFamily", "-f"))
     family = command_line.next(family);
 
-  // Cannot use dicontinuous basis.
+  // Cannot use discontinuous basis.
   if ((family == "MONOMIAL") || (family == "XYZ"))
     libmesh_error_msg("This example requires a C^0 (or higher) FE basis.");
 
@@ -251,7 +251,7 @@ int main (int argc, char ** argv)
                       Utility::string_to_enum<Order>   (order),
                       Utility::string_to_enum<FEFamily>(family));
 
-  // Consruct object which provides the residual and jacobian
+  // Construct object which provides the residual and jacobian
   // computations and tell the solver to use it.
   LaplaceYoung laplace_young;
   system.nonlinear_solver->residual_object = &laplace_young;
@@ -320,9 +320,9 @@ void LaplaceYoung::residual (const NumericVector<Number> & soln,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A 5th order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, FIFTH);
@@ -332,14 +332,14 @@ void LaplaceYoung::residual (const NumericVector<Number> & soln,
 
   // Declare a special finite element object for
   // boundary integration.
-  UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
-  // Boundary integration requires one quadraure rule,
+  // Boundary integration requires one quadrature rule,
   // with dimensionality one less than the dimensionality
   // of the element.
   QGauss qface(dim-1, FIFTH);
 
-  // Tell the finte element object to use our
+  // Tell the finite element object to use our
   // quadrature rule.
   fe_face->attach_quadrature_rule (&qface);
 
@@ -350,13 +350,13 @@ void LaplaceYoung::residual (const NumericVector<Number> & soln,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
-  // Define data structures to contain the resdual contributions
+  // Define data structures to contain the residual contributions
   DenseVector<Number> Re;
 
   // This vector will hold the degree of freedom indices for
@@ -369,15 +369,8 @@ void LaplaceYoung::residual (const NumericVector<Number> & soln,
   // We will compute the element residual.
   residual.zero();
 
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -432,12 +425,12 @@ void LaplaceYoung::residual (const NumericVector<Number> & soln,
       // The following loops over the sides of the element.
       // If the element has no neighbor on a side then that
       // side MUST live on a boundary of the domain.
-      for (unsigned int side=0; side<elem->n_sides(); side++)
+      for (auto side : elem->side_index_range())
         if (elem->neighbor_ptr(side) == libmesh_nullptr)
           {
             // The value of the shape functions at the quadrature
             // points.
-            const std::vector<std::vector<Real> > & phi_face = fe_face->get_phi();
+            const std::vector<std::vector<Real>> & phi_face = fe_face->get_phi();
 
             // The Jacobian * Quadrature Weight at the quadrature
             // points on the face.
@@ -495,9 +488,9 @@ void LaplaceYoung::jacobian (const NumericVector<Number> & soln,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(dim, fe_type));
 
   // A 5th order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, FIFTH);
@@ -512,11 +505,11 @@ void LaplaceYoung::jacobian (const NumericVector<Number> & soln,
   const std::vector<Real> & JxW = fe->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // Define data structures to contain the Jacobian element matrix.
   // Following basic finite element terminology we will denote these
@@ -531,15 +524,8 @@ void LaplaceYoung::jacobian (const NumericVector<Number> & soln,
   // Now we will loop over all the active elements in the mesh which
   // are local to this processor.
   // We will compute the element Jacobian contribution.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -562,7 +548,7 @@ void LaplaceYoung::jacobian (const NumericVector<Number> & soln,
                  dof_indices.size());
 
       // Now we will build the element Jacobian.  This involves
-      // a double loop to integrate the test funcions (i) against
+      // a double loop to integrate the test functions (i) against
       // the trial functions (j). Note that the Jacobian depends
       // on the current solution x, which we access using the soln
       // vector.

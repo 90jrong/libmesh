@@ -20,11 +20,11 @@
 #ifndef LIBMESH_MESHLESS_INTERPOLATION_FUNCTION_H
 #define LIBMESH_MESHLESS_INTERPOLATION_FUNCTION_H
 
-// Local Includes
+// libMesh Includes
 #include "libmesh/function_base.h"
 #include "libmesh/meshfree_interpolation.h"
 #include "libmesh/threads.h"
-
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // C++ includes
 #include <cstddef>
@@ -74,7 +74,7 @@ public:
   /**
    * Returns a new deep copy of the function.
    */
-  virtual UniquePtr<FunctionBase<Number> > clone () const;
+  virtual std::unique_ptr<FunctionBase<Number>> clone () const;
 
   /**
    * @returns the value at point p and time
@@ -141,10 +141,10 @@ void MeshlessInterpolationFunction::clear ()
 
 
 inline
-UniquePtr<FunctionBase<Number> >
+std::unique_ptr<FunctionBase<Number>>
 MeshlessInterpolationFunction::clone () const
 {
-  return UniquePtr<FunctionBase<Number> > (new MeshlessInterpolationFunction (_mfi, _mutex));
+  return libmesh_make_unique<MeshlessInterpolationFunction>(_mfi, _mutex);
 }
 
 

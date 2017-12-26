@@ -31,6 +31,7 @@
 #include "libmesh/libmesh_logging.h"
 #include "libmesh/replicated_mesh.h"
 #include "libmesh/elem.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 namespace libMesh
 {
@@ -68,8 +69,6 @@ void RBEIMEvaluation::clear()
   _interpolation_points_mesh.clear();
 
   // Delete any RBTheta objects that were created
-  for (std::size_t i=0; i<_rb_eim_theta_objects.size(); i++)
-    delete _rb_eim_theta_objects[i];
   _rb_eim_theta_objects.clear();
 }
 
@@ -210,19 +209,17 @@ void RBEIMEvaluation::initialize_eim_theta_objects()
   // Initialize the rb_theta objects that access the solution from this rb_eim_evaluation
   _rb_eim_theta_objects.clear();
   for (unsigned int i=0; i<get_n_basis_functions(); i++)
-    {
-      _rb_eim_theta_objects.push_back( build_eim_theta(i).release() );
-    }
+    _rb_eim_theta_objects.emplace_back(build_eim_theta(i));
 }
 
-std::vector<RBTheta *> RBEIMEvaluation::get_eim_theta_objects()
+std::vector<std::unique_ptr<RBTheta>> & RBEIMEvaluation::get_eim_theta_objects()
 {
   return _rb_eim_theta_objects;
 }
 
-UniquePtr<RBTheta> RBEIMEvaluation::build_eim_theta(unsigned int index)
+std::unique_ptr<RBTheta> RBEIMEvaluation::build_eim_theta(unsigned int index)
 {
-  return UniquePtr<RBTheta>( new RBEIMTheta(*this, index) );
+  return libmesh_make_unique<RBEIMTheta>(*this, index);
 }
 
 void RBEIMEvaluation::legacy_write_offline_data_to_files(const std::string & directory_name,

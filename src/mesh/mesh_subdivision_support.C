@@ -101,23 +101,20 @@ void MeshTools::Subdivision::all_subdivision(MeshBase & mesh)
   // Container to catch ids handed back from BoundaryInfo
   std::vector<boundary_id_type> ids;
 
-  MeshBase::const_element_iterator       el     = mesh.elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.elements_end();
-  for (; el != end_el; ++el)
+  for (const auto & elem : mesh.element_ptr_range())
     {
-      const Elem * elem = *el;
       libmesh_assert_equal_to(elem->type(), TRI3);
 
       Elem * tri = new Tri3Subdivision;
       tri->set_id(elem->id());
       tri->subdomain_id() = elem->subdomain_id();
-      tri->set_node(0) = (*el)->node_ptr(0);
-      tri->set_node(1) = (*el)->node_ptr(1);
-      tri->set_node(2) = (*el)->node_ptr(2);
+      tri->set_node(0) = elem->node_ptr(0);
+      tri->set_node(1) = elem->node_ptr(1);
+      tri->set_node(2) = elem->node_ptr(2);
 
       if (mesh_has_boundary_data)
         {
-          for (unsigned short side = 0; side < elem->n_sides(); ++side)
+          for (auto side : elem->side_index_range())
             {
               mesh.get_boundary_info().boundary_ids(elem, side, ids);
 
@@ -180,15 +177,12 @@ void MeshTools::Subdivision::prepare_subdivision_mesh(MeshBase & mesh, bool ghos
 
   mesh.prepare_for_use();
 
-  std::vector<std::vector<const Elem *> > nodes_to_elem_map;
+  std::vector<std::vector<const Elem *>> nodes_to_elem_map;
   MeshTools::build_nodes_to_elem_map(mesh, nodes_to_elem_map);
 
   // compute the node valences
-  MeshBase::const_node_iterator       nd     = mesh.nodes_begin();
-  const MeshBase::const_node_iterator end_nd = mesh.nodes_end();
-  for (; nd != end_nd; ++nd)
+  for (auto & node : mesh.node_ptr_range())
     {
-      Node * node = *nd;
       std::vector<const Node *> neighbors;
       MeshTools::find_nodal_neighbors(mesh, *node, nodes_to_elem_map, neighbors);
       const unsigned int valence =
@@ -197,29 +191,24 @@ void MeshTools::Subdivision::prepare_subdivision_mesh(MeshBase & mesh, bool ghos
       node->set_valence(valence);
     }
 
-  MeshBase::const_element_iterator       el     = mesh.elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.elements_end();
-  for (; el != end_el; ++el)
+  for (auto & elem : mesh.element_ptr_range())
     {
-      Tri3Subdivision * elem = dynamic_cast<Tri3Subdivision *>(*el);
-      libmesh_assert(elem);
-      if (!elem->is_ghost())
-        elem->prepare_subdivision_properties();
+      Tri3Subdivision * tri3s = dynamic_cast<Tri3Subdivision *>(elem);
+      libmesh_assert(tri3s);
+      if (!tri3s->is_ghost())
+        tri3s->prepare_subdivision_properties();
     }
 }
 
 
 void MeshTools::Subdivision::tag_boundary_ghosts(MeshBase & mesh)
 {
-  MeshBase::element_iterator       el     = mesh.elements_begin();
-  const MeshBase::element_iterator end_el = mesh.elements_end();
-  for (; el != end_el; ++el)
+  for (auto & elem : mesh.element_ptr_range())
     {
-      Elem * elem = *el;
       libmesh_assert_equal_to(elem->type(), TRI3SUBDIVISION);
 
       Tri3Subdivision * sd_elem = static_cast<Tri3Subdivision *>(elem);
-      for (unsigned int i = 0; i < elem->n_sides(); ++i)
+      for (auto i : elem->side_index_range())
         {
           if (elem->neighbor_ptr(i) == libmesh_nullptr)
             {
@@ -260,7 +249,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
       // triangle.  This prevents degenerated triangles in the mesh
       // corners and guarantees that the node in the middle of the
       // loop is of valence=6.
-      for (unsigned int i = 0; i < elem->n_sides(); ++i)
+      for (auto i : elem->side_index_range())
         {
           libmesh_assert_not_equal_to(elem->neighbor_ptr(i), elem);
 
@@ -339,7 +328,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
             }
         }
 
-      for (unsigned int i = 0; i < elem->n_sides(); ++i)
+      for (auto i : elem->side_index_range())
         {
           libmesh_assert_not_equal_to(elem->neighbor_ptr(i), elem);
           if (elem->neighbor_ptr(i) == libmesh_nullptr)
@@ -397,7 +386,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
       Tri3Subdivision * elem = *ghost_el;
       libmesh_assert(elem->is_ghost());
 
-      for (unsigned int i = 0; i < elem->n_sides(); ++i)
+      for (auto i : elem->side_index_range())
         {
           if (elem->neighbor_ptr(i) == libmesh_nullptr &&
               elem->neighbor_ptr(prev[i]) != libmesh_nullptr)

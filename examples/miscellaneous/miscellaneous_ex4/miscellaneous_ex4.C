@@ -158,26 +158,17 @@ int main (int argc, char ** argv)
   for (unsigned int i=0; i<2; i++)
     {
       MeshRefinement mesh_refinement(mesh);
-      MeshBase::element_iterator       elem_it  = mesh.elements_begin();
-      const MeshBase::element_iterator elem_end = mesh.elements_end();
-      for (; elem_it != elem_end; ++elem_it)
+      for (auto & elem : mesh.element_ptr_range())
         {
-          Elem * elem = *elem_it;
           if (elem->active())
             {
               if ((elem->id()%20)>8)
-                {
-                  elem->set_refinement_flag(Elem::REFINE);
-                }
+                elem->set_refinement_flag(Elem::REFINE);
               else
-                {
-                  elem->set_refinement_flag(Elem::DO_NOTHING);
-                }
+                elem->set_refinement_flag(Elem::DO_NOTHING);
             }
           else
-            {
-              elem->set_refinement_flag(Elem::INACTIVE);
-            }
+            elem->set_refinement_flag(Elem::INACTIVE);
         }
       mesh_refinement.refine_elements();
       equation_systems.reinit();
@@ -186,7 +177,7 @@ int main (int argc, char ** argv)
   // Prints information about the system to the screen.
   equation_systems.print_info();
 
-  // Before the assemblation of the matrix, we have to clear the two
+  // Before assembling the matrix, we have to clear the two
   // vectors that form the tensor matrix (since this is not performed
   // automatically).
   system.get_vector("v").init(system.n_dofs(), system.n_local_dofs());
@@ -266,10 +257,10 @@ void assemble (EquationSystems & es,
 
   // Build a Finite Element object of the specified type.  Since the
   // FEBase::build() member dynamically creates memory we will
-  // store the object as a UniquePtr<FEBase>.  This can be thought
+  // store the object as a std::unique_ptr<FEBase>.  This can be thought
   // of as a pointer that will clean up after itself.
-  UniquePtr<FEBase> fe      (FEBase::build(dim, fe_type));
-  UniquePtr<FEBase> fe_face (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe      (FEBase::build(dim, fe_type));
+  std::unique_ptr<FEBase> fe_face (FEBase::build(dim, fe_type));
 
   // A Gauss quadrature rule for numerical integration.
   // Let the FEType object decide what order rule is appropriate.
@@ -287,12 +278,12 @@ void assemble (EquationSystems & es,
   const std::vector<Real> & JxW_face = fe_face->get_JxW();
 
   // The element shape functions evaluated at the quadrature points.
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-  const std::vector<std::vector<Real> > & psi = fe_face->get_phi();
+  const std::vector<std::vector<Real>> & phi = fe->get_phi();
+  const std::vector<std::vector<Real>> & psi = fe_face->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points.
-  const std::vector<std::vector<RealGradient> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> & dphi = fe->get_dphi();
 
   // The XY locations of the quadrature points used for face integration
   //const std::vector<Point>& qface_points = fe_face->get_xyz();
@@ -325,15 +316,8 @@ void assemble (EquationSystems & es,
   // matrix and right-hand-side contribution.  Since the mesh
   // will be refined we want to only consider the ACTIVE elements,
   // hence we use a variant of the active_elem_iterator.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -404,7 +388,7 @@ void assemble (EquationSystems & es,
         // The following loops over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
-        for (unsigned int s=0; s<elem->n_sides(); s++)
+        for (auto s : elem->side_index_range())
           if (elem->neighbor_ptr(s) == libmesh_nullptr)
             {
               fe_face->reinit(elem, s);
@@ -431,7 +415,7 @@ void assemble (EquationSystems & es,
 
       // However, constraining both the sparse matrix (and right hand
       // side) plus the rank 1 matrix is tricky.  The dof_indices
-      // vector has to be backuped for that because the constraining
+      // vector has to be backed up for that because the constraining
       // functions modify it.
 
       std::vector<dof_id_type> dof_indices_backup(dof_indices);
@@ -449,7 +433,7 @@ void assemble (EquationSystems & es,
       system.get_vector("v").add_vector(Ve, dof_indices);
       system.get_vector("w").add_vector(We, dof_indices);
     }
-  // Finished computing the sytem matrix and right-hand side.
+  // Finished computing the system matrix and right-hand side.
 
   // Matrices and vectors must be closed manually.  This is necessary
   // because the matrix is not directly used as the system matrix (in

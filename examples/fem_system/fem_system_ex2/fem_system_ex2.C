@@ -31,6 +31,7 @@
 #include "libmesh/time_solver.h"
 #include "libmesh/transient_system.h"
 #include "libmesh/vtk_io.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 #include <cstdio>
 #include <ctime>
@@ -92,7 +93,7 @@ void run_timestepping(EquationSystems & systems, GetPot & args)
 
   SolidSystem & solid_system = systems.get_system<SolidSystem>("solid");
 
-  UniquePtr<VTKIO> io = UniquePtr<VTKIO>(new VTKIO(systems.get_mesh()));
+  std::unique_ptr<VTKIO> io = libmesh_make_unique<VTKIO>(systems.get_mesh());
 
   Real duration = args("duration", 1.0);
 

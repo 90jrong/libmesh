@@ -83,9 +83,6 @@ dof_id_type Prism::key (const unsigned int s) const
     default:
       libmesh_error_msg("Invalid side " << s);
     }
-
-  libmesh_error_msg("We'll never get here!");
-  return 0;
 }
 
 
@@ -106,11 +103,11 @@ unsigned int Prism::which_node_am_i(unsigned int side,
 
 
 
-UniquePtr<Elem> Prism::side_ptr (const unsigned int i)
+std::unique_ptr<Elem> Prism::side_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_sides());
 
-  Elem * face = libmesh_nullptr;
+  std::unique_ptr<Elem> face;
 
   // Set up the type of element
   switch (i)
@@ -118,14 +115,14 @@ UniquePtr<Elem> Prism::side_ptr (const unsigned int i)
     case 0: // the triangular face at z=0
     case 4: // the triangular face at z=1
       {
-        face = new Tri3;
+        face = libmesh_make_unique<Tri3>();
         break;
       }
     case 1: // the quad face at y=0
     case 2: // the other quad face
     case 3: // the quad face at x=0
       {
-        face = new Quad4;
+        face = libmesh_make_unique<Quad4>();
         break;
       }
     default:
@@ -136,7 +133,7 @@ UniquePtr<Elem> Prism::side_ptr (const unsigned int i)
   for (unsigned n=0; n<face->n_nodes(); ++n)
     face->set_node(n) = this->node_ptr(Prism6::side_nodes_map[i][n]);
 
-  return UniquePtr<Elem>(face);
+  return face;
 }
 
 

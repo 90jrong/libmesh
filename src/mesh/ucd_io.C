@@ -277,19 +277,16 @@ void UCDIO::write_header(std::ostream & out_stream,
 void UCDIO::write_nodes(std::ostream & out_stream,
                         const MeshBase & mesh)
 {
-  MeshBase::const_node_iterator       it  = mesh.nodes_begin();
-  const MeshBase::const_node_iterator end = mesh.nodes_end();
-
   // 1-based node number for UCD
   unsigned int n=1;
 
   // Write the node coordinates
-  for (; it != end; ++it)
+  for (auto & node : mesh.node_ptr_range())
     {
       libmesh_assert (out_stream.good());
 
       out_stream << n++ << "\t";
-      (*it)->write_unformatted(out_stream);
+      node->write_unformatted(out_stream);
     }
 }
 
@@ -298,19 +295,13 @@ void UCDIO::write_nodes(std::ostream & out_stream,
 void UCDIO::write_interior_elems(std::ostream & out_stream,
                                  const MeshBase & mesh)
 {
-  MeshBase::const_element_iterator it  = mesh.elements_begin();
-  const MeshBase::const_element_iterator end = mesh.elements_end();
-
   // 1-based element number for UCD
   unsigned int e=1;
 
   // Write element information
-  for (; it != end; ++it)
+  for (const auto & elem : mesh.element_ptr_range())
     {
       libmesh_assert (out_stream.good());
-
-      // Get pointer to Elem for convenience.
-      const Elem * elem = *it;
 
       // Look up the corresponding UCD element type in the static map.
       const ElemType etype = elem->type();

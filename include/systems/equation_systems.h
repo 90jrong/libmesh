@@ -109,7 +109,8 @@ public:
   virtual void init ();
 
   /**
-   * Reinitialize all the systems
+   * Handle any mesh changes and reinitialize all the systems on the
+   * updated mesh
    */
   virtual void reinit ();
 
@@ -153,7 +154,7 @@ public:
   const T_sys & get_system (const std::string & name) const;
 
   /**
-   * \returns A writable referene to the system named \p name.
+   * \returns A writable reference to the system named \p name.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> ("sys");
    * is an example of how the method might be used
@@ -171,7 +172,7 @@ public:
   const T_sys & get_system (const unsigned int num) const;
 
   /**
-   * \returns A writable referene to the system number \p num.
+   * \returns A writable reference to the system number \p num.
    * The template argument defines the return type.  For example,
    * const SteadySystem & sys = eq.get_system<SteadySystem> (0);
    * is an example of how the method might be used
@@ -185,7 +186,7 @@ public:
   const System & get_system (const std::string & name) const;
 
   /**
-   * \returns A writable referene to the system named \p name.
+   * \returns A writable reference to the system named \p name.
    */
   System & get_system (const std::string & name);
 
@@ -195,7 +196,7 @@ public:
   const System & get_system (const unsigned int num) const;
 
   /**
-   * \returns A writable referene to the system number \p num.
+   * \returns A writable reference to the system number \p num.
    */
   System & get_system (const unsigned int num);
 
@@ -220,7 +221,9 @@ public:
    * delete a System from an EquationSystems object, it could probably
    * be added.
    */
+#ifdef LIBMESH_ENABLE_DEPRECATED
   void delete_system (const std::string & name);
+#endif
 
   /**
    * \returns The total number of variables in all
@@ -307,11 +310,11 @@ public:
    * A version of build_solution_vector which is appropriate for
    * "parallel" output formats like Nemesis.
    *
-   * \returns A UniquePtr to a node-major NumericVector of total
+   * \returns A std::unique_ptr to a node-major NumericVector of total
    * length n_nodes*n_vars that various I/O classes can then use to
    * get the local values they need to write on each processor.
    */
-  UniquePtr<NumericVector<Number> >
+  std::unique_ptr<NumericVector<Number>>
   build_parallel_solution_vector(const std::set<std::string> * system_names=libmesh_nullptr) const;
 
   /**
@@ -472,6 +475,18 @@ public:
    **/
   bool refine_in_reinit_flag() { return this->_refine_in_reinit; }
 
+  /**
+   * Handle any mesh changes and project any solutions onto the
+   * updated mesh.
+   *
+   * \returns Whether or not the mesh may have changed.
+   */
+  bool reinit_solutions ();
+
+  /**
+   * Reinitialize all systems on the current mesh.
+   */
+  virtual void reinit_systems ();
 
   /**
    * Data structure holding arbitrary parameters.
@@ -498,7 +513,7 @@ protected:
   typedef std::map<std::string, System *>::iterator       system_iterator;
 
   /**
-   * Typedef for constatnt system iterators
+   * Typedef for constant system iterators
    */
   typedef std::map<std::string, System *>::const_iterator const_system_iterator;
 

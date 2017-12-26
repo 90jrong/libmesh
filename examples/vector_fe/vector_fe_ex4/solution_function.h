@@ -15,7 +15,11 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+// libMesh includes
 #include "libmesh/function_base.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
+
+// Example includes
 #include "curl_curl_exact_solution.h"
 
 using namespace libMesh;
@@ -56,8 +60,8 @@ public:
     return soln(x, y, z)(component_in);
   }
 
-  virtual UniquePtr<FunctionBase<Number> > clone() const
-  { return UniquePtr<FunctionBase<Number> > (new SolutionFunction(_u_var)); }
+  virtual std::unique_ptr<FunctionBase<Number>> clone() const
+  { return libmesh_make_unique<SolutionFunction>(_u_var); }
 
 private:
 
@@ -96,8 +100,8 @@ public:
     return soln.grad(x, y, z).row(component_in);
   }
 
-  virtual UniquePtr<FunctionBase<Gradient> > clone() const
-  { return UniquePtr<FunctionBase<Gradient> > (new SolutionGradient(_u_var)); }
+  virtual std::unique_ptr<FunctionBase<Gradient>> clone() const
+  { return libmesh_make_unique<SolutionGradient>(_u_var); }
 
 private:
 

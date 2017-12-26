@@ -67,9 +67,8 @@ void GhostPointNeighbors::operator()
       if (elem->processor_id() != p)
         coupled_elements.insert (std::make_pair(elem,nullcm));
 
-      for (unsigned int s=0; s != elem->n_sides(); ++s)
+      for (auto neigh : elem->neighbor_ptr_range())
         {
-          const Elem * neigh = elem->neighbor_ptr(s);
           if (neigh && neigh != remote_elem)
             {
 #ifdef LIBMESH_ENABLE_AMR
@@ -105,49 +104,34 @@ void GhostPointNeighbors::operator()
         interior_parents.insert (elem->interior_parent());
 
       // Add nodes connected to active local elements
-      for (unsigned int n=0; n<elem->n_nodes(); n++)
+      for (auto n : elem->node_index_range())
         connected_nodes.insert (elem->node_ptr(n));
     }
 
   // Connect any interior_parents who are really in our mesh
-  {
-    MeshBase::const_element_iterator       elem_it  = _mesh.elements_begin();
-    const MeshBase::const_element_iterator elem_end = _mesh.elements_end();
-    for (; elem_it != elem_end; ++elem_it)
-      {
-        const Elem * elem = *elem_it;
-        std::set<const Elem *>::iterator ip_it =
-          interior_parents.find(elem);
+  for (const auto & elem : _mesh.element_ptr_range())
+    {
+      std::set<const Elem *>::iterator ip_it =
+        interior_parents.find(elem);
 
-        if (ip_it != interior_parents.end())
-          {
-            coupled_elements.insert
-              (std::make_pair(elem, nullcm));
+      if (ip_it != interior_parents.end())
+        {
+          coupled_elements.insert
+            (std::make_pair(elem, nullcm));
 
-            // Shrink the set ASAP to speed up subsequent searches
-            interior_parents.erase(ip_it);
-          }
-      }
-  }
+          // Shrink the set ASAP to speed up subsequent searches
+          interior_parents.erase(ip_it);
+        }
+    }
 
   // Connect any active elements which are connected to our range's
-  // elements' nodes
-  {
-    MeshBase::const_element_iterator       elem_it  = _mesh.active_elements_begin();
-    const MeshBase::const_element_iterator elem_end = _mesh.active_elements_end();
-
-    for (; elem_it!=elem_end; ++elem_it)
-      {
-        const Elem * elem = *elem_it;
-
-        // Add elements connected to nodes on active local elements
-        if (elem->processor_id() != p)
-          for (unsigned int n=0; n<elem->n_nodes(); n++)
-            if (connected_nodes.count(elem->node_ptr(n)))
-              coupled_elements.insert
-                (std::make_pair(elem, nullcm));
-      }
-  }
+  // elements' nodes by addin elements connected to nodes on active
+  // local elements.
+  for (const auto & elem : _mesh.active_element_ptr_range())
+    if (elem->processor_id() != p)
+      for (auto & n : elem->node_ref_range())
+        if (connected_nodes.count(&n))
+          coupled_elements.insert(std::make_pair(elem, nullcm));
 }
 
 } // namespace libMesh

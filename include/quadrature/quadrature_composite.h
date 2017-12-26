@@ -28,7 +28,10 @@
 #include "libmesh/quadrature.h"
 #include "libmesh/elem_cutter.h"
 #include "libmesh/fe_base.h"
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
+
+// C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -103,7 +106,7 @@ private:
   /**
    * Lagrange FE to use for subcell mapping.
    */
-  UniquePtr<FEBase> _lagrange_fe;
+  std::unique_ptr<FEBase> _lagrange_fe;
 };
 
 } // namespace libMesh

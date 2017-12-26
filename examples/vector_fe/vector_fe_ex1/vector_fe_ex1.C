@@ -202,7 +202,7 @@ void assemble_poisson(EquationSystems & es,
   // Build a Finite Element object of the specified type.
   // Note that FEVectorBase is a typedef for the templated FE
   // class.
-  UniquePtr<FEVectorBase> fe (FEVectorBase::build(dim, fe_type));
+  std::unique_ptr<FEVectorBase> fe (FEVectorBase::build(dim, fe_type));
 
   // A 5th order Gauss quadrature rule for numerical integration.
   QGauss qrule (dim, FIFTH);
@@ -212,9 +212,9 @@ void assemble_poisson(EquationSystems & es,
 
   // Declare a special finite element object for
   // boundary integration.
-  UniquePtr<FEVectorBase> fe_face (FEVectorBase::build(dim, fe_type));
+  std::unique_ptr<FEVectorBase> fe_face (FEVectorBase::build(dim, fe_type));
 
-  // Boundary integration requires one quadraure rule,
+  // Boundary integration requires one quadrature rule,
   // with dimensionality one less than the dimensionality
   // of the element.
   QGauss qface(dim-1, FIFTH);
@@ -236,11 +236,11 @@ void assemble_poisson(EquationSystems & es,
 
   // The element shape functions evaluated at the quadrature points.
   // Notice the shape functions are a vector rather than a scalar.
-  const std::vector<std::vector<RealGradient> > & phi = fe->get_phi();
+  const std::vector<std::vector<RealGradient>> & phi = fe->get_phi();
 
   // The element shape function gradients evaluated at the quadrature
   // points. Notice that the shape function gradients are a tensor.
-  const std::vector<std::vector<RealTensor> > & dphi = fe->get_dphi();
+  const std::vector<std::vector<RealTensor>> & dphi = fe->get_dphi();
 
   // Define data structures to contain the element matrix
   // and right-hand-side vector contribution.  Following
@@ -268,18 +268,8 @@ void assemble_poisson(EquationSystems & es,
   // mess it up!  In case users later modify this program to include
   // refinement, we will be safe and will only consider the active
   // elements; hence we use a variant of the active_elem_iterator.
-  MeshBase::const_element_iterator       el     = mesh.active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.active_local_elements_end();
-
-  // Loop over the elements.  Note that  ++el is preferred to
-  // el++ since the latter requires an unnecessary temporary
-  // object.
-  for ( ; el != end_el ; ++el)
+  for (const auto & elem : mesh.active_local_element_ptr_range())
     {
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
-
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
       // matrix and right-hand-side this element will
@@ -311,7 +301,7 @@ void assemble_poisson(EquationSystems & es,
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
         {
           // Now we will build the element matrix.  This involves
-          // a double loop to integrate the test funcions (i) against
+          // a double loop to integrate the test functions (i) against
           // the trial functions (j).
           for (std::size_t i=0; i<phi.size(); i++)
             for (std::size_t j=0; j<phi.size(); j++)
@@ -393,12 +383,12 @@ void assemble_poisson(EquationSystems & es,
         // The following loop is over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
-        for (unsigned int side=0; side<elem->n_sides(); side++)
+        for (auto side : elem->side_index_range())
           if (elem->neighbor_ptr(side) == libmesh_nullptr)
             {
               // The value of the shape functions at the quadrature
               // points.
-              const std::vector<std::vector<RealGradient> > & phi_face = fe_face->get_phi();
+              const std::vector<std::vector<RealGradient>> & phi_face = fe_face->get_phi();
 
               // The Jacobian * Quadrature Weight at the quadrature
               // points on the face.

@@ -13,11 +13,10 @@ unit_tests_sources = \
   test_comm.h \
   stream_redirector.h \
   base/dof_object_test.h \
-  base/dof_map_test.h \
+  base/dof_map_test.C \
   base/default_coupling_test.C \
   base/getpot_test.C \
   base/point_neighbor_coupling_test.C \
-  base/unique_ptr_test.C \
   fe/fe_bernstein_test.C \
   fe/fe_clough_test.C \
   fe/fe_hermite_test.C \
@@ -30,7 +29,6 @@ unit_tests_sources = \
   fe/fe_test.h \
   fe/fe_xyz_test.C \
   geom/elem_test.C \
-  geom/node_test.C \
   geom/point_test.C \
   geom/point_test.h \
   geom/which_node_am_i_test.C \
@@ -46,6 +44,7 @@ unit_tests_sources = \
   mesh/spatial_dimension_test.C \
   mesh/mapped_subdomain_partitioner_test.C \
   mesh/mesh_function_dfem.C \
+  mesh/write_vec_and_scalar.C \
   numerics/composite_function_test.C \
   numerics/coupling_matrix_test.C \
   numerics/distributed_vector_test.C \
@@ -186,7 +185,8 @@ endif
 
 CLEANFILES = cube_mesh.xda \
              checkpoint_splitter.cpr* checkpoint_splitter.cpa* \
-             slit_mesh.xda slit_solution.xda
+             slit_mesh.xda slit_solution.xda \
+	     out.e
 
 ######################################################################
 #

@@ -150,7 +150,7 @@ public:
   virtual void save_current_parameters();
 
   /**
-   * Helper functiont to (re)load current_parameters
+   * Helper function to (re)load current_parameters
    * from saved_parameters.
    */
   virtual void reload_current_parameters();
@@ -190,7 +190,7 @@ public:
    * Vector storing the greedily selected parameters
    * during SCM training.
    */
-  std::vector< RBParameters > C_J;
+  std::vector<RBParameters > C_J;
 
   /**
    * Vector storing the (truth) stability values
@@ -204,7 +204,7 @@ public:
    * C_J, which are used in computing the SCM
    * upper bounds.
    */
-  std::vector< std::vector<Real> > SCM_UB_vectors;
+  std::vector<std::vector<Real>> SCM_UB_vectors;
 
 private:
 
@@ -216,7 +216,7 @@ private:
 
   /**
    * A pointer to to the object that stores the theta expansion.
-   * This is not a UniquePtr since we may want to share it.
+   * This is not a std::unique_ptr since we may want to share it.
    *
    * \note A \p shared_ptr would be a good option here.
    */

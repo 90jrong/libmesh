@@ -45,10 +45,8 @@ extern "C" {
 #endif
 
 
-// Hash maps for interior->boundary element lookups
-#include LIBMESH_INCLUDE_UNORDERED_MULTIMAP
-#include LIBMESH_INCLUDE_HASH
-LIBMESH_DEFINE_HASH_POINTERS
+// C++ includes
+#include <unordered_map>
 
 
 namespace libMesh
@@ -61,7 +59,10 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
                                        unsigned int n_pieces)
 {
   libmesh_assert_greater (n_pieces, 0);
-  libmesh_assert (mesh.is_serial());
+
+  // We don't yet support distributed meshes with this Partitioner
+  if (!mesh.is_serial())
+    libmesh_not_implemented();
 
   // Check for an easy return
   if (n_pieces == 1)
@@ -120,7 +121,7 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
   // the connectivity between them and interior elements.  We can find
   // interior elements from boundary elements, but we need to build up
   // a lookup map to do the reverse.
-  typedef LIBMESH_BEST_UNORDERED_MULTIMAP<const Elem *, const Elem *> map_type;
+  typedef std::unordered_multimap<const Elem *, const Elem *> map_type;
   map_type interior_to_boundary_map;
 
   {
@@ -222,10 +223,8 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
 
             // Loop over the element's neighbors.  An element
             // adjacency corresponds to a face neighbor
-            for (unsigned int ms=0; ms<elem->n_neighbors(); ms++)
+            for (auto neighbor : elem->neighbor_ptr_range())
               {
-                const Elem * neighbor = elem->neighbor_ptr(ms);
-
                 if (neighbor != libmesh_nullptr)
                   {
                     // If the neighbor is active, but is not in the
@@ -330,10 +329,8 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
 
             // Loop over the element's neighbors.  An element
             // adjacency corresponds to a face neighbor
-            for (unsigned int ms=0; ms<elem->n_neighbors(); ms++)
+            for (auto neighbor : elem->neighbor_ptr_range())
               {
-                const Elem * neighbor = elem->neighbor_ptr(ms);
-
                 if (neighbor != libmesh_nullptr)
                   {
                     // If the neighbor is active, but is not in the
@@ -432,13 +429,9 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
               }
 
             // Check for any boundary neighbors
-            typedef map_type::iterator map_it_type;
-            std::pair<map_it_type, map_it_type>
-              bounds = interior_to_boundary_map.equal_range(elem);
-
-            for (map_it_type it = bounds.first; it != bounds.second; ++it)
+            for (const auto & pr : as_range(interior_to_boundary_map.equal_range(elem)))
               {
-                const Elem * neighbor = it->second;
+                const Elem * neighbor = pr.second;
                 csr_graph(elem_global_index, connection++) =
                   global_index_map[neighbor->id()];
               }
@@ -488,7 +481,7 @@ void MetisPartitioner::partition_range(MeshBase & mesh,
 
     } // end processor 0 part
 
-  // Broadcase the resutling partition
+  // Broadcast the resulting partition
   mesh.comm().broadcast(part);
 
   // Assign the returned processor ids.  The part array contains

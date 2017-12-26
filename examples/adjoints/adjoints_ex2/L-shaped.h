@@ -4,6 +4,7 @@
 #include "libmesh/qoi_set.h"
 #include "libmesh/system.h"
 #include "libmesh/parameter_pointer.h"
+#include "libmesh/auto_ptr.h" // libmesh_make_unique
 
 // Bring in everything from the libMesh namespace
 using namespace libMesh;
@@ -34,10 +35,9 @@ public:
 
   ParameterVector & get_parameter_vector()
   {
-    typedef ParameterPointer<Number> PP;
     parameter_vector.clear();
     for (std::size_t i = 0; i != parameters.size(); ++i)
-      parameter_vector.push_back(UniquePtr<ParameterAccessor<Number> >(new PP(&parameters[i])));
+      parameter_vector.push_back(libmesh_make_unique<ParameterPointer<Number>>(&parameters[i]));
 
     return parameter_vector;
   }

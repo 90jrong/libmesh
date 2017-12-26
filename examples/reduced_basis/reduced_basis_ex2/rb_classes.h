@@ -22,10 +22,10 @@
 
 #if defined(LIBMESH_HAVE_SLEPC) && defined(LIBMESH_HAVE_GLPK)
 
+// libMesh includes
 #include "libmesh/rb_construction.h"
 #include "libmesh/rb_scm_construction.h"
 #include "libmesh/fe_base.h"
-#include "libmesh/auto_ptr.h"
 #include "libmesh/rb_evaluation.h"
 #include "libmesh/rb_scm_evaluation.h"
 
@@ -42,7 +42,6 @@ using libMesh::RBThetaExpansion;
 using libMesh::RBAssemblyExpansion;
 using libMesh::DirichletBoundary;
 using libMesh::Real;
-using libMesh::UniquePtr;
 
 // local include
 #include "assembly.h"
@@ -123,7 +122,7 @@ public:
     // Generate a DirichletBoundary object
     dirichlet_bc = build_zero_dirichlet_boundary_object();
 
-    // Set the Dirichet boundary IDs
+    // Set the Dirichlet boundary IDs
     // and the Dirichlet boundary variable numbers
     dirichlet_bc->b.insert(3);
     dirichlet_bc->variables.push_back(u_var);
@@ -172,7 +171,7 @@ public:
   /**
    * The object that defines which degrees of freedom are on a Dirichlet boundary.
    */
-  UniquePtr<DirichletBoundary> dirichlet_bc;
+  std::unique_ptr<DirichletBoundary> dirichlet_bc;
 
 };
 

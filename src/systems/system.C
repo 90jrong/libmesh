@@ -37,6 +37,8 @@
 #include "libmesh/utility.h"
 #include "libmesh/elem.h"
 #include "libmesh/fe_type.h"
+#include "libmesh/fe_interface.h"
+#include "libmesh/fe_compute_data.h"
 
 // includes for calculate_norm, point_*
 #include "libmesh/fe_base.h"
@@ -249,7 +251,7 @@ void System::init ()
   if (!this->n_vars())
     return;
 
-  // Then call the user-provided intialization function
+  // Then call the user-provided initialization function
   this->user_initialization();
 }
 
@@ -353,6 +355,9 @@ void System::restrict_vectors ()
   // Restrict the solution on the coarsened cells
   if (_solution_projection)
     this->project_vector (*solution);
+  // Or at least make sure the solution vector is the correct size
+  else
+    solution->init (this->n_dofs(), this->n_local_dofs(), true, PARALLEL);
 
 #ifdef LIBMESH_ENABLE_GHOSTED
   current_local_solution->init(this->n_dofs(),
@@ -382,30 +387,8 @@ void System::prolong_vectors ()
 
 void System::reinit ()
 {
-  //If no variables have been added to this system
-  //don't do anything
-  if (!this->n_vars())
-    return;
-
-  // Constraints get handled in EquationSystems::reinit now
-  //  _dof_map->create_dof_constraints(this->get_mesh());
-
-  // Update the solution based on the projected
-  // current_local_solution.
-  solution->init (this->n_dofs(), this->n_local_dofs(), true, PARALLEL);
-
+  // project_vector handles vector initialization now
   libmesh_assert_equal_to (solution->size(), current_local_solution->size());
-  // Not true with ghosted vectors
-  // libmesh_assert_equal_to (solution->size(), current_local_solution->local_size());
-
-  const dof_id_type first_local_dof = solution->first_local_index();
-  const dof_id_type local_size      = solution->local_size();
-
-  for (dof_id_type i=0; i<local_size; i++)
-    solution->set(i+first_local_dof,
-                  (*current_local_solution)(i+first_local_dof));
-
-  solution->close();
 }
 
 
@@ -562,7 +545,7 @@ bool System::compare (const System & other_system,
       if (solu_result == -1)
         libMesh::out << " identical up to threshold." << std::endl;
       else
-        libMesh::out << "  first difference occured at index = "
+        libMesh::out << "  first difference occurred at index = "
                      << solu_result << "." << std::endl;
     }
 
@@ -611,7 +594,7 @@ bool System::compare (const System & other_system,
               if (ov_result[ov_result.size()-1] == -1)
                 libMesh::out << " identical up to threshold." << std::endl;
               else
-                libMesh::out << " first difference occured at" << std::endl
+                libMesh::out << " first difference occurred at" << std::endl
                              << "   index = " << ov_result[ov_result.size()-1] << "." << std::endl;
             }
 
@@ -1142,7 +1125,7 @@ unsigned int System::add_variable (const std::string & var,
       if (their_active_subdomains && !active_subdomains)
         should_be_in_vg = false;
 
-      // they aren't restriced, we are?
+      // they aren't restricted, we are?
       if (!their_active_subdomains && active_subdomains)
         should_be_in_vg = false;
 
@@ -1300,19 +1283,13 @@ void System::local_dof_indices(const unsigned int var,
 
   std::vector<dof_id_type> dof_indices;
 
-  // Begin the loop over the elements
-  MeshBase::const_element_iterator       el     =
-    this->get_mesh().active_local_elements_begin();
-  const MeshBase::const_element_iterator end_el =
-    this->get_mesh().active_local_elements_end();
-
   const dof_id_type
     first_local = this->get_dof_map().first_dof(),
     end_local   = this->get_dof_map().end_dof();
 
-  for ( ; el != end_el; ++el)
+  // Begin the loop over the elements
+  for (const auto & elem : this->get_mesh().active_local_element_ptr_range())
     {
-      const Elem * elem = *el;
       this->get_dof_map().dof_indices (elem, dof_indices, var);
 
       for (std::size_t i=0; i<dof_indices.size(); i++)
@@ -1340,37 +1317,27 @@ void System::zero_variable (NumericVector<Number> & v,
   /* Check which system we are.  */
   const unsigned int sys_num = this->number();
 
-  /* Loop over nodes.  */
-  {
-    MeshBase::const_node_iterator it = mesh.local_nodes_begin();
-    const MeshBase::const_node_iterator end_it = mesh.local_nodes_end();
-    for ( ; it != end_it; ++it)
-      {
-        const Node * node = *it;
-        unsigned int n_comp = node->n_comp(sys_num,var_num);
-        for (unsigned int i=0; i<n_comp; i++)
-          {
-            const dof_id_type index = node->dof_number(sys_num,var_num,i);
-            v.set(index,0.0);
-          }
-      }
-  }
+  // Loop over nodes.
+  for (const auto & node : mesh.local_node_ptr_range())
+    {
+      unsigned int n_comp = node->n_comp(sys_num,var_num);
+      for (unsigned int i=0; i<n_comp; i++)
+        {
+          const dof_id_type index = node->dof_number(sys_num,var_num,i);
+          v.set(index,0.0);
+        }
+    }
 
-  /* Loop over elements.  */
-  {
-    MeshBase::const_element_iterator it = mesh.active_local_elements_begin();
-    const MeshBase::const_element_iterator end_it = mesh.active_local_elements_end();
-    for ( ; it != end_it; ++it)
-      {
-        const Elem * elem = *it;
-        unsigned int n_comp = elem->n_comp(sys_num,var_num);
-        for (unsigned int i=0; i<n_comp; i++)
-          {
-            const dof_id_type index = elem->dof_number(sys_num,var_num,i);
-            v.set(index,0.0);
-          }
-      }
-  }
+  // Loop over elements.
+  for (const auto & elem : mesh.active_local_element_ptr_range())
+    {
+      unsigned int n_comp = elem->n_comp(sys_num,var_num);
+      for (unsigned int i=0; i<n_comp; i++)
+        {
+          const dof_id_type index = elem->dof_number(sys_num,var_num,i);
+          v.set(index,0.0);
+        }
+    }
 }
 
 
@@ -1463,7 +1430,7 @@ Real System::calculate_norm(const NumericVector<Number> & v,
     }
 
   // Localize the potentially parallel vector
-  UniquePtr<NumericVector<Number> > local_v = NumericVector<Number>::build(this->comm());
+  std::unique_ptr<NumericVector<Number>> local_v = NumericVector<Number>::build(this->comm());
   local_v->init(v.size(), true, SERIAL);
   v.localize (*local_v, _dof_map->get_send_list());
 
@@ -1510,8 +1477,8 @@ Real System::calculate_norm(const NumericVector<Number> & v,
       const FEType & fe_type = this->get_dof_map().variable_type(var);
 
       // Allow space for dims 0-3, even if we don't use them all
-      std::vector<FEBase *> fe_ptrs(4,libmesh_nullptr);
-      std::vector<QBase *> q_rules(4,libmesh_nullptr);
+      std::vector<std::unique_ptr<FEBase>> fe_ptrs(4);
+      std::vector<std::unique_ptr<QBase>> q_rules(4);
 
       const std::set<unsigned char> & elem_dims = _mesh.elem_dimensions();
 
@@ -1522,40 +1489,41 @@ Real System::calculate_norm(const NumericVector<Number> & v,
           if (skip_dimensions && skip_dimensions->find(*d_it) != skip_dimensions->end())
             continue;
 
-          q_rules[*d_it] =
-            fe_type.default_quadrature_rule (*d_it).release();
-
-          // Construct finite element object
-
-          fe_ptrs[*d_it] = FEBase::build(*d_it, fe_type).release();
+          // Construct quadrature and finite element objects
+          q_rules[*d_it] = fe_type.default_quadrature_rule (*d_it);
+          fe_ptrs[*d_it] = FEBase::build(*d_it, fe_type);
 
           // Attach quadrature rule to FE object
-          fe_ptrs[*d_it]->attach_quadrature_rule (q_rules[*d_it]);
+          fe_ptrs[*d_it]->attach_quadrature_rule (q_rules[*d_it].get());
         }
 
       std::vector<dof_id_type> dof_indices;
 
       // Begin the loop over the elements
-      MeshBase::const_element_iterator       el     =
-        this->get_mesh().active_local_elements_begin();
-      const MeshBase::const_element_iterator end_el =
-        this->get_mesh().active_local_elements_end();
-
-      for ( ; el != end_el; ++el)
+      for (const auto & elem : this->get_mesh().active_local_element_ptr_range())
         {
-          const Elem * elem = *el;
           const unsigned int dim = elem->dim();
+
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+
+          // One way for implementing this would be to exchange the fe with the FEInterface- class.
+          // However, it needs to be discussed whether integral-norms make sense for infinite elements.
+          // or in which sense they could make sense.
+          if (elem->infinite() )
+            libmesh_not_implemented();
+
+#endif
 
           if (skip_dimensions && skip_dimensions->find(dim) != skip_dimensions->end())
             continue;
 
-          FEBase * fe = fe_ptrs[dim];
-          QBase * qrule = q_rules[dim];
+          FEBase * fe = fe_ptrs[dim].get();
+          QBase * qrule = q_rules[dim].get();
           libmesh_assert(fe);
           libmesh_assert(qrule);
 
           const std::vector<Real> &               JxW = fe->get_JxW();
-          const std::vector<std::vector<Real> > * phi = libmesh_nullptr;
+          const std::vector<std::vector<Real>> * phi = libmesh_nullptr;
           if (norm_type == H1 ||
               norm_type == H2 ||
               norm_type == L2 ||
@@ -1563,14 +1531,14 @@ Real System::calculate_norm(const NumericVector<Number> & v,
               norm_type == L_INF)
             phi = &(fe->get_phi());
 
-          const std::vector<std::vector<RealGradient> > * dphi = libmesh_nullptr;
+          const std::vector<std::vector<RealGradient>> * dphi = libmesh_nullptr;
           if (norm_type == H1 ||
               norm_type == H2 ||
               norm_type == H1_SEMINORM ||
               norm_type == W1_INF_SEMINORM)
             dphi = &(fe->get_dphi());
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-          const std::vector<std::vector<RealTensor> > *   d2phi = libmesh_nullptr;
+          const std::vector<std::vector<RealTensor>> *   d2phi = libmesh_nullptr;
           if (norm_type == H2 ||
               norm_type == H2_SEMINORM ||
               norm_type == W2_INF_SEMINORM)
@@ -1657,15 +1625,6 @@ Real System::calculate_norm(const NumericVector<Number> & v,
 #endif
             }
         }
-
-      // Need to delete the FE and quadrature objects to prevent a memory leak
-      for (std::size_t i=0; i<fe_ptrs.size(); i++)
-        if (fe_ptrs[i])
-          delete fe_ptrs[i];
-
-      for (std::size_t i=0; i<q_rules.size(); i++)
-        if (q_rules[i])
-          delete q_rules[i];
     }
 
   if (using_hilbert_norm)
@@ -1945,7 +1904,7 @@ void System::attach_QOI_derivative_object (QOIDerivative & qoi_derivative)
 
 void System::user_initialization ()
 {
-  // Call the user-provided intialization function,
+  // Call the user-provided initialization function,
   // if it was provided
   if (_init_system_function != libmesh_nullptr)
     this->_init_system_function (_equation_systems, this->name());
@@ -2040,7 +1999,7 @@ Number System::point_value(unsigned int var, const Point & p, const bool insist_
   const MeshBase & mesh = this->get_mesh();
 
   // Use an existing PointLocator or create a new one
-  UniquePtr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
+  std::unique_ptr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
   PointLocatorBase & locator = *locator_ptr;
 
   if (!insist_on_success || !mesh.is_serial())
@@ -2090,31 +2049,26 @@ Number System::point_value(unsigned int var, const Point & p, const Elem & e) co
   // Fill in the dof_indices for our element
   dof_map.dof_indices (&e, dof_indices, var);
 
-  // Get the no of dofs assciated with this point
+  // Get the no of dofs associated with this point
   const unsigned int num_dofs = cast_int<unsigned int>
     (dof_indices.size());
 
   FEType fe_type = dof_map.variable_type(var);
 
-  // Build a FE so we can calculate u(p)
-  UniquePtr<FEBase> fe (FEBase::build(e.dim(), fe_type));
+  // Map the physical co-ordinates to the master co-ordinates using the inverse_map from fe_interface.h.
+  Point coor = FEInterface::inverse_map(e.dim(), fe_type, &e, p);
 
-  // Map the physical co-ordinates to the master co-ordinates using the inverse_map from fe_interface.h
-  // Build a vector of point co-ordinates to send to reinit
-  std::vector<Point> coor(1, FEInterface::inverse_map(e.dim(), fe_type, &e, p));
-
-  // Get the shape function values
-  const std::vector<std::vector<Real> > & phi = fe->get_phi();
-
-  // Reinitialize the element and compute the shape function values at coor
-  fe->reinit (&e, &coor);
+  // get the shape function value via the FEInterface to also handle the case
+  // of infinite elements correcly, the shape function is not fe->phi().
+  FEComputeData fe_data(this->get_equation_systems(), coor);
+  FEInterface::compute_data(e.dim(), fe_type, &e, fe_data);
 
   // Get ready to accumulate a value
   Number u = 0;
 
   for (unsigned int l=0; l<num_dofs; l++)
     {
-      u += phi[l][0]*this->current_solution (dof_indices[l]);
+      u += fe_data.shape[l]*this->current_solution (dof_indices[l]);
     }
 
   return u;
@@ -2152,7 +2106,7 @@ Gradient System::point_gradient(unsigned int var, const Point & p, const bool in
   const MeshBase & mesh = this->get_mesh();
 
   // Use an existing PointLocator or create a new one
-  UniquePtr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
+  std::unique_ptr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
   PointLocatorBase & locator = *locator_ptr;
 
   if (!insist_on_success || !mesh.is_serial())
@@ -2191,6 +2145,11 @@ Gradient System::point_gradient(unsigned int var, const Point & p, const Elem & 
   // as well try to catch a particularly nasty potential error
   libmesh_assert (e.contains_point(p));
 
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+  if (e.infinite())
+    libmesh_not_implemented();
+#endif
+
   // Get the dof map to get the proper indices for our computation
   const DofMap & dof_map = this->get_dof_map();
 
@@ -2203,21 +2162,21 @@ Gradient System::point_gradient(unsigned int var, const Point & p, const Elem & 
   // Fill in the dof_indices for our element
   dof_map.dof_indices (&e, dof_indices, var);
 
-  // Get the no of dofs assciated with this point
+  // Get the no of dofs associated with this point
   const unsigned int num_dofs = cast_int<unsigned int>
     (dof_indices.size());
 
   FEType fe_type = dof_map.variable_type(var);
 
   // Build a FE again so we can calculate u(p)
-  UniquePtr<FEBase> fe (FEBase::build(e.dim(), fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(e.dim(), fe_type));
 
   // Map the physical co-ordinates to the master co-ordinates using the inverse_map from fe_interface.h
   // Build a vector of point co-ordinates to send to reinit
   std::vector<Point> coor(1, FEInterface::inverse_map(e.dim(), fe_type, &e, p));
 
   // Get the values of the shape function derivatives
-  const std::vector<std::vector<RealGradient> > &  dphi = fe->get_dphi();
+  const std::vector<std::vector<RealGradient>> &  dphi = fe->get_dphi();
 
   // Reinitialize the element and compute the shape function values at coor
   fe->reinit (&e, &coor);
@@ -2267,7 +2226,7 @@ Tensor System::point_hessian(unsigned int var, const Point & p, const bool insis
   const MeshBase & mesh = this->get_mesh();
 
   // Use an existing PointLocator or create a new one
-  UniquePtr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
+  std::unique_ptr<PointLocatorBase> locator_ptr = mesh.sub_point_locator();
   PointLocatorBase & locator = *locator_ptr;
 
   if (!insist_on_success || !mesh.is_serial())
@@ -2305,6 +2264,11 @@ Tensor System::point_hessian(unsigned int var, const Point & p, const Elem & e) 
   // as well try to catch a particularly nasty potential error
   libmesh_assert (e.contains_point(p));
 
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+  if (e.infinite())
+    libmesh_not_implemented();
+#endif
+
   // Get the dof map to get the proper indices for our computation
   const DofMap & dof_map = this->get_dof_map();
 
@@ -2317,21 +2281,21 @@ Tensor System::point_hessian(unsigned int var, const Point & p, const Elem & e) 
   // Fill in the dof_indices for our element
   dof_map.dof_indices (&e, dof_indices, var);
 
-  // Get the no of dofs assciated with this point
+  // Get the no of dofs associated with this point
   const unsigned int num_dofs = cast_int<unsigned int>
     (dof_indices.size());
 
   FEType fe_type = dof_map.variable_type(var);
 
   // Build a FE again so we can calculate u(p)
-  UniquePtr<FEBase> fe (FEBase::build(e.dim(), fe_type));
+  std::unique_ptr<FEBase> fe (FEBase::build(e.dim(), fe_type));
 
   // Map the physical co-ordinates to the master co-ordinates using the inverse_map from fe_interface.h
   // Build a vector of point co-ordinates to send to reinit
   std::vector<Point> coor(1, FEInterface::inverse_map(e.dim(), fe_type, &e, p));
 
   // Get the values of the shape function derivatives
-  const std::vector<std::vector<RealTensor> > &  d2phi = fe->get_d2phi();
+  const std::vector<std::vector<RealTensor>> &  d2phi = fe->get_d2phi();
 
   // Reinitialize the element and compute the shape function values at coor
   fe->reinit (&e, &coor);

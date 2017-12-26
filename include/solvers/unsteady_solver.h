@@ -21,12 +21,13 @@
 #define LIBMESH_UNSTEADY_SOLVER_H
 
 // Local includes
-#include "libmesh/auto_ptr.h"
+#include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/libmesh_common.h"
 #include "libmesh/numeric_vector.h"
 #include "libmesh/time_solver.h"
 
 // C++ includes
+#include <memory>
 
 namespace libMesh
 {
@@ -134,7 +135,7 @@ public:
   /**
    * Serial vector of _system.get_vector("_old_nonlinear_solution")
    */
-  UniquePtr<NumericVector<Number> > old_local_nonlinear_solution;
+  std::unique_ptr<NumericVector<Number>> old_local_nonlinear_solution;
 
   /**
    * Computes the size of ||u^{n+1} - u^{n}|| in some norm.
