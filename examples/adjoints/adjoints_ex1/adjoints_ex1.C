@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -284,6 +284,11 @@ int main (int argc, char ** argv)
   // This example requires a linear solver package.
   libmesh_example_requires(libMesh::default_solver_package() != INVALID_SOLVER_PACKAGE,
                            "--enable-petsc, --enable-trilinos, or --enable-eigen");
+
+  // This example relies on exceptions to control which Partitioner gets built.
+#ifndef LIBMESH_ENABLE_EXCEPTIONS
+  libmesh_example_requires(false, "--enable-exceptions");
+#endif
 
   // Skip adaptive examples on a non-adaptive libMesh build
 #ifndef LIBMESH_ENABLE_AMR

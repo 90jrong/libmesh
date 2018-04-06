@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -158,11 +158,8 @@ void JumpErrorEstimator::estimate_error (const System & system,
       const std::set<unsigned char> & elem_dims =
         fine_context->elem_dimensions();
 
-      for (std::set<unsigned char>::const_iterator dim_it =
-             elem_dims.begin(); dim_it != elem_dims.end(); ++dim_it)
+      for (const auto & dim : elem_dims)
         {
-          const unsigned char dim = *dim_it;
-
           fine_context->get_side_fe( var, side_fe, dim );
 
           side_fe->get_xyz();

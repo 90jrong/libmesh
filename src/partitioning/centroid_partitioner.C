@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -130,12 +130,8 @@ void CentroidPartitioner::compute_centroids (MeshBase::element_iterator it,
 {
   _elem_centroids.clear();
 
-  for (; it != end; ++it)
-    {
-      Elem * elem = *it;
-
-      _elem_centroids.push_back(std::make_pair(elem->centroid(), elem));
-    }
+  for (auto & elem : as_range(it, end))
+    _elem_centroids.push_back(std::make_pair(elem->centroid(), elem));
 }
 
 

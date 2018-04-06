@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -50,6 +50,24 @@ extern "C"
    * This function is called by PETSc to initialize the preconditioner.
    * ctx will hold the Preconditioner.
    */
+  PetscErrorCode libmesh_petsc_preconditioner_setup (void * ctx);
+
+  /**
+   * This function is called by PETSc to actually apply the preconditioner.
+   * ctx will hold the Preconditioner.
+   */
+  PetscErrorCode libmesh_petsc_preconditioner_apply(void * ctx, Vec x, Vec y);
+#else
+  PetscErrorCode libmesh_petsc_preconditioner_setup (PC);
+  PetscErrorCode libmesh_petsc_preconditioner_apply(PC, Vec x, Vec y);
+#endif
+
+#if LIBMESH_ENABLE_DEPRECATED
+#if PETSC_RELEASE_LESS_THAN(3,0,1)
+  /**
+   * This function is called by PETSc to initialize the preconditioner.
+   * ctx will hold the Preconditioner.
+   */
   PetscErrorCode __libmesh_petsc_preconditioner_setup (void * ctx);
 
   /**
@@ -60,6 +78,7 @@ extern "C"
 #else
   PetscErrorCode __libmesh_petsc_preconditioner_setup (PC);
   PetscErrorCode __libmesh_petsc_preconditioner_apply(PC, Vec x, Vec y);
+#endif
 #endif
 } // end extern "C"
 

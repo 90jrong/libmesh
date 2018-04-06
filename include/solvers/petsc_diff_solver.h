@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -69,14 +69,12 @@ public:
   virtual void reinit () libmesh_override;
 
   /**
-   * The initialization function.  solve() calls this to create
-   * a new SNES context.
+   * The initialization function.
    */
   virtual void init () libmesh_override;
 
   /**
-   * The clear function.  solve() calls this to destroy
-   * a used SNES context.
+   * The clear function. Called if we reinit or when we destroy this object.
    */
   void clear ();
 
@@ -93,6 +91,13 @@ protected:
    * Nonlinear solver context
    */
   SNES _snes;
+
+private:
+
+  /**
+   * Common helper function to setup PETSc data structures
+   */
+  void setup_petsc_data();
 };
 
 } // namespace libMesh

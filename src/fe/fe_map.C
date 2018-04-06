@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -1553,7 +1553,9 @@ void FEMap::compute_inverse_map_second_derivs(unsigned p)
         // Increment the counter
         ctr++;
       }
-
+#else
+   // to avoid compiler warnings:
+   libmesh_ignore(p);
 #endif // LIBMESH_ENABLE_SECOND_DERIVATIVES
 }
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -159,6 +159,11 @@ public:
    * determine if a point is contained within the mesh.
    */
   virtual void unset_close_to_point_tol();
+
+  /**
+   * Get a const reference to this PointLocator's mesh.
+   */
+  const MeshBase & get_mesh() const;
 
   /**
    * Boolean flag to indicate whether to print out extra info.

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -204,6 +204,14 @@ public:
    * If \p skip_find_neighbors is true, a faster stitching method is used, where the lists of
    * neighbors for each elements are copied as well and patched, without calling the time-consuming
    * find_neighbors() function.
+   * 
+   * Note that the element IDs for elements in the stitched mesh corresponding to "this" mesh
+   * will be unchanged. The IDs for elements corresponding to \p other_mesh will be incremented
+   * by this->max_elem_id().
+   * 
+   * There is no simple a priori relationship between node IDs in "this" mesh
+   * and other_mesh and node IDs in the stitched mesh because the number of nodes (and hence
+   * the node IDs) in the stitched mesh depend on how many nodes are stitched.
    */
   void stitch_meshes (ReplicatedMesh & other_mesh,
                       boundary_id_type this_mesh_boundary,

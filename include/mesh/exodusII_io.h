@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -171,11 +171,13 @@ public:
    * \param es EquationSystems object which contains the solution vector
    * \param timestep The timestep to write out. (should be _1_ indexed)
    * \param time The current simulation time
+   * \param system_names Optional list of systems to write solutions for.
    */
   void write_timestep_discontinuous (const std::string &fname,
                                      const EquationSystems &es,
                                      const int timestep,
-                                     const Real time);
+                                     const Real time,
+                                     const std::set<std::string> * system_names=libmesh_nullptr);
 
   /**
    * Write out element solution.
@@ -219,11 +221,13 @@ public:
    * \param es EquationSystems object which contains the solution vector.
    * \param timestep The timestep to write out, should be _1_ indexed.
    * \param time The current simulation time.
+   * \param system_names Optional list of systems to write solutions for.
    */
   void write_timestep (const std::string & fname,
                        const EquationSystems & es,
                        const int timestep,
-                       const Real time);
+                       const Real time,
+                       const std::set<std::string> * system_names=libmesh_nullptr);
 
   /**
    * Sets the list of variable names to be included in the output.

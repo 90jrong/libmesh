@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -51,16 +51,18 @@ public:
    * Constructor.  Takes a function pointer for scalar
    * return values.
    */
-  AnalyticFunction (Output fptr(const Point & p,
-                                const Real time));
+  typedef Output (*OutputFunction)(const Point & p, const Real time);
+  AnalyticFunction (OutputFunction fptr);
 
   /**
    * Constructor.  Takes a function pointer for
    * vector valued functions.
    */
-  AnalyticFunction (void fptr(DenseVector<Output> & output,
-                              const Point & p,
-                              const Real time));
+  typedef void (*OutputVectorFunction)(DenseVector<Output> & output,
+                                       const Point & p,
+                                       const Real time);
+  AnalyticFunction (OutputVectorFunction fptr);
+
   /**
    * Destructor.
    */
@@ -72,15 +74,12 @@ public:
    * the boundary values when an analytical expression
    * is available.
    */
-  Output (* _number_fptr) (const Point & p,
-                           const Real time);
+  OutputFunction _number_fptr;
 
   /**
    * Pointer to user-provided vector valued function.
    */
-  void (* _vector_fptr) (DenseVector<Output> & output,
-                         const Point & p,
-                         const Real time);
+  OutputVectorFunction _vector_fptr;
 
   virtual void init () libmesh_override;
 
@@ -125,8 +124,7 @@ void AnalyticFunction<Output>::operator() (const Point & p,
 
 
 template <typename Output>
-AnalyticFunction<Output>::AnalyticFunction (Output fptr(const Point & p,
-                                                        const Real time)) :
+AnalyticFunction<Output>::AnalyticFunction (OutputFunction fptr) :
   FunctionBase<Output> (),
   _number_fptr (fptr),
   _vector_fptr (libmesh_nullptr)
@@ -139,9 +137,7 @@ AnalyticFunction<Output>::AnalyticFunction (Output fptr(const Point & p,
 
 template <typename Output>
 inline
-AnalyticFunction<Output>::AnalyticFunction (void fptr(DenseVector<Output> & output,
-                                                      const Point & p,
-                                                      const Real time)) :
+AnalyticFunction<Output>::AnalyticFunction (OutputVectorFunction fptr) :
   FunctionBase<Output> (),
   _number_fptr (libmesh_nullptr),
   _vector_fptr (fptr)

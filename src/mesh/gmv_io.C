@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -1030,8 +1030,8 @@ void GMVIO::write_ascii_old_impl (const std::string & fname,
           // used repeatedly below.
           {
             unsigned ctr=0;
-            for (sbdid_map_iter it=sbdid_map.begin(); it != sbdid_map.end(); ++it)
-              (*it).second = ctr++;
+            for (auto & pr : sbdid_map)
+              pr.second = ctr++;
           }
 
           out_stream << "material "

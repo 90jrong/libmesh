@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -110,10 +110,10 @@ int main (int argc, char ** argv)
   libmesh_example_requires(false, "--disable-singleprecision");
 #endif
 
-#ifdef LIBMESH_USE_COMPLEX_NUMBERS
-  // SLEPc currently gives us an "inner product not well defined" with
-  // Number==complex
-  libmesh_example_requires(false, "--disable-complex");
+#ifdef LIBMESH_USE_COMPLEX_NUMBERS && SLEPC_VERSION_LESS_THAN(3,6,2)
+  // SLEPc used to give us an "inner product not well defined" with
+  // Number==complex; but this problem seems to be solved in newer versions.
+  libmesh_example_requires(false, "--disable-complex or use SLEPc>=3.6.2");
 #endif
 
   // Tell the user what we are doing.
@@ -200,8 +200,8 @@ int main (int argc, char ** argv)
   // a generalized Hermitian problem.
   eigen_system.set_eigenproblem_type(GHEP);
 
-  // Order the eigenvalues "smallest first"
-  eigen_system.eigen_solver->set_position_of_spectrum(SMALLEST_MAGNITUDE);
+  // Set the target eigenvalue
+  eigen_system.eigen_solver->set_position_of_spectrum(0., TARGET_REAL);
 
   {
     std::set<boundary_id_type> boundary_ids;

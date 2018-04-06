@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -45,22 +45,20 @@ void MappedSubdomainPartitioner::partition_range(MeshBase & /*mesh*/,
   // Now actually do the partitioning.
   LOG_SCOPE ("partition_range()", "MappedSubdomainPartitioner");
 
-  for ( ; it != end; ++it)
+  for (auto & elem : as_range(it, end))
     {
-      Elem * elem = *it;
-
       subdomain_id_type sbd_id = elem->subdomain_id();
 
       // Find which processor id corresponds to this element's subdomain id.
       std::map<subdomain_id_type, processor_id_type>::iterator
-        it = subdomain_to_proc.find(sbd_id);
+        s2p_it = subdomain_to_proc.find(sbd_id);
 
       // If an element has a subdomain we don't know how to
       // partition, throw an error.
-      if (it == subdomain_to_proc.end())
+      if (s2p_it == subdomain_to_proc.end())
         libmesh_error_msg("Could not find processor id corresponding to subdomain id " << sbd_id);
 
-      elem->processor_id() = it->second;
+      elem->processor_id() = s2p_it->second;
     }
 }
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -947,10 +947,10 @@ T command_line_value (const std::vector<std::string> & name, T value)
   libmesh_assert(command_line.get());
 
   // Check for multiple options (return the first that matches)
-  for (std::vector<std::string>::const_iterator i=name.begin(); i != name.end(); ++i)
-    if (command_line->have_variable(i->c_str()))
+  for (const auto & entry : name)
+    if (command_line->have_variable(entry.c_str()))
       {
-        value = (*command_line)(i->c_str(), value);
+        value = (*command_line)(entry.c_str(), value);
         break;
       }
 

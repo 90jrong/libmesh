@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -248,13 +248,14 @@ void PetscPreconditioner<T>::set_petsc_preconditioner_type (const Preconditioner
 }
 
 
+#if PETSC_VERSION_LESS_THAN(3,0,0)
+#define PCTYPE_CV_QUALIFIER
+#else
+#define PCTYPE_CV_QUALIFIER const
+#endif
 
 template <typename T>
-#if PETSC_VERSION_LESS_THAN(3,0,0)
-void PetscPreconditioner<T>::set_petsc_subpreconditioner_type(PCType type, PC & pc)
-#else
-  void PetscPreconditioner<T>::set_petsc_subpreconditioner_type(const PCType type, PC & pc)
-#endif
+void PetscPreconditioner<T>::set_petsc_subpreconditioner_type(PCTYPE_CV_QUALIFIER PCType type, PC & pc)
 {
   // For catching PETSc error return codes
   int ierr = 0;

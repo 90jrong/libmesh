@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -57,6 +57,19 @@ template<typename I>
 SimpleRange<I> as_range(const std::pair<I, I> & p)
 {
   return {p.first, p.second};
+}
+
+
+
+/**
+ * As above, but can be used in cases where a std::pair is not
+ * otherwise involved.
+ */
+template<typename I>
+SimpleRange<I> as_range(const I & first,
+                        const I & second)
+{
+  return {first, second};
 }
 
 } // namespace libMesh

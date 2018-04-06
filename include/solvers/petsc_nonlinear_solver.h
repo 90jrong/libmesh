@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -34,12 +34,37 @@
 
 namespace libMesh
 {
+class ResidualContext;
+
 // Allow users access to these functions in case they want to reuse them.  Users shouldn't
 // need access to these most of the time as they are used internally by this object.
 extern "C"
 {
+  PetscErrorCode libmesh_petsc_snes_monitor (SNES, PetscInt its, PetscReal fnorm, void *);
+  PetscErrorCode libmesh_petsc_snes_residual (SNES, Vec x, Vec r, void * ctx);
+  PetscErrorCode libmesh_petsc_snes_fd_residual (SNES, Vec x, Vec r, void * ctx);
+  PetscErrorCode libmesh_petsc_snes_mffd_residual (SNES snes, Vec x, Vec r, void * ctx);
+  PetscErrorCode libmesh_petsc_snes_mffd_interface (void * ctx, Vec x, Vec r);
+#if PETSC_RELEASE_LESS_THAN(3,5,0)
+  PetscErrorCode libmesh_petsc_snes_jacobian (SNES, Vec x, Mat * jac, Mat * pc, MatStructure * msflag, void * ctx);
+#else
+  PetscErrorCode libmesh_petsc_snes_jacobian (SNES, Vec x, Mat jac, Mat pc, void * ctx);
+#endif
+
+  PetscErrorCode libmesh_petsc_snes_postcheck(
+#if PETSC_VERSION_LESS_THAN(3,3,0)
+                                                SNES, Vec x, Vec y, Vec w, void * context, PetscBool * changed_y, PetscBool * changed_w
+#else
+                                                SNESLineSearch, Vec x, Vec y, Vec w, PetscBool * changed_y, PetscBool * changed_w, void * context
+#endif
+                                                );
+  PetscErrorCode libmesh_petsc_linesearch_shellfunc(SNESLineSearch linesearch, void * ctx);
+
+#ifdef LIBMESH_ENABLE_DEPRECATED
   PetscErrorCode __libmesh_petsc_snes_monitor (SNES, PetscInt its, PetscReal fnorm, void *);
   PetscErrorCode __libmesh_petsc_snes_residual (SNES, Vec x, Vec r, void * ctx);
+  PetscErrorCode __libmesh_petsc_snes_fd_residual (SNES, Vec x, Vec r, void * ctx);
+  PetscErrorCode __libmesh_petsc_snes_mffd_interface (void * ctx, Vec x, Vec r);
 #if PETSC_RELEASE_LESS_THAN(3,5,0)
   PetscErrorCode __libmesh_petsc_snes_jacobian (SNES, Vec x, Mat * jac, Mat * pc, MatStructure * msflag, void * ctx);
 #else
@@ -53,6 +78,7 @@ extern "C"
                                                 SNESLineSearch, Vec x, Vec y, Vec w, PetscBool * changed_y, PetscBool * changed_w, void * context
 #endif
                                                 );
+#endif
 }
 
 /**
@@ -153,7 +179,24 @@ public:
    */
   void use_default_monitor(bool state) { _default_monitor = state; }
 
+  /**
+   * Abstract base class to be used to implement a custom line-search algorithm
+   */
+  class ComputeLineSearchObject
+  {
+  public:
+    virtual ~ComputeLineSearchObject () {}
+
+    virtual void linesearch (SNESLineSearch linesearch) = 0;
+  };
+
+  /**
+   * A callable object that can be used to specify a custom line-search
+   */
+  std::unique_ptr<ComputeLineSearchObject> linesearch_object;
+
 protected:
+
   /**
    * Nonlinear solver context
    */
@@ -202,11 +245,14 @@ protected:
                             MatNullSpace *);
 #endif
 private:
-  friend PetscErrorCode __libmesh_petsc_snes_residual (SNES snes, Vec x, Vec r, void * ctx);
+  friend ResidualContext libmesh_petsc_snes_residual_helper (SNES snes, Vec x, void * ctx);
+  friend PetscErrorCode libmesh_petsc_snes_residual (SNES snes, Vec x, Vec r, void * ctx);
+  friend PetscErrorCode libmesh_petsc_snes_fd_residual (SNES snes, Vec x, Vec r, void * ctx);
+  friend PetscErrorCode libmesh_petsc_snes_mffd_residual (SNES snes, Vec x, Vec r, void * ctx);
 #if PETSC_RELEASE_LESS_THAN(3,5,0)
-  friend PetscErrorCode __libmesh_petsc_snes_jacobian (SNES snes, Vec x, Mat * jac, Mat * pc, MatStructure * msflag, void * ctx);
+  friend PetscErrorCode libmesh_petsc_snes_jacobian (SNES snes, Vec x, Mat * jac, Mat * pc, MatStructure * msflag, void * ctx);
 #else
-  friend PetscErrorCode __libmesh_petsc_snes_jacobian (SNES snes, Vec x, Mat jac, Mat pc, void * ctx);
+  friend PetscErrorCode libmesh_petsc_snes_jacobian (SNES snes, Vec x, Mat jac, Mat pc, void * ctx);
 #endif
 };
 

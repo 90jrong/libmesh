@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -347,9 +347,8 @@ ParsedFunction<Output,OutputGradient>::get_inline_value (const std::string & inl
 #endif
   Output old_var_value(0.);
 
-  for (std::size_t s=0; s != _subexpressions.size(); ++s)
+  for (const auto & subexpression : _subexpressions)
     {
-      const std::string & subexpression = _subexpressions[s];
       const std::size_t varname_i =
         find_name(inline_var_name, subexpression);
       if (varname_i == std::string::npos)
@@ -421,9 +420,8 @@ ParsedFunction<Output,OutputGradient>::set_inline_value (const std::string & inl
 #ifndef NDEBUG
   bool found_var_name = false;
 #endif
-  for (std::size_t s=0; s != _subexpressions.size(); ++s)
+  for (auto & subexpression : _subexpressions)
     {
-      const std::string & subexpression = _subexpressions[s];
       const std::size_t varname_i =
         find_name(inline_var_name, subexpression);
       if (varname_i == std::string::npos)
@@ -457,17 +455,17 @@ ParsedFunction<Output,OutputGradient>::set_inline_value (const std::string & inl
 #endif
                         << subexpression.substr(end_assignment_i,
                                                 std::string::npos);
-      _subexpressions[s] = new_subexpression.str();
+      subexpression = new_subexpression.str();
     }
 
   libmesh_assert(found_var_name);
 
   std::string new_expression;
 
-  for (std::size_t s=0; s != _subexpressions.size(); ++s)
+  for (const auto & subexpression : _subexpressions)
     {
       new_expression += '{';
-      new_expression += _subexpressions[s];
+      new_expression += subexpression;
       new_expression += '}';
     }
 
@@ -640,8 +638,8 @@ ParsedFunction<Output,OutputGradient>::eval (FunctionParserADBase<Output> & pars
                    << " of expression '"
                    << function_name
                    << "' with arguments:\n";
-      for (std::size_t j=0; j<_spacetime.size(); ++j)
-        libMesh::err << '\t' << _spacetime[j] << '\n';
+      for (const auto & item : _spacetime)
+        libMesh::err << '\t' << item << '\n';
       libMesh::err << '\n';
 
       // Currently no API to report error messages, we'll do it manually

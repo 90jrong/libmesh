@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -33,12 +33,9 @@ void SiblingCoupling::operator()
 {
   LOG_SCOPE("operator()", "SiblingCoupling");
 
-  for (MeshBase::const_element_iterator elem_it = range_begin;
-       elem_it != range_end; ++elem_it)
+  for (const auto & elem : as_range(range_begin, range_end))
     {
       std::vector<const Elem *> active_siblings;
-
-      const Elem * const elem = *elem_it;
 
       const Elem * parent = elem->parent();
       if (!parent)

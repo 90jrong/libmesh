@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,7 @@
 
 // C++ includes
 #include <set>
+#include <array>
 
 // Local includes
 #include "libmesh/libmesh_config.h"
@@ -369,9 +370,8 @@ void TreeNode<N>::print_elements(std::ostream & out_stream) const
     {
       out_stream << "TreeNode Level: " << this->level() << std::endl;
 
-      for (std::vector<const Elem *>::const_iterator pos=elements.begin();
-           pos != elements.end(); ++pos)
-        out_stream << " " << *pos;
+      for (const auto & elem : elements)
+        out_stream << " " << elem;
 
       out_stream << std::endl << std::endl;
     }
@@ -418,16 +418,15 @@ void TreeNode<N>::transform_nodes_to_elements (std::vector<std::vector<const Ele
       // than the set.
       elements.reserve(elements_set.size());
 
-      for (std::set<const Elem *>::iterator pos=elements_set.begin();
-           pos != elements_set.end(); ++pos)
+      for (const auto & elem : elements_set)
         {
-          elements.push_back(*pos);
+          elements.push_back(elem);
 
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
 
           // flag indicating this node contains
           // infinite elements
-          if ((*pos)->infinite())
+          if (elem->infinite())
             this->contains_ifems = true;
 
 #endif
@@ -474,11 +473,10 @@ TreeNode<N>::find_element (const Point & p,
       // or if the node contains infinite elements
       if (this->bounds_point(p, relative_tol) || this->contains_ifems)
         // Search the active elements in the active TreeNode.
-        for (std::vector<const Elem *>::const_iterator pos=elements.begin();
-             pos != elements.end(); ++pos)
-          if (!allowed_subdomains || allowed_subdomains->count((*pos)->subdomain_id()))
-            if ((*pos)->active() && (*pos)->contains_point(p, relative_tol))
-              return *pos;
+        for (const auto & elem : elements)
+          if (!allowed_subdomains || allowed_subdomains->count(elem->subdomain_id()))
+            if (elem->active() && elem->contains_point(p, relative_tol))
+              return elem;
 
       // The point was not found in any element
       return libmesh_nullptr;
@@ -498,7 +496,8 @@ const Elem * TreeNode<N>::find_element_in_children (const Point & p,
 {
   libmesh_assert (!this->active());
 
-  searched_child.assign(children.size(), false);
+  // value-initialization sets all array members to false
+  auto searched_child = std::array<bool, N>();
 
   // First only look in the children whose bounding box
   // contain the point p.

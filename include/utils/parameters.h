@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -160,8 +160,6 @@ public:
    */
   void print (std::ostream & os=libMesh::out) const;
 
-private:
-
   /**
    * Abstract definition of a parameter value.
    */
@@ -194,8 +192,6 @@ private:
      */
     virtual Value * clone () const = 0;
   };
-
-public:
 
   /**
    * Concrete definition of a parameter value
@@ -345,12 +341,11 @@ Parameters & Parameters::operator= (const Parameters & source)
 inline
 Parameters & Parameters::operator+= (const Parameters & source)
 {
-  for (Parameters::const_iterator it = source._values.begin();
-       it != source._values.end(); ++it)
+  for (const auto & pr : source._values)
     {
-      if (_values.find(it->first) != _values.end())
-        delete _values[it->first];
-      _values[it->first] = it->second->clone();
+      if (_values.find(pr.first) != _values.end())
+        delete _values[pr.first];
+      _values[pr.first] = pr.second->clone();
     }
 
   return *this;

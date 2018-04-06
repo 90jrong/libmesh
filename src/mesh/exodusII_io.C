@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -104,10 +104,11 @@ void ExodusII_IO::write_discontinuous_exodusII(const std::string & name,
 void ExodusII_IO::write_timestep_discontinuous (const std::string &fname,
                                                 const EquationSystems &es,
                                                 const int timestep,
-                                                const Real time)
+                                                const Real time,
+                                                const std::set<std::string> * system_names)
 {
   _timestep = timestep;
-  write_discontinuous_exodusII(fname,es);
+  write_discontinuous_exodusII(fname,es,system_names);
 
   if (MeshOutput<MeshBase>::mesh().processor_id())
     return;
@@ -119,7 +120,8 @@ void ExodusII_IO::write_timestep_discontinuous (const std::string &fname,
 void ExodusII_IO::write_timestep_discontinuous (const std::string & /* fname */,
                                                 const EquationSystems & /* es */,
                                                 const int /* timestep */,
-                                                const Real /* time */)
+                                                const Real /* time */,
+                                                const std::set<std::string> * /*system_names*/)
 { libmesh_error(); }
 #endif
 
@@ -556,10 +558,10 @@ void ExodusII_IO::read_elemental_variable(std::string elemental_var_name,
   std::map<dof_id_type, Real> elem_var_value_map;
 
   exio_helper->read_elemental_var_values(elemental_var_name, timestep, elem_var_value_map);
-  for (auto it = elem_var_value_map.begin(); it != elem_var_value_map.end(); ++it)
+  for (auto & pr : elem_var_value_map)
     {
-      const Elem * elem = MeshInput<MeshBase>::mesh().query_elem_ptr(it->first);
-      unique_id_to_value_map.insert(std::make_pair(elem->top_parent()->unique_id(), it->second));
+      const Elem * elem = MeshInput<MeshBase>::mesh().query_elem_ptr(pr.first);
+      unique_id_to_value_map.insert(std::make_pair(elem->top_parent()->unique_id(), pr.second));
     }
 }
 
@@ -833,10 +835,11 @@ void ExodusII_IO::write_global_data (const std::vector<Number> & soln,
 void ExodusII_IO::write_timestep (const std::string & fname,
                                   const EquationSystems & es,
                                   const int timestep,
-                                  const Real time)
+                                  const Real time,
+                                  const std::set<std::string> * system_names)
 {
   _timestep = timestep;
-  write_equation_systems(fname,es);
+  write_equation_systems(fname,es,system_names);
 
   if (MeshOutput<MeshBase>::mesh().processor_id())
     return;
@@ -1133,7 +1136,8 @@ void ExodusII_IO::write_global_data (const std::vector<Number> &,
 void ExodusII_IO::write_timestep (const std::string &,
                                   const EquationSystems &,
                                   const int,
-                                  const Real)
+                                  const Real,
+                                  const std::set<std::string> *)
 {
   libmesh_error_msg("ERROR, ExodusII API is not defined.");
 }

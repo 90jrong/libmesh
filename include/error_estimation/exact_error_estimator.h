@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,8 @@
 // Local Includes
 #include "libmesh/error_estimator.h"
 #include "libmesh/function_base.h"
+#include "libmesh/vector_value.h"
+#include "libmesh/tensor_value.h"
 
 // C++ includes
 #include <cstddef>
@@ -39,19 +41,7 @@ typedef FEGenericBase<Real> FEBase;
 class MeshFunction;
 class Point;
 class Parameters;
-
 template <typename T> class DenseVector;
-
-// Is there any way to simplify this?
-// All we need are Tensor and Gradient. - RHS
-template <typename T> class TensorValue;
-template <typename T> class VectorValue;
-typedef TensorValue<Number> NumberTensorValue;
-typedef NumberTensorValue   Tensor;
-typedef VectorValue<Number> NumberVectorValue;
-typedef NumberVectorValue   Gradient;
-
-
 
 /**
  * This class implements an "error estimator"
@@ -103,10 +93,11 @@ public:
    * Attach an arbitrary function which computes the exact value of
    * the solution at any point.
    */
-  void attach_exact_value ( Number fptr(const Point & p,
-                                        const Parameters & Parameters,
-                                        const std::string & sys_name,
-                                        const std::string & unknown_name));
+  typedef Number (*ValueFunctionPointer)(const Point & p,
+                                         const Parameters & Parameters,
+                                         const std::string & sys_name,
+                                         const std::string & unknown_name);
+  void attach_exact_value (ValueFunctionPointer fptr);
 
   /**
    * Clone and attach arbitrary functors which compute the exact
@@ -125,10 +116,11 @@ public:
    * Attach an arbitrary function which computes the exact gradient of
    * the solution at any point.
    */
-  void attach_exact_deriv ( Gradient gptr(const Point & p,
-                                          const Parameters & parameters,
-                                          const std::string & sys_name,
-                                          const std::string & unknown_name));
+  typedef Gradient (*GradientFunctionPointer)(const Point & p,
+                                              const Parameters & parameters,
+                                              const std::string & sys_name,
+                                              const std::string & unknown_name);
+  void attach_exact_deriv (GradientFunctionPointer gptr);
 
   /**
    * Clone and attach arbitrary functors which compute the exact
@@ -147,10 +139,11 @@ public:
    * Attach an arbitrary function which computes the exact second
    * derivatives of the solution at any point.
    */
-  void attach_exact_hessian ( Tensor hptr(const Point & p,
-                                          const Parameters & parameters,
-                                          const std::string & sys_name,
-                                          const std::string & unknown_name));
+  typedef Tensor (*HessianFunctionPointer)(const Point & p,
+                                           const Parameters & parameters,
+                                           const std::string & sys_name,
+                                           const std::string & unknown_name);
+  void attach_exact_hessian (HessianFunctionPointer hptr);
 
   /**
    * Attach function similar to system.h which
@@ -195,28 +188,19 @@ private:
    * Function pointer to user-provided function which
    * computes the exact value of the solution.
    */
-  Number (* _exact_value) (const Point & p,
-                           const Parameters & parameters,
-                           const std::string & sys_name,
-                           const std::string & unknown_name);
+  ValueFunctionPointer _exact_value;
 
   /**
    * Function pointer to user-provided function which
    * computes the exact derivative of the solution.
    */
-  Gradient (* _exact_deriv) (const Point & p,
-                             const Parameters & parameters,
-                             const std::string & sys_name,
-                             const std::string & unknown_name);
+  GradientFunctionPointer _exact_deriv;
 
   /**
    * Function pointer to user-provided function which
    * computes the exact hessian of the solution.
    */
-  Tensor (* _exact_hessian) (const Point & p,
-                             const Parameters & parameters,
-                             const std::string & sys_name,
-                             const std::string & unknown_name);
+  HessianFunctionPointer _exact_hessian;
 
   /**
    * User-provided functors which compute the exact value of the

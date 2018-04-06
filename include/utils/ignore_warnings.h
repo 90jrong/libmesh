@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -32,12 +32,16 @@
 #pragma clang diagnostic ignored "-Wnested-anon-types"
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wunused-private-field"
+#if (__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ > 5)
+// This was introduced in 3.6
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"
+#endif // clang > 3.5
 #endif
 
 #if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__)
-// GCC > 4.1 supports diagnostic pragmas
-#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 1)
+// GCC > 4.5 supports diagnostic pragmas with push/pop
+#if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ > 5)
+#pragma GCC diagnostic push
 // These two don't work?
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wdeprecated"
@@ -55,5 +59,5 @@
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif // GCC > 6
 #endif // GCC > 5
-#endif // GCC > 4.1
+#endif // GCC > 4.5
 #endif // __GNUC__ && !__INTEL_COMPILER

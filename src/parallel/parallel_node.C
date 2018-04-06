@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -177,9 +177,8 @@ Packing<const Node *>::pack (const Node * const & node,
 
   *data_out++ =(bcs.size());
 
-  for (std::vector<boundary_id_type>::iterator bc_it=bcs.begin();
-       bc_it != bcs.end(); ++bc_it)
-    *data_out++ =(*bc_it);
+  for (const auto & bid : bcs)
+    *data_out++ = bid;
 }
 
 

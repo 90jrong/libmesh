@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -856,8 +856,8 @@ void AbaqusIO::assign_subdomain_ids()
   std::map<ElemType, unsigned> elem_types_map;
   {
     unsigned ctr=0;
-    for (std::set<ElemType>::iterator it=_elem_types.begin(); it!=_elem_types.end(); ++it)
-      elem_types_map[*it] = ctr++;
+    for (const auto & type : _elem_types)
+      elem_types_map[type] = ctr++;
   }
 
   // Loop over each Elemset and assign subdomain IDs to Mesh elements

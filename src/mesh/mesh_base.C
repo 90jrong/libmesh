@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -80,6 +80,7 @@ MeshBase::MeshBase (unsigned char d) :
   _n_parts       (1),
   _is_prepared   (false),
   _point_locator (),
+  _count_lower_dim_elems_in_point_locator(true),
   _partitioner   (),
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
   _next_unique_id(DofObject::invalid_unique_id),
@@ -108,6 +109,7 @@ MeshBase::MeshBase (const MeshBase & other_mesh) :
   _n_parts       (other_mesh._n_parts),
   _is_prepared   (other_mesh._is_prepared),
   _point_locator (),
+  _count_lower_dim_elems_in_point_locator(other_mesh._count_lower_dim_elems_in_point_locator),
   _partitioner   (),
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
   _next_unique_id(other_mesh._next_unique_id),
@@ -724,13 +726,10 @@ void MeshBase::detect_interior_parents()
       for (dof_id_type n=0; n < element->n_vertices(); n++)
         {
           std::vector<dof_id_type> & element_ids = node_to_elem[element->node_id(n)];
-          for (std::vector<dof_id_type>::iterator e_it = element_ids.begin();
-               e_it != element_ids.end(); e_it++)
-            {
-              dof_id_type eid = *e_it;
-              if (this->elem_ref(eid).dim() == element->dim()+1)
-                neighbors[n].insert(eid);
-            }
+          for (const auto & eid : element_ids)
+            if (this->elem_ref(eid).dim() == element->dim()+1)
+              neighbors[n].insert(eid);
+
           if (neighbors[n].size()>0)
             {
               found_interior_parents = true;
@@ -752,11 +751,9 @@ void MeshBase::detect_interior_parents()
       if (found_interior_parents)
         {
           std::set<dof_id_type> & neighbors_0 = neighbors[0];
-          for (std::set<dof_id_type>::iterator e_it = neighbors_0.begin();
-               e_it != neighbors_0.end(); e_it++)
+          for (const auto & interior_parent_id : neighbors_0)
             {
-              found_interior_parents=false;
-              dof_id_type interior_parent_id = *e_it;
+              found_interior_parents = false;
               for (dof_id_type n=1; n < element->n_vertices(); n++)
                 {
                   if (neighbors[n].find(interior_parent_id)!=neighbors[n].end())

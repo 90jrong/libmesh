@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -68,11 +68,10 @@ void LaspackMatrix<T>::update_sparsity_pattern (const SparsityPattern::Graph & s
     for (numeric_index_type row=0; row<n_rows; row++)
       {
         // insert the row indices
-        for (SparsityPattern::Row::const_iterator col = sparsity_pattern[row].begin();
-             col != sparsity_pattern[row].end(); ++col)
+        for (const auto & col : sparsity_pattern[row])
           {
             libmesh_assert (position != _csr.end());
-            *position = *col;
+            *position = col;
             ++position;
           }
 

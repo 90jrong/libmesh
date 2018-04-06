@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -56,15 +56,11 @@ DTKSolutionTransfer::DTKSolutionTransfer(const libMesh::Parallel::Communicator &
 
 DTKSolutionTransfer::~DTKSolutionTransfer()
 {
-  for (std::map<EquationSystems *, DTKAdapter *>::iterator it = adapters.begin();
-       it != adapters.end();
-       ++it)
-    delete it->second;
+  for (auto & pr : adapters)
+    delete pr.second;
 
-  for (std::map<std::pair<EquationSystems *, EquationSystems *>, shared_domain_map_type *>::iterator it = dtk_maps.begin();
-       it != dtk_maps.end();
-       ++it)
-    delete it->second;
+  for (auto & pr : dtk_maps)
+    delete pr.second;
 }
 
 void

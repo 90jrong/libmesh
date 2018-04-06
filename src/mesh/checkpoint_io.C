@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -21,8 +21,10 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdio>
+#include <unistd.h>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <fstream>
 #include <sstream> // for ostringstream
 
@@ -38,12 +40,116 @@
 #include "libmesh/node.h"
 #include "libmesh/parallel.h"
 #include "libmesh/partitioner.h"
+#include "libmesh/metis_partitioner.h"
 #include "libmesh/remote_elem.h"
 #include "libmesh/xdr_io.h"
 #include "libmesh/xdr_cxx.h"
+#include "libmesh/utility.h"
+
+namespace
+{
+// chunking computes the number of chunks and first-chunk-offset when splitting a mesh
+// into nsplits pieces using size procs for the given MPI rank.  The number of chunks and offset
+// are stored in nchunks and first_chunk respectively.
+void chunking(libMesh::processor_id_type size, libMesh::processor_id_type rank, unsigned int nsplits,
+              libMesh::processor_id_type & nchunks, libMesh::processor_id_type & first_chunk)
+{
+  if (nsplits % size == 0) // the chunks divide evenly over the processors
+    {
+      nchunks = nsplits / size;
+      first_chunk = nchunks * rank;
+      return;
+    }
+
+  int nextra = nsplits % size;
+  if (rank < nextra) // leftover chunks cause an extra chunk to be added to this processor
+    {
+      nchunks = nsplits / size + 1;
+      first_chunk = nchunks * rank;
+    }
+  else // no extra chunks, but first chunk is offset by extras on earlier ranks
+    {
+      nchunks = nsplits / size;
+      // account for the case where nchunks is zero where we want max int
+      first_chunk = std::max((int)((nchunks + 1) * (nsplits % size) + nchunks * (rank - nsplits % size)),
+                             (1 - (int)nchunks) * std::numeric_limits<int>::max());
+    }
+}
+
+std::string extension(const std::string & s)
+{
+  auto pos = s.rfind(".");
+  if (pos == std::string::npos)
+    return "";
+  return s.substr(pos, s.size() - pos);
+}
+
+std::string split_dir(const std::string & input_name, libMesh::processor_id_type n_procs)
+{
+  return input_name + "/" + std::to_string(n_procs);
+}
+
+
+std::string header_file(const std::string & input_name, libMesh::processor_id_type n_procs)
+{
+  return split_dir(input_name, n_procs) + "/header" + extension(input_name);
+}
+
+std::string
+split_file(const std::string & input_name,
+                        libMesh::processor_id_type n_procs,
+                        libMesh::processor_id_type proc_id)
+{
+  return split_dir(input_name, n_procs) + "/split-" + std::to_string(n_procs) + "-" +
+         std::to_string(proc_id) + extension(input_name);
+}
+
+void make_dir(const std::string & input_name, libMesh::processor_id_type n_procs)
+{
+  auto ret = libMesh::Utility::mkdir(input_name.c_str());
+  // error only if we failed to create dir - don't care if it was already there
+  if (ret != 0 && ret != -1)
+    libmesh_error_msg(
+        "Failed to create mesh split directory '" << input_name << "': " << std::strerror(ret));
+
+  auto dir_name = split_dir(input_name, n_procs);
+  ret = libMesh::Utility::mkdir(dir_name.c_str());
+  if (ret == -1)
+    libmesh_warning("In CheckpointIO::write, directory '"
+                    << dir_name << "' already exists, overwriting contents.");
+  else if (ret != 0)
+    libmesh_error_msg(
+        "Failed to create mesh split directory '" << dir_name << "': " << std::strerror(ret));
+}
+
+} // namespace
 
 namespace libMesh
 {
+
+std::unique_ptr<CheckpointIO> split_mesh(MeshBase & mesh, unsigned int nsplits)
+{
+  // There is currently an issue with DofObjects not being properly
+  // reset if the mesh is not first repartitioned onto 1 processor
+  // *before* being repartitioned onto the desired number of
+  // processors. So, this is a workaround, but not a particularly
+  // onerous one.
+  mesh.partition(1);
+  mesh.partition(nsplits);
+
+  processor_id_type my_num_chunks = 0;
+  processor_id_type my_first_chunk = 0;
+  chunking(mesh.comm().size(), mesh.comm().rank(), nsplits, my_num_chunks, my_first_chunk);
+
+  auto cpr = libmesh_make_unique<CheckpointIO>(mesh);
+  cpr->current_processor_ids().clear();
+  for (unsigned int i = my_first_chunk; i < my_first_chunk + my_num_chunks; i++)
+    cpr->current_processor_ids().push_back(i);
+  cpr->current_n_processors() = nsplits;
+  cpr->parallel() = true;
+  return cpr;
+}
+
 
 // ------------------------------------------------------------
 // CheckpointIO members
@@ -55,11 +161,9 @@ CheckpointIO::CheckpointIO (MeshBase & mesh, const bool binary_in) :
   _parallel           (false),
   _version            ("checkpoint-1.2"),
   _my_processor_ids   (1, processor_id()),
-  _my_n_processors    (n_processors())
+  _my_n_processors    (mesh.is_replicated() ? 1 : n_processors())
 {
 }
-
-
 
 CheckpointIO::CheckpointIO (const MeshBase & mesh, const bool binary_in) :
   MeshOutput<MeshBase>(mesh,/* is_parallel_format = */ true),
@@ -67,18 +171,97 @@ CheckpointIO::CheckpointIO (const MeshBase & mesh, const bool binary_in) :
   _binary             (binary_in),
   _parallel           (false),
   _my_processor_ids   (1, processor_id()),
-  _my_n_processors    (n_processors())
+  _my_n_processors    (mesh.is_replicated() ? 1 : n_processors())
 {
 }
-
-
 
 CheckpointIO::~CheckpointIO ()
 {
 }
 
+processor_id_type CheckpointIO::select_split_config(const std::string & input_name, header_id_type & data_size)
+{
+  std::string header_name;
 
+  // We'll read a header file from processor 0 and broadcast.
+  if (this->processor_id() == 0)
+    {
+      header_name = header_file(input_name, _my_n_processors);
 
+      {
+        // look for header+splits with nprocs equal to _my_n_processors
+        std::ifstream in (header_name.c_str());
+        if (!in.good())
+          {
+            // otherwise fall back to a serial/single-split mesh
+            header_name = header_file(input_name, 1);
+            std::ifstream in (header_name.c_str());
+            if (!in.good())
+              {
+                libmesh_error_msg("ERROR: cannot locate header file for input '" << input_name << "'");
+              }
+          }
+      }
+
+      Xdr io (header_name, this->binary() ? DECODE : READ);
+
+      // read the version, but don't care about it
+      std::string input_version;
+      io.data(input_version);
+
+      // read the data type
+      io.data (data_size);
+    }
+
+  this->comm().broadcast(data_size);
+  this->comm().broadcast(header_name);
+
+  // How many per-processor files are here?
+  largest_id_type input_n_procs;
+
+  switch (data_size) {
+  case 2:
+    input_n_procs = this->read_header<uint16_t>(header_name);
+    break;
+  case 4:
+    input_n_procs = this->read_header<uint32_t>(header_name);
+    break;
+  case 8:
+    input_n_procs = this->read_header<uint64_t>(header_name);
+    break;
+  default:
+    libmesh_error();
+  }
+
+  if (!input_n_procs)
+    input_n_procs = 1;
+  return input_n_procs;
+}
+
+void CheckpointIO::cleanup(const std::string & input_name, processor_id_type n_procs)
+{
+  auto header = header_file(input_name, n_procs);
+  auto ret = std::remove(header.c_str());
+  if (ret != 0)
+    libmesh_warning("Failed to clean up checkpoint header '" << header << "': " << std::strerror(ret));
+
+  for (processor_id_type i = 0; i < n_procs; i++)
+    {
+      auto split = split_file(input_name, n_procs, i);
+      auto ret = std::remove(split.c_str());
+      if (ret != 0)
+        libmesh_warning("Failed to clean up checkpoint split file '" << split << "': " << std::strerror(ret));
+    }
+
+  auto dir = split_dir(input_name, n_procs);
+  ret = rmdir(dir.c_str());
+  if (ret != 0)
+    libmesh_warning("Failed to clean up checkpoint split dir '" << dir << "': " << std::strerror(ret));
+
+  // We expect that this may fail if there are other split configurations still present in this
+  // directory - so don't bother to check/warn for failure.
+  rmdir(input_name.c_str());
+}
 
 void CheckpointIO::write (const std::string & name)
 {
@@ -92,11 +275,18 @@ void CheckpointIO::write (const std::string & name)
   // do a gather_to_zero() and support that case too.
   _parallel = _parallel || !mesh.is_serial();
 
+  processor_id_type use_n_procs = 1;
+  if (_parallel)
+    use_n_procs = _my_n_processors;
+
+  std::string header_file_name = header_file(name, use_n_procs);
+  make_dir(name, use_n_procs);
+
   // We'll write a header file from processor 0 to make it easier to do unambiguous
   // restarts later:
   if (this->processor_id() == 0)
     {
-      Xdr io (name, this->binary() ? ENCODE : WRITE);
+      Xdr io (header_file_name, this->binary() ? ENCODE : WRITE);
 
       // write the version
       io.data(_version, "# version");
@@ -158,17 +348,10 @@ void CheckpointIO::write (const std::string & name)
       libmesh_error_msg("Cannot write serial checkpoint from distributed mesh");
     }
 
-  for (std::vector<processor_id_type>::const_iterator
-         id_it = ids_to_write.begin(), id_end = ids_to_write.end();
-       id_it != id_end; ++id_it)
+  for (const auto & my_pid : ids_to_write)
     {
-      const processor_id_type my_pid = *id_it;
-
-      std::ostringstream file_name_stream;
-
-      file_name_stream << name << "-" << (_parallel ? _my_n_processors : 1) << "-" << my_pid;
-
-      Xdr io (file_name_stream.str(), this->binary() ? ENCODE : WRITE);
+      auto file_name = split_file(name, use_n_procs, my_pid);
+      Xdr io (file_name, this->binary() ? ENCODE : WRITE);
 
       std::set<const Elem *, CompareElemIdsByLevel> elements;
 
@@ -237,16 +420,13 @@ void CheckpointIO::write_subdomain_names(Xdr & io) const
     // return writable references in mesh_base, it's possible for the user to leave some entity names
     // blank.  We can't write those to the XDA file.
     largest_id_type n_subdomain_names = 0;
-    std::map<subdomain_id_type, std::string>::const_iterator it_end = subdomain_map.end();
-    for (std::map<subdomain_id_type, std::string>::const_iterator it = subdomain_map.begin(); it != it_end; ++it)
-      {
-        if (!it->second.empty())
-          {
-            n_subdomain_names++;
-            subdomain_ids.push_back(it->first);
-            subdomain_names.push_back(it->second);
-          }
-      }
+    for (const auto & pr : subdomain_map)
+      if (!pr.second.empty())
+        {
+          n_subdomain_names++;
+          subdomain_ids.push_back(pr.first);
+          subdomain_names.push_back(pr.second);
+        }
 
     io.data(n_subdomain_names, "# subdomain id to name map");
     // Write out the ids and names in two vectors
@@ -273,30 +453,27 @@ void CheckpointIO::write_nodes (Xdr & io,
   // For the coordinates
   std::vector<Real> coords(LIBMESH_DIM);
 
-  for (std::set<const Node *>::iterator it = nodeset.begin(),
-         end = nodeset.end(); it != end; ++it)
+  for (const auto & node : nodeset)
     {
-      const Node & node = **it;
-
-      id_pid[0] = node.id();
-      id_pid[1] = node.processor_id();
+      id_pid[0] = node->id();
+      id_pid[1] = node->processor_id();
 
       io.data_stream(&id_pid[0], 2, 2);
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-      largest_id_type unique_id = node.unique_id();
+      largest_id_type unique_id = node->unique_id();
 
       io.data(unique_id, "# unique id");
 #endif
 
-      coords[0] = node(0);
+      coords[0] = (*node)(0);
 
 #if LIBMESH_DIM > 1
-      coords[1] = node(1);
+      coords[1] = (*node)(1);
 #endif
 
 #if LIBMESH_DIM > 2
-      coords[2] = node(2);
+      coords[2] = (*node)(2);
 #endif
 
       io.data_stream(&coords[0], LIBMESH_DIM, 3);
@@ -319,23 +496,20 @@ void CheckpointIO::write_connectivity (Xdr & io,
 
   io.data(n_elems_here, "# number of elements");
 
-  for (std::set<const Elem *, CompareElemIdsByLevel>::const_iterator it = elements.begin(),
-         end = elements.end(); it != end; ++it)
+  for (const auto & elem : elements)
     {
-      const Elem & elem = **it;
+      unsigned int n_nodes = elem->n_nodes();
 
-      unsigned int n_nodes = elem.n_nodes();
-
-      elem_data[0] = elem.id();
-      elem_data[1] = elem.type();
-      elem_data[2] = elem.processor_id();
-      elem_data[3] = elem.subdomain_id();
+      elem_data[0] = elem->id();
+      elem_data[1] = elem->type();
+      elem_data[2] = elem->processor_id();
+      elem_data[3] = elem->subdomain_id();
 
 #ifdef LIBMESH_ENABLE_AMR
-      if (elem.parent() != libmesh_nullptr)
+      if (elem->parent() != libmesh_nullptr)
         {
-          elem_data[4] = elem.parent()->id();
-          elem_data[5] = elem.parent()->which_child_am_i(&elem);
+          elem_data[4] = elem->parent()->id();
+          elem_data[5] = elem->parent()->which_child_am_i(elem);
         }
       else
 #endif
@@ -347,26 +521,26 @@ void CheckpointIO::write_connectivity (Xdr & io,
       conn_data.resize(n_nodes);
 
       for (unsigned int i=0; i<n_nodes; i++)
-        conn_data[i] = elem.node_id(i);
+        conn_data[i] = elem->node_id(i);
 
       io.data_stream(&elem_data[0],
                      cast_int<unsigned int>(elem_data.size()),
                      cast_int<unsigned int>(elem_data.size()));
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-      largest_id_type unique_id = elem.unique_id();
+      largest_id_type unique_id = elem->unique_id();
 
       io.data(unique_id, "# unique id");
 #endif
 
 #ifdef LIBMESH_ENABLE_AMR
-      uint16_t p_level = elem.p_level();
+      uint16_t p_level = elem->p_level();
       io.data(p_level, "# p_level");
 
-      uint16_t rflag = elem.refinement_flag();
+      uint16_t rflag = elem->refinement_flag();
       io.data(rflag, "# rflag");
 
-      uint16_t pflag = elem.p_refinement_flag();
+      uint16_t pflag = elem->p_refinement_flag();
       io.data(pflag, "# pflag");
 #endif
       io.data_stream(&conn_data[0],
@@ -385,33 +559,30 @@ void CheckpointIO::write_remote_elem (Xdr & io,
   std::vector<largest_id_type> elem_ids, parent_ids;
   std::vector<uint16_t> elem_sides, child_numbers;
 
-  for (std::set<const Elem *, CompareElemIdsByLevel>::const_iterator it = elements.begin(),
-         end = elements.end(); it != end; ++it)
+  for (const auto & elem : elements)
     {
-      const Elem & elem = **it;
-
-      for (auto n : elem.side_index_range())
+      for (auto n : elem->side_index_range())
         {
-          const Elem * neigh = elem.neighbor_ptr(n);
+          const Elem * neigh = elem->neighbor_ptr(n);
           if (neigh == remote_elem ||
               (neigh && !elements.count(neigh)))
             {
-              elem_ids.push_back(elem.id());
+              elem_ids.push_back(elem->id());
               elem_sides.push_back(n);
             }
         }
 
 #ifdef LIBMESH_ENABLE_AMR
-      if (elem.has_children())
+      if (elem->has_children())
         {
-          const unsigned int nc = elem.n_children();
+          const unsigned int nc = elem->n_children();
           for (unsigned int c = 0; c != nc; ++c)
             {
-              const Elem * child = elem.child_ptr(c);
+              const Elem * child = elem->child_ptr(c);
               if (child == remote_elem ||
                   (child && !elements.count(child)))
                 {
-                  parent_ids.push_back(elem.id());
+                  parent_ids.push_back(elem->id());
                   child_numbers.push_back(c);
                 }
             }
@@ -522,16 +693,13 @@ void CheckpointIO::write_bc_names (Xdr & io, const BoundaryInfo & info, bool is_
   // return writable references in boundary_info, it's possible for the user to leave some entity names
   // blank.  We can't write those to the XDA file.
   largest_id_type n_boundary_names = 0;
-  std::map<boundary_id_type, std::string>::const_iterator it_end = boundary_map.end();
-  for (std::map<boundary_id_type, std::string>::const_iterator it = boundary_map.begin(); it != it_end; ++it)
-    {
-      if (!it->second.empty())
-        {
-          n_boundary_names++;
-          boundary_ids.push_back(it->first);
-          boundary_names.push_back(it->second);
-        }
-    }
+  for (const auto & pr : boundary_map)
+    if (!pr.second.empty())
+      {
+        n_boundary_names++;
+        boundary_ids.push_back(pr.first);
+        boundary_names.push_back(pr.second);
+      }
 
   if (is_sideset)
     io.data(n_boundary_names, "# sideset id to name map");
@@ -545,7 +713,6 @@ void CheckpointIO::write_bc_names (Xdr & io, const BoundaryInfo & info, bool is_
     }
 }
 
-
 void CheckpointIO::read (const std::string & input_name)
 {
   LOG_SCOPE("read()","CheckpointIO");
@@ -554,65 +721,10 @@ void CheckpointIO::read (const std::string & input_name)
 
   libmesh_assert(!mesh.n_elem());
 
-  // What size data is being used in this file?
   header_id_type data_size;
-
-  // How many per-processor files are here?
-  largest_id_type input_n_procs;
-
-  // We might read an exact name like "foo.cpr", or we might read a
-  // generated name like "foo.cpr.128" that we expect to be presplit
-  // for our current number of processors.
-  std::string header_name = input_name;
-
-  // We'll read a header file from processor 0 and broadcast.
-  if (this->processor_id() == 0)
-    {
-      {
-        // Try the exact given name first
-        std::ifstream in (header_name.c_str());
-
-        if (!in.good())
-          {
-            header_name += "-" + std::to_string(mesh.n_processors());
-
-            std::ifstream in_nproc (header_name.c_str());
-
-            if (!in_nproc.good())
-              libmesh_error_msg("ERROR: cannot locate header file:\n\t" <<
-                                input_name << "\nor\n\t" << header_name);
-          }
-      }
-
-      Xdr io (header_name, this->binary() ? DECODE : READ);
-
-      // read the version, but don't care about it
-      std::string input_version;
-      io.data(input_version);
-
-      // read the data type
-      io.data (data_size);
-    }
-
-  this->comm().broadcast(data_size);
-
-  switch (data_size) {
-  case 2:
-    input_n_procs = this->read_header<uint16_t>(header_name);
-    break;
-  case 4:
-    input_n_procs = this->read_header<uint32_t>(header_name);
-    break;
-  case 8:
-    input_n_procs = this->read_header<uint64_t>(header_name);
-    break;
-  default:
-    libmesh_error();
-  }
-
-  bool input_parallel = input_n_procs;
-  if (!input_n_procs)
-    input_n_procs = 1;
+  largest_id_type input_n_procs = select_split_config(input_name, data_size);
+  auto header_name = header_file(input_name, input_n_procs);
+  bool input_parallel = input_n_procs > 0;
 
   // If this is a serial read then we're going to only read the mesh
   // on processor 0, then broadcast it
@@ -632,11 +744,7 @@ void CheckpointIO::read (const std::string & input_name)
 
       for (processor_id_type proc_id = begin_proc_id; proc_id < input_n_procs; proc_id += stride)
         {
-          std::string file_name = input_name;
-
-          file_name += "-" +
-            std::to_string(input_parallel ?  input_n_procs : 1) +
-            "-" + std::to_string(proc_id);
+          auto file_name = split_file(input_name, input_n_procs, proc_id);
 
           {
             std::ifstream in (file_name.c_str());
@@ -770,7 +878,7 @@ void CheckpointIO::read_subfile (Xdr & io, bool expect_all_remote)
   // read the nodesets
   this->read_nodesets<file_id_type> (io);
 }
- 
+
 
 
 template <typename file_id_type>
@@ -1148,9 +1256,8 @@ unsigned int CheckpointIO::n_active_levels_in(MeshBase::const_element_iterator b
 {
   unsigned int max_level = 0;
 
-  for (MeshBase::const_element_iterator it = begin;
-       it != end; ++it)
-    max_level = std::max((*it)->level(), max_level);
+  for (const auto & elem : as_range(begin, end))
+    max_level = std::max(elem->level(), max_level);
 
   return max_level + 1;
 }

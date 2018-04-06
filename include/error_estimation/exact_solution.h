@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,7 @@
 // C++ includes
 #include <map>
 #include <vector>
+#include <memory>
 
 namespace libMesh
 {
@@ -102,10 +103,11 @@ public:
    * Attach an arbitrary function which computes the exact value of
    * the solution at any point.
    */
-  void attach_exact_value (Number fptr(const Point & p,
-                                       const Parameters & Parameters,
-                                       const std::string & sys_name,
-                                       const std::string & unknown_name));
+  typedef Number (*ValueFunctionPointer)(const Point & p,
+                                         const Parameters & Parameters,
+                                         const std::string & sys_name,
+                                         const std::string & unknown_name);
+  void attach_exact_value (ValueFunctionPointer fptr);
 
   /**
    * Clone and attach arbitrary functors which compute the exact
@@ -124,10 +126,11 @@ public:
    * Attach an arbitrary function which computes the exact gradient of
    * the solution at any point.
    */
-  void attach_exact_deriv (Gradient gptr(const Point & p,
-                                         const Parameters & parameters,
-                                         const std::string & sys_name,
-                                         const std::string & unknown_name));
+  typedef Gradient (*GradientFunctionPointer)(const Point & p,
+                                              const Parameters & parameters,
+                                              const std::string & sys_name,
+                                              const std::string & unknown_name);
+  void attach_exact_deriv (GradientFunctionPointer gptr);
 
   /**
    * Clone and attach arbitrary functors which compute the exact
@@ -146,10 +149,11 @@ public:
    * Attach an arbitrary function which computes the exact second
    * derivatives of the solution at any point.
    */
-  void attach_exact_hessian (Tensor hptr(const Point & p,
-                                         const Parameters & parameters,
-                                         const std::string & sys_name,
-                                         const std::string & unknown_name));
+  typedef Tensor (*HessianFunctionPointer)(const Point & p,
+                                           const Parameters & parameters,
+                                           const std::string & sys_name,
+                                           const std::string & unknown_name);
+  void attach_exact_hessian (HessianFunctionPointer hptr);
 
   /**
    * Increases or decreases the order of the quadrature rule used for numerical

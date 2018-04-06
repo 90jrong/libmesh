@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -119,10 +119,8 @@ DistributedMesh::DistributedMesh (const DistributedMesh & other_mesh) :
   this->get_boundary_info() = other_mesh.get_boundary_info();
 
   // Need to copy extra_ghost_elems
-  for (std::set<Elem *>::iterator it = other_mesh._extra_ghost_elems.begin();
-       it != other_mesh._extra_ghost_elems.end();
-       ++it)
-    _extra_ghost_elems.insert(this->elem_ptr((*it)->id()));
+  for (auto & elem : other_mesh._extra_ghost_elems)
+    _extra_ghost_elems.insert(this->elem_ptr(elem->id()));
 }
 
 

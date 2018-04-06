@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -96,6 +96,12 @@ void PointLocatorBase::unset_close_to_point_tol ()
 }
 
 
+const MeshBase & PointLocatorBase::get_mesh () const
+{
+  return _mesh;
+}
+
+
 const Node *
 PointLocatorBase::
 locate_node(const Point & p,
@@ -105,11 +111,8 @@ locate_node(const Point & p,
   std::set<const Elem *> candidate_elements;
   this->operator()(p, candidate_elements, allowed_subdomains);
 
-  for (std::set<const Elem *>::const_iterator
-         it = candidate_elements.begin();
-       it != candidate_elements.end(); ++it)
+  for (const auto & elem : candidate_elements)
     {
-      const Elem * elem = *it;
       const int elem_n_nodes = elem->n_nodes();
       const Real hmax = elem->hmax();
       const Real dist_tol_sq = (tol * hmax) * (tol * hmax);

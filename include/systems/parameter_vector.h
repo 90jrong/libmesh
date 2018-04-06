@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -171,8 +171,8 @@ void
 ParameterVector::clear()
 {
   if (!_is_shallow_copy)
-    for (std::size_t i=0; i != _params.size(); ++i)
-      delete _params[i];
+    for (auto & param : _params)
+      delete param;
 
   _params.clear();
   _my_data.clear();

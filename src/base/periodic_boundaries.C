@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -24,14 +24,15 @@
 #include "libmesh/point_locator_base.h"
 #include "libmesh/elem.h"
 #include "libmesh/periodic_boundary.h"
+#include "libmesh/mesh_base.h"
 
 namespace libMesh
 {
 
 PeriodicBoundaries::~PeriodicBoundaries()
 {
-  for (std::map<boundary_id_type, PeriodicBoundaryBase *>::iterator it = begin(); it != end(); ++it)
-    delete it->second;
+  for (auto & pr : *this)
+    delete pr.second;
 }
 
 
@@ -70,7 +71,28 @@ const Elem * PeriodicBoundaries::neighbor(boundary_id_type boundary_id,
   libmesh_assert (b);
   p = b->get_corresponding_pos(p);
 
-  return point_locator.operator()(p);
+  std::set<const Elem *> candidate_elements;
+  point_locator.operator()(p, candidate_elements);
+
+  // We might have found multiple elements, e.g. if two distinct periodic
+  // boundaries are overlapping (see systems_of_equations_ex9, for example).
+  // As a result, we need to search for the element that has boundary_id.
+  const MeshBase & mesh = point_locator.get_mesh();
+  for(const Elem * elem_it : candidate_elements)
+    {
+      unsigned int s_neigh =
+        mesh.get_boundary_info().side_with_boundary_id(elem_it, b->pairedboundary);
+
+      // If s_neigh is not invalid then we have found an element that contains
+      // boundary_id, so return this element
+      if(s_neigh != libMesh::invalid_uint)
+        {
+          return elem_it;
+        }
+    }
+
+  libmesh_error_msg("Periodic boundary neighbor not found");
+  return libmesh_nullptr;
 }
 
 } // namespace libMesh

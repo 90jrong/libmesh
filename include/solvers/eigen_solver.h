@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -86,7 +86,7 @@ public:
 
   /**
    * \returns \p The value of the flag which controls whether libmesh
-   * closes the eigenproblem matrices before solving. \true by
+   * closes the eigenproblem matrices before solving. \p true by
    * default.
    */
   bool get_close_matrix_before_solve() const

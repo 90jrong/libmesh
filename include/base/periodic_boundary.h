@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -79,8 +79,6 @@ public:
   virtual std::unique_ptr<PeriodicBoundaryBase> clone(TransformationType t = FORWARD) const libmesh_override;
 
 protected:
-  // One of these days we'll support rotated boundaries
-  // RealTensor rotation_matrix;
 
   // The vector which is added to points in myboundary
   // to produce corresponding points in pairedboundary

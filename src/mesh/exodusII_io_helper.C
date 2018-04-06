@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -61,6 +61,7 @@ void init_element_equivalence_map()
       element_equivalence_map["SPHERE"] = NODEELEM;
 
       // EDGE2 equivalences
+      element_equivalence_map["EDGE"]   = EDGE2;
       element_equivalence_map["EDGE2"]  = EDGE2;
       element_equivalence_map["TRUSS"]  = EDGE2;
       element_equivalence_map["BEAM"]   = EDGE2;
@@ -1362,13 +1363,13 @@ void ExodusII_IO_Helper::write_elements(const MeshBase & mesh, bool use_disconti
 
   // counter indexes into the block_ids vector
   unsigned int counter = 0;
-  for (subdomain_map_type::iterator it=subdomain_map.begin(); it!=subdomain_map.end(); ++it, ++counter)
+  for (auto & pr : subdomain_map)
     {
-      block_ids[counter] = (*it).first;
-      names_table.push_back_entry(mesh.subdomain_name((*it).first));
+      block_ids[counter] = pr.first;
+      names_table.push_back_entry(mesh.subdomain_name(pr.first));
 
       // Get a reference to a vector of element IDs for this subdomain.
-      subdomain_map_type::mapped_type & tmp_vec = (*it).second;
+      subdomain_map_type::mapped_type & tmp_vec = pr.second;
 
       // Use the first element in this block to get representative information.
       // Note that Exodus assumes all elements in a block are of the same type!
@@ -1378,11 +1379,12 @@ void ExodusII_IO_Helper::write_elements(const MeshBase & mesh, bool use_disconti
         em.assign_conversion(mesh.elem_ref(tmp_vec[0]).type());
       num_nodes_per_elem = mesh.elem_ref(tmp_vec[0]).n_nodes();
 
-      elem_blk_id.push_back((*it).first);
+      elem_blk_id.push_back(pr.first);
       elem_type_table.push_back_entry(conv.exodus_elem_type().c_str());
       num_elem_this_blk_vec.push_back(tmp_vec.size());
       num_nodes_per_elem_vec.push_back(num_nodes_per_elem);
       num_attr_vec.push_back(0); // we don't currently use elem block attributes.
+      ++counter;
     }
 
   // The "define_maps" parameter should be 0 if node_number_map and
@@ -1399,12 +1401,28 @@ void ExodusII_IO_Helper::write_elements(const MeshBase & mesh, bool use_disconti
   // This counter is used to fill up the libmesh_elem_num_to_exodus map in the loop below.
   unsigned libmesh_elem_num_to_exodus_counter = 0;
 
-  // node counter for discontinuous plotting
-  unsigned int node_counter = 0;
-  for (subdomain_map_type::iterator it=subdomain_map.begin(); it!=subdomain_map.end(); ++it)
+  // In the case of discontinuous plotting we initialize a map from (element,node) pairs
+  // to the corresponding discontinuous node index. This ordering must match the ordering
+  // used in write_nodal_coordinates.
+  std::map< std::pair<dof_id_type,unsigned int>, dof_id_type > discontinuous_node_indices;
+  if(use_discontinuous)
+  {
+    dof_id_type node_counter = 1; // Exodus numbering is 1-based
+    for (const auto & elem : mesh.active_element_ptr_range())
+      for (unsigned int n=0; n<elem->n_nodes(); n++)
+        {
+          std::pair<dof_id_type,unsigned int> id_pair;
+          id_pair.first = elem->id();
+          id_pair.second = n;
+          discontinuous_node_indices[id_pair] = node_counter;
+          node_counter++;
+        }
+  }
+
+  for (auto & pr : subdomain_map)
     {
       // Get a reference to a vector of element IDs for this subdomain.
-      subdomain_map_type::mapped_type & tmp_vec = (*it).second;
+      subdomain_map_type::mapped_type & tmp_vec = pr.second;
 
       //Use the first element in this block to get representative information.
       //Note that Exodus assumes all elements in a block are of the same type!
@@ -1474,18 +1492,19 @@ void ExodusII_IO_Helper::write_elements(const MeshBase & mesh, bool use_disconti
                 }
               else
                 {
-                  // FIXME: We are hard-coding the 1-based node
-                  // numbering assumption here, so writing
-                  // "discontinuous" Exodus files won't work with node
-                  // numberings that have "holes".
-                  connect[connect_index] = node_counter + elem_node_index + 1;
+                  std::pair<dof_id_type,unsigned int> id_pair;
+                  id_pair.first = elem_id;
+                  id_pair.second = elem_node_index;
+                  auto node_it = discontinuous_node_indices.find(id_pair);
+
+                  libmesh_assert(node_it != discontinuous_node_indices.end());
+
+                  connect[connect_index] = node_it->second;
                 }
             }
-
-          node_counter += num_nodes_per_elem;
         }
 
-      ex_err = exII::ex_put_elem_conn(ex_id, (*it).first, &connect[0]);
+      ex_err = exII::ex_put_elem_conn(ex_id, pr.first, &connect[0]);
       EX_CHECK_ERR(ex_err, "Error writing element connectivities");
 
       // This transform command stores its result in a range that begins at the third argument,
@@ -1499,8 +1518,6 @@ void ExodusII_IO_Helper::write_elements(const MeshBase & mesh, bool use_disconti
       // of tmp_vec into elem_map in the right location, we can use
       // std::copy().
       // curr_elem_map_end = std::copy(tmp_vec.begin(), tmp_vec.end(), curr_elem_map_end);
-
-      counter++;
     }
 
   // write out the element number map that we created

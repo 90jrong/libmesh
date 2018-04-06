@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -793,14 +793,8 @@ void System::projection_matrix (SparseMatrix<Number> & proj_mat) const
  * This method projects an arbitrary function onto the solution via L2
  * projections and nodal interpolations on each element.
  */
-void System::project_solution (Number fptr(const Point & p,
-                                           const Parameters & parameters,
-                                           const std::string & sys_name,
-                                           const std::string & unknown_name),
-                               Gradient gptr(const Point & p,
-                                             const Parameters & parameters,
-                                             const std::string & sys_name,
-                                             const std::string & unknown_name),
+void System::project_solution (ValueFunctionPointer fptr,
+                               GradientFunctionPointer gptr,
                                const Parameters & parameters) const
 {
   WrappedFunction<Number> f(*this, fptr, &parameters);
@@ -839,14 +833,8 @@ void System::project_solution (FEMFunctionBase<Number> * f,
  * This method projects an arbitrary function via L2 projections and
  * nodal interpolations on each element.
  */
-void System::project_vector (Number fptr(const Point & p,
-                                         const Parameters & parameters,
-                                         const std::string & sys_name,
-                                         const std::string & unknown_name),
-                             Gradient gptr(const Point & p,
-                                           const Parameters & parameters,
-                                           const std::string & sys_name,
-                                           const std::string & unknown_name),
+void System::project_vector (ValueFunctionPointer fptr,
+                             GradientFunctionPointer gptr,
                              const Parameters & parameters,
                              NumericVector<Number> & new_vector,
                              int is_adjoint) const
@@ -980,14 +968,8 @@ void System::project_vector (NumericVector<Number> & new_vector,
  */
 void System::boundary_project_solution (const std::set<boundary_id_type> & b,
                                         const std::vector<unsigned int> & variables,
-                                        Number fptr(const Point & p,
-                                                    const Parameters & parameters,
-                                                    const std::string & sys_name,
-                                                    const std::string & unknown_name),
-                                        Gradient gptr(const Point & p,
-                                                      const Parameters & parameters,
-                                                      const std::string & sys_name,
-                                                      const std::string & unknown_name),
+                                        ValueFunctionPointer fptr,
+                                        GradientFunctionPointer gptr,
                                         const Parameters & parameters)
 {
   WrappedFunction<Number> f(*this, fptr, &parameters);
@@ -1021,14 +1003,8 @@ void System::boundary_project_solution (const std::set<boundary_id_type> & b,
  */
 void System::boundary_project_vector (const std::set<boundary_id_type> & b,
                                       const std::vector<unsigned int> & variables,
-                                      Number fptr(const Point & p,
-                                                  const Parameters & parameters,
-                                                  const std::string & sys_name,
-                                                  const std::string & unknown_name),
-                                      Gradient gptr(const Point & p,
-                                                    const Parameters & parameters,
-                                                    const std::string & sys_name,
-                                                    const std::string & unknown_name),
+                                      ValueFunctionPointer fptr,
+                                      GradientFunctionPointer gptr,
                                       const Parameters & parameters,
                                       NumericVector<Number> & new_vector,
                                       int is_adjoint) const
@@ -1110,9 +1086,8 @@ void BuildProjectionList::operator()(const ConstElemRange & range)
   std::vector<dof_id_type> di;
 
   // Iterate over the elements in the range
-  for (ConstElemRange::const_iterator elem_it=range.begin(); elem_it != range.end(); ++elem_it)
+  for (const auto & elem : range)
     {
-      const Elem * elem = *elem_it;
       // If this element doesn't have an old_dof_object with dofs for the
       // current system, then it must be newly added, so the user
       // is responsible for setting the new dofs.
@@ -1290,10 +1265,8 @@ void BoundaryProjectSolution::operator()(const ConstElemRange & range) const
       std::vector<boundary_id_type> bc_ids;
 
       // Iterate over all the elements in the range
-      for (ConstElemRange::const_iterator elem_it=range.begin(); elem_it != range.end(); ++elem_it)
+      for (const auto & elem : range)
         {
-          const Elem * elem = *elem_it;
-
           // Per-subdomain variables don't need to be projected on
           // elements where they're not active
           if (!variable.active_on_subdomain(elem->subdomain_id()))
@@ -1313,9 +1286,8 @@ void BoundaryProjectSolution::operator()(const ConstElemRange & range) const
               // First see if this side has been requested
               boundary_info.boundary_ids (elem, s, bc_ids);
               bool do_this_side = false;
-              for (std::vector<boundary_id_type>::iterator i=bc_ids.begin();
-                   i!=bc_ids.end(); ++i)
-                if (b.count(*i))
+              for (const auto & bc_id : bc_ids)
+                if (b.count(bc_id))
                   {
                     do_this_side = true;
                     break;

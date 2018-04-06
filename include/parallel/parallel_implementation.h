@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -130,11 +130,11 @@ namespace Parallel {
   {                                                                     \
     static const bool has_min_max = Attributes<T>::has_min_max;         \
     static void set_lowest(cxxtype<T> & x) {                            \
-      for (typename cxxtype<T>::iterator i = x.begin(); i != x.end(); ++i) \
-        Attributes<T>::set_lowest(*i); }                                \
+      for (auto & val : x)                                              \
+        Attributes<T>::set_lowest(val); }                               \
     static void set_highest(cxxtype<T> & x) {                           \
-      for (typename cxxtype<T>::iterator i = x.begin(); i != x.end(); ++i) \
-        Attributes<T>::set_highest(*i); }                               \
+      for (auto & val : x)                                              \
+        Attributes<T>::set_highest(val); }                              \
   }
 
 
@@ -199,93 +199,92 @@ public:
     if (!example)
       example = &p;
 
-    // _static_type never gets freed, but it only gets committed once
-    // per T, so it's not a *huge* memory leak...
-    static data_type _static_type;
-    static bool _is_initialized = false;
-    if (!_is_initialized)
-      {
 #ifdef LIBMESH_HAVE_MPI
 
-        // Get the sub-data-types, and make sure they live long enough
-        // to construct the derived type
-        StandardType<T1> d1(&example->first);
-        StandardType<T2> d2(&example->second);
+    // Get the sub-data-types, and make sure they live long enough
+    // to construct the derived type
+    StandardType<T1> d1(&example->first);
+    StandardType<T2> d2(&example->second);
 
 #if MPI_VERSION == 1
+    // Use MPI_LB and MPI_UB here to workaround potential bugs from
+    // nested MPI_LB and MPI_UB in the specifications of d1 and/or d2:
+    // https://github.com/libMesh/libmesh/issues/631
+    MPI_Datatype types[] = { MPI_LB, (data_type)d1, (data_type)d2, MPI_UB };
+    int blocklengths[] = {1,1,1,1};
+    MPI_Aint displs[4];
 
-        // Use MPI_LB and MPI_UB here to workaround potential bugs from
-        // nested MPI_LB and MPI_UB in the specifications of d1 and/or d2:
-        // https://github.com/libMesh/libmesh/issues/631
-        MPI_Datatype types[] = { MPI_LB, (data_type)d1, (data_type)d2, MPI_UB };
-        int blocklengths[] = {1,1,1,1};
-        MPI_Aint displs[4];
+    libmesh_call_mpi
+      (MPI_Address (const_cast<std::pair<T1,T2> *>(example),
+                    &displs[0]));
+    libmesh_call_mpi
+      (MPI_Address (const_cast<T1*>(&example->first),
+                    &displs[1]));
+    libmesh_call_mpi
+      (MPI_Address (const_cast<T2*>(&example->second),
+                    &displs[2]));
+    libmesh_call_mpi
+      (MPI_Address (const_cast<std::pair<T1,T2> *>(example+1),
+                    &displs[3]));
 
-        libmesh_call_mpi
-          (MPI_Address (const_cast<std::pair<T1,T2> *>(example),
-                        &displs[0]));
-        libmesh_call_mpi
-          (MPI_Address (const_cast<T1*>(&example->first),
-                        &displs[1]));
-        libmesh_call_mpi
-          (MPI_Address (const_cast<T2*>(&example->second),
-                        &displs[2]));
-        libmesh_call_mpi
-          (MPI_Address (const_cast<std::pair<T1,T2> *>(example+1),
-                        &displs[3]));
+    displs[1] -= displs[0];
+    displs[2] -= displs[0];
+    displs[3] -= displs[0];
+    displs[0] = 0;
 
-        displs[1] -= displs[0];
-        displs[2] -= displs[0];
-        displs[3] -= displs[0];
-        displs[0] = 0;
+    libmesh_call_mpi
+      (MPI_Type_struct (4, blocklengths, displs, types,
+                        &_datatype));
 
-        libmesh_call_mpi
-          (MPI_Type_struct (4, blocklengths, displs, types,
-                            &_static_type));
 #else
-        MPI_Datatype types[] = { (data_type)d1, (data_type)d2 };
-        int blocklengths[] = {1,1};
-        MPI_Aint displs[2], start;
+    MPI_Datatype types[] = { (data_type)d1, (data_type)d2 };
+    int blocklengths[] = {1,1};
+    MPI_Aint displs[2], start;
 
-        libmesh_call_mpi
-          (MPI_Get_address (const_cast<std::pair<T1,T2> *>(example),
-                            &start));
-        libmesh_call_mpi
-          (MPI_Get_address (const_cast<T1*>(&example->first),
-                            &displs[0]));
-        libmesh_call_mpi
-          (MPI_Get_address (const_cast<T2*>(&example->second),
-                            &displs[1]));
-        displs[0] -= start;
-        displs[1] -= start;
+    libmesh_call_mpi
+      (MPI_Get_address (const_cast<std::pair<T1,T2> *>(example),
+                        &start));
+    libmesh_call_mpi
+      (MPI_Get_address (const_cast<T1*>(&example->first),
+                        &displs[0]));
+    libmesh_call_mpi
+      (MPI_Get_address (const_cast<T2*>(&example->second),
+                        &displs[1]));
+    displs[0] -= start;
+    displs[1] -= start;
 
-        // create a prototype structure
-        MPI_Datatype tmptype;
-        libmesh_call_mpi
-          (MPI_Type_create_struct (2, blocklengths, displs, types,
-                                   &tmptype));
-        libmesh_call_mpi
-          (MPI_Type_commit (&tmptype));
+    // create a prototype structure
+    MPI_Datatype tmptype;
+    libmesh_call_mpi
+      (MPI_Type_create_struct (2, blocklengths, displs, types,
+                               &tmptype));
+    libmesh_call_mpi
+      (MPI_Type_commit (&tmptype));
 
-        // resize the structure type to account for padding, if any
-        libmesh_call_mpi
-          (MPI_Type_create_resized (tmptype, 0,
-                                    sizeof(std::pair<T1,T2>),
-                                    &_static_type));
+    // resize the structure type to account for padding, if any
+    libmesh_call_mpi
+      (MPI_Type_create_resized (tmptype, 0,
+                                sizeof(std::pair<T1,T2>),
+                                &_datatype));
+    libmesh_call_mpi
+      (MPI_Type_free (&tmptype));
 #endif
 
-        libmesh_call_mpi
-          (MPI_Type_commit (&_static_type));
+    this->commit();
+
 #endif // LIBMESH_HAVE_MPI
 
-        _is_initialized = true;
-      }
-
-    _datatype = _static_type;
   }
 
-  // Make sure not to free our singleton
-  ~StandardType() {}
+  StandardType(const StandardType<std::pair<T1, T2>> & t)
+  {
+#ifdef LIBMESH_HAVE_MPI
+    libmesh_call_mpi
+      (MPI_Type_dup (t._datatype, &_datatype));
+#endif
+  }
+
+  ~StandardType() { this->free(); }
 };
 
 template<typename T>
@@ -862,10 +861,8 @@ inline void Request::cleanup()
 #ifdef DEBUG
           // If we're done using this request, then we'd better have
           // done the work we waited for
-          for (std::vector<PostWaitWork *>::iterator i =
-                 post_wait_work->first.begin();
-               i != post_wait_work->first.end(); ++i)
-            libmesh_assert(!(*i));
+          for (const auto & item : post_wait_work->first)
+            libmesh_assert(!item);
 #endif
           delete post_wait_work;
           post_wait_work = libmesh_nullptr;
@@ -915,16 +912,14 @@ inline Status Request::wait ()
     (MPI_Wait (&_request, stat.get()));
 #endif
   if (post_wait_work)
-    for (std::vector<PostWaitWork *>::iterator i =
-           post_wait_work->first.begin();
-         i != post_wait_work->first.end(); ++i)
+    for (auto & item : post_wait_work->first)
       {
         // The user should never try to give us NULL work or try
         // to wait() twice.
-        libmesh_assert (*i);
-        (*i)->run();
-        delete (*i);
-        *i = libmesh_nullptr;
+        libmesh_assert (item);
+        item->run();
+        delete item;
+        item = libmesh_nullptr;
       }
 
   return stat;
@@ -3813,11 +3808,10 @@ inline void Communicator::broadcast(std::map<T1, T2> & data,
 
   if (root_id == this->rank())
     {
-      for (typename std::map<T1, T2>::const_iterator it = data.begin();
-           it != data.end(); ++it)
+      for (const auto & pr : data)
         {
-          pair_first.push_back(it->first);
-          pair_second.push_back(it->second);
+          pair_first.push_back(pr.first);
+          pair_second.push_back(pr.second);
         }
     }
   else

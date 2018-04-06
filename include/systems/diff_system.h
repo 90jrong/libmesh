@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -94,7 +94,13 @@ public:
 
   /**
    * Prepares \p matrix and \p rhs for matrix assembly.
-   * Users should not reimplement this
+   * Users should not reimplement this.
+   * Note that in some cases only
+   * \link current_local_solution \endlink is used during assembly,
+   * and, therefore, if \link solution \endlink has been altered
+   * without \link update() \endlink being called, then the
+   * user must call \link update() \endlink before calling
+   * this function.
    */
   virtual void assemble () libmesh_override;
 
@@ -121,6 +127,12 @@ public:
   /**
    * Assembles a residual in \p rhs and/or a jacobian in \p matrix,
    * as requested.
+   * Note that in some cases only
+   * \link current_local_solution \endlink is used during assembly,
+   * and, therefore, if \link solution \endlink has been altered
+   * without \link update() \endlink being called, then the
+   * user must call \link update() \endlink before calling
+   * this function.
    */
   virtual void assembly (bool get_residual,
                          bool get_jacobian,

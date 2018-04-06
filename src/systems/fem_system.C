@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -371,10 +371,9 @@ public:
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _sys.init_context(_femcontext);
 
-    for (ConstElemRange::const_iterator elem_it = range.begin();
-         elem_it != range.end(); ++elem_it)
+    for (const auto & elem : range)
       {
-        Elem * el = const_cast<Elem *>(*elem_it);
+        Elem * el = const_cast<Elem *>(elem);
 
         _femcontext.pre_fe_reinit(_sys, el);
         _femcontext.elem_fe_reinit();
@@ -413,10 +412,9 @@ public:
     FEMContext & _femcontext = cast_ref<FEMContext &>(*con);
     _sys.init_context(_femcontext);
 
-    for (ConstElemRange::const_iterator elem_it = range.begin();
-         elem_it != range.end(); ++elem_it)
+    for (const auto & elem : range)
       {
-        Elem * el = const_cast<Elem *>(*elem_it);
+        Elem * el = const_cast<Elem *>(elem);
         _femcontext.pre_fe_reinit(_sys, el);
 
         // Optionally initialize all the interior FE objects on elem.
@@ -492,10 +490,9 @@ public:
     if (have_some_heterogenous_qoi_bc)
       _sys.init_context(_femcontext);
 
-    for (ConstElemRange::const_iterator elem_it = range.begin();
-         elem_it != range.end(); ++elem_it)
+    for (const auto & elem : range)
       {
-        Elem * el = const_cast<Elem *>(*elem_it);
+        Elem * el = const_cast<Elem *>(elem);
 
         _femcontext.pre_fe_reinit(_sys, el);
 
@@ -628,10 +625,9 @@ public:
     if (have_some_heterogenous_qoi_bc)
       _sys.init_context(_femcontext);
 
-    for (ConstElemRange::const_iterator elem_it = range.begin();
-         elem_it != range.end(); ++elem_it)
+    for (const auto & elem : range)
       {
-        Elem * el = const_cast<Elem *>(*elem_it);
+        Elem * el = const_cast<Elem *>(elem);
 
         _femcontext.pre_fe_reinit(_sys, el);
 
@@ -870,20 +866,13 @@ void FEMSystem::assembly (bool get_residual, bool get_jacobian,
 
   const MeshBase & mesh = this->get_mesh();
 
-  //  this->get_vector("_nonlinear_solution").localize
-  //    (*current_local_nonlinear_solution,
-  //     dof_map.get_send_list());
-  this->update();
-
   if (print_solution_norms)
     {
-      //      this->get_vector("_nonlinear_solution").close();
       this->solution->close();
 
       std::streamsize old_precision = libMesh::out.precision();
       libMesh::out.precision(16);
       libMesh::out << "|U| = "
-        //                    << this->get_vector("_nonlinear_solution").l1_norm()
                    << this->solution->l1_norm()
                    << std::endl;
       libMesh::out.precision(old_precision);
@@ -892,7 +881,6 @@ void FEMSystem::assembly (bool get_residual, bool get_jacobian,
     {
       std::streamsize old_precision = libMesh::out.precision();
       libMesh::out.precision(16);
-      //      libMesh::out << "U = [" << this->get_vector("_nonlinear_solution")
       libMesh::out << "U = [" << *(this->solution)
                    << "];" << std::endl;
       libMesh::out.precision(old_precision);

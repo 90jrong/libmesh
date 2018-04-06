@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -43,10 +43,7 @@ namespace libMesh
 
 //-----------------------------------------------------------------
 // ErrorEstimator implementations
-void ExactErrorEstimator::attach_exact_value (Number fptr(const Point & p,
-                                                          const Parameters & parameters,
-                                                          const std::string & sys_name,
-                                                          const std::string & unknown_name))
+void ExactErrorEstimator::attach_exact_value (ValueFunctionPointer fptr)
 {
   libmesh_assert(fptr);
   _exact_value = fptr;
@@ -81,10 +78,7 @@ void ExactErrorEstimator::attach_exact_value (unsigned int sys_num,
 }
 
 
-void ExactErrorEstimator::attach_exact_deriv (Gradient gptr(const Point & p,
-                                                            const Parameters & parameters,
-                                                            const std::string & sys_name,
-                                                            const std::string & unknown_name))
+void ExactErrorEstimator::attach_exact_deriv (GradientFunctionPointer gptr)
 {
   libmesh_assert(gptr);
   _exact_deriv = gptr;
@@ -121,10 +115,7 @@ void ExactErrorEstimator::attach_exact_deriv (unsigned int sys_num,
 
 
 
-void ExactErrorEstimator::attach_exact_hessian (Tensor hptr(const Point & p,
-                                                            const Parameters & parameters,
-                                                            const std::string & sys_name,
-                                                            const std::string & unknown_name))
+void ExactErrorEstimator::attach_exact_hessian (HessianFunctionPointer hptr)
 {
   libmesh_assert(hptr);
   _exact_hessian = hptr;
@@ -255,17 +246,17 @@ void ExactErrorEstimator::estimate_error (const System & system,
           fine_values->init();
         } else {
         // Initialize functors if we're using them
-        for (std::size_t i=0; i != _exact_values.size(); ++i)
-          if (_exact_values[i])
-            _exact_values[i]->init();
+        for (auto & ev : _exact_values)
+          if (ev)
+            ev->init();
 
-        for (std::size_t i=0; i != _exact_derivs.size(); ++i)
-          if (_exact_derivs[i])
-            _exact_derivs[i]->init();
+        for (auto & ed : _exact_derivs)
+          if (ed)
+            ed->init();
 
-        for (std::size_t i=0; i != _exact_hessians.size(); ++i)
-          if (_exact_hessians[i])
-            _exact_hessians[i]->init();
+        for (auto & eh : _exact_hessians)
+          if (eh)
+            eh->init();
       }
 
       // Request the data we'll need to compute with
@@ -365,11 +356,11 @@ void ExactErrorEstimator::estimate_error (const System & system,
   // Compute the square-root of each component.
   {
     LOG_SCOPE("std::sqrt()", "ExactErrorEstimator");
-    for (std::size_t i=0; i<error_per_cell.size(); i++)
-      if (error_per_cell[i] != 0.)
+    for (auto & val : error_per_cell) // std::size_t i=0; i<error_per_cell.size(); i++)
+      if (val != 0.)
         {
-          libmesh_assert_greater (error_per_cell[i], 0.);
-          error_per_cell[i] = std::sqrt(error_per_cell[i]);
+          libmesh_assert_greater (val, 0.);
+          val = std::sqrt(val);
         }
   }
 

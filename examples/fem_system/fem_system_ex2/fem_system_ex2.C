@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,9 @@ void setup(EquationSystems & systems,
   imms.save_initial_mesh();
 
   // Fill global solution vector from local ones
-  aux_sys.reinit();
+  aux_sys.current_local_solution->close();
+  *aux_sys.solution = *aux_sys.current_local_solution;
+  aux_sys.solution->close();
 }
 
 
@@ -119,7 +121,9 @@ void run_timestepping(EquationSystems & systems, GetPot & args)
 
       out << "Solving Solid" << std::endl;
       solid_system.solve();
-      aux_system.reinit();
+      aux_system.current_local_solution->close();
+      *aux_system.solution = *aux_system.current_local_solution;
+      aux_system.solution->close();
 
       // Carry out the adaptive mesh refinement/coarsening
       out << "Doing a reinit of the equation systems" << std::endl;

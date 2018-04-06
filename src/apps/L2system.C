@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2017 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -29,13 +29,8 @@ using namespace libMesh;
 
 L2System::~L2System ()
 {
-  for (std::map<FEMContext *, FEMContext *>::const_iterator
-         it = input_contexts.begin();
-       it != input_contexts.end(); ++it)
-    {
-      FEMContext * c = it->second;
-      delete c;
-    }
+  for (auto & pr : input_contexts)
+    delete pr.second;
 }
 
 void L2System::init_data ()
