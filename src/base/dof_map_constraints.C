@@ -3212,7 +3212,7 @@ void DofMap::check_for_cyclic_constraints()
 
         for (const auto & expandable : constraints_to_expand)
           {
-            const Real this_coef = constraint_row[expandable];
+            const Number this_coef = constraint_row[expandable];
 
             DofConstraints::const_iterator
               subpos = dof_constraints_copy.find(expandable);
