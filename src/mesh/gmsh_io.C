@@ -662,6 +662,16 @@ void GmshIO::write_mesh (std::ostream & out_stream)
   out_stream << "2.0 0 " << sizeof(Real) << '\n';
   out_stream << "$EndMeshFormat\n";
 
+  // write the physical names
+  // XXX: we only consider side IDs and subdomain IDs here, Junjie Rong, 20180409
+  out_stream<< "$PhysicalNames\n";
+  const auto& physical_names = mesh.get_boundary_info().get_side_boundary_ids();
+  out_stream<<physical_names.size()<<"\n";
+  for (auto& phyname: physical_names) {
+	  out_stream<<mesh.spatial_dimension()-1<<" "<<phyname<<" \""<<phyname<<"\"\n";
+  }
+  out_stream<< "$EndPhysicalNames\n";
+
   // write the nodes in (n x y z) format
   out_stream << "$Nodes\n";
   out_stream << mesh.n_nodes() << '\n';
