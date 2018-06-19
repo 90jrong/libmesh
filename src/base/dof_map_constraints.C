@@ -2665,7 +2665,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
     for (auto & p : pushed_ids)
       pushed_id_vecs[p.first].assign(p.second.begin(), p.second.end());
 
-    std::map<processor_id_type, std::vector<std::vector<std::pair<dof_id_type,Real>>>>
+    std::map<processor_id_type, std::vector<std::vector<std::pair<dof_id_type,Number>>>>
       pushed_keys_vals, received_keys_vals;
     std::map<processor_id_type, std::vector<std::vector<Number>>> pushed_rhss, received_rhss;
     for (auto & p : pushed_id_vecs)
@@ -2722,7 +2722,7 @@ void DofMap::allgather_recursive_constraints(MeshBase & mesh)
     auto keys_vals_action_functor =
       [& received_keys_vals]
       (processor_id_type pid,
-       const std::vector<std::vector<std::pair<dof_id_type,Real>>> & data)
+       const std::vector<std::vector<std::pair<dof_id_type,Number>>> & data)
       {
         received_keys_vals[pid] = data;
       };
@@ -3466,7 +3466,7 @@ void DofMap::scatter_constraints(MeshBase & mesh)
   // Pack the dof constraint rows and rhs's to push
 
   std::map<processor_id_type,
-          std::vector<std::vector<std::pair<dof_id_type, Real>>>>
+          std::vector<std::vector<std::pair<dof_id_type, Number>>>>
     pushed_keys_vals, pushed_keys_vals_to_me;
 
   std::map<processor_id_type, std::vector<std::pair<dof_id_type, Number>>>
@@ -3486,7 +3486,7 @@ void DofMap::scatter_constraints(MeshBase & mesh)
             & pid_ids = pid_id_pair.second;
 
           const std::size_t ids_size = pid_ids.size();
-          std::vector<std::vector<std::pair<dof_id_type, Real>>> &
+          std::vector<std::vector<std::pair<dof_id_type, Number>>> &
             keys_vals = pushed_keys_vals[pid];
           std::vector<std::pair<dof_id_type,Number>> &
             ids_rhss = pushed_ids_rhss[pid];
@@ -3525,7 +3525,7 @@ void DofMap::scatter_constraints(MeshBase & mesh)
   auto keys_vals_action_functor =
     [& pushed_keys_vals_to_me]
     (processor_id_type pid,
-     const std::vector<std::vector<std::pair<dof_id_type, Real>>> & data)
+     const std::vector<std::vector<std::pair<dof_id_type, Number>>> & data)
     {
       pushed_keys_vals_to_me[pid] = data;
     };
@@ -3939,7 +3939,7 @@ void DofMap::gather_constraints (MeshBase & /*mesh*/,
           requested_dof_ids[proc_id].push_back(i);
         }
 
-      typedef std::vector<std::pair<dof_id_type, Real>> row_datum;
+      typedef std::vector<std::pair<dof_id_type, Number>> row_datum;
 
       typedef std::vector<Number> rhss_datum;
 
