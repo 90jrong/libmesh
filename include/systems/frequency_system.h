@@ -208,6 +208,11 @@ public:
    */
   std::string form_solu_vec_name(const unsigned int n) const;
 
+  /**
+   * set \p _finished_assemble to be false, so that assemble will be called in solve
+   *
+   */
+  void reset_assemble();
 
 protected:
 
@@ -283,6 +288,10 @@ std::pair<unsigned int, Real> FrequencySystem::get_rval (unsigned int n) const
   return vec_rval[n];
 }
 
+inline
+void FrequencySystem::reset_assemble() {
+  _finished_assemble = false;
+}
 
 } // namespace libMesh
 
