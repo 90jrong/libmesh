@@ -83,6 +83,53 @@ AC_ARG_ENABLE(nested,
                        [AC_MSG_ERROR(bad value ${enableval} for --enable-nested)])],
               [enablenested=$enableoptional])
 
+
+# --------------------------------------------------------------
+# XDR binary IO support - enabled by default
+# This used to be tested in libmesh_core_features.m4 since your
+# system either had it or it didn't. Now it's possible for the
+# XDR headers to be in different places, so it's more convenient
+# to test for it here.
+# --------------------------------------------------------------
+AC_ARG_ENABLE(xdr,
+              AS_HELP_STRING([--disable-xdr],
+                             [build without XDR platform-independent binary I/O]),
+              enablexdr=$enableval,
+              enablexdr=yes)
+
+AS_IF([test "$enablexdr" != no],
+      [
+      dnl Check whether the system/compiler has xdr.h in /usr/include and glibc.
+      AC_MSG_CHECKING([for built-in XDR support])
+      CONFIGURE_XDR
+
+      dnl Check for headers in /usr/include/tirpc. (Fedora 28 does this.)
+      AS_IF([test "x$enablexdr" = "xno"],
+            [
+              AC_MSG_CHECKING([for XDR support in /usr/include/tirpc])
+              old_CPPFLAGS="$CPPFLAGS"
+              old_LIBS="$LIBS"
+              CPPFLAGS="$CPPFLAGS -I/usr/include/tirpc"
+              LIBS="$LIBS -ltirpc"
+
+              CONFIGURE_XDR
+
+              dnl If that worked, append the required include paths and libraries as necessary.
+              AS_IF([test "x$enablexdr" = "xyes"],
+                    [
+                      libmesh_optional_INCLUDES="$libmesh_optional_INCLUDES -I/usr/include/tirpc"
+                      libmesh_optional_LIBS="$libmesh_optional_LIBS -ltirpc"
+                    ])
+
+              dnl Reset flags after testing
+              CPPFLAGS="$old_CPPFLAGS"
+              LIBS="$old_LIBS"
+           ])
+      ])
+# -------------------------------------------------------------
+
+
+
 # -------------------------------------------------------------
 # Boost -- enabled by default
 # -------------------------------------------------------------
@@ -123,21 +170,21 @@ AS_IF([test $enablepetsc != no],
         dnl If PETSc is using 64-bit indices, make sure that
         dnl $dof_bytes==8, or else print an informative message and
         dnl disable PETSc.
-        AS_IF([test $petsc_use_64bit_indices -gt 0 -a $dof_bytes != 8],
+        AS_IF([test $petsc_use_64bit_indices -gt 0 && test "$dof_bytes" != "8"],
               [AC_MSG_ERROR([<<< PETSc is using 64-bit indices, you must configure libmesh with --with-dof-id-bytes=8. >>>])])
 
         dnl If PETSc is using 32-bit indices, make sure that
         dnl libmesh's $dof_bytes<=4.
-        AS_IF([test $petsc_use_64bit_indices = 0 -a $dof_bytes -gt 4],
+        AS_IF([test "$petsc_use_64bit_indices" = "0" && test $dof_bytes -gt 4],
               [AC_MSG_ERROR([<<< PETSc is using 32-bit indices, you must configure libmesh with --with-dof-id-bytes=<1|2|4>. >>>])])
 
         dnl Libmesh must use {complex,real} scalars when PETSc uses {complex,real} scalars.
         petsc_use_complex=`cat ${PETSC_DIR}/include/petscconf.h ${PETSC_DIR}/${PETSC_ARCH}/include/petscconf.h 2>/dev/null | grep -c PETSC_USE_COMPLEX`
 
-        AS_IF([test $petsc_use_complex -gt 0 -a $enablecomplex = no],
+        AS_IF([test $petsc_use_complex -gt 0 && test "$enablecomplex" = "no"],
               [AC_MSG_ERROR([<<< PETSc was built with complex scalars, you must configure libmesh with --enable-complex. >>>])])
 
-        AS_IF([test $petsc_use_complex = 0 -a $enablecomplex = yes],
+        AS_IF([test "$petsc_use_complex" = "0" && test "$enablecomplex" = "yes"],
               [AC_MSG_ERROR([<<< PETSc was built with real scalars, you must configure libmesh with --disable-complex. >>>])])
       ])
 

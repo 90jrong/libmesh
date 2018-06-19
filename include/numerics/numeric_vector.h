@@ -24,13 +24,21 @@
 #include "libmesh/libmesh_common.h"
 #include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/enum_parallel_type.h"
-#include "libmesh/enum_solver_package.h"
 #include "libmesh/id_types.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/parallel_object.h"
 #include "libmesh/dense_subvector.h"
 #include "libmesh/dense_vector.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum SolverPackage : int;
+}
+#else
+#include "libmesh/enum_solver_package.h"
+#endif
 
 // C++ includes
 #include <cstddef>
@@ -48,7 +56,6 @@ template <typename T> class DenseVector;
 template <typename T> class DenseSubVector;
 template <typename T> class SparseMatrix;
 template <typename T> class ShellMatrix;
-
 
 /**
  * Numeric vector. Provides a uniform interface
@@ -115,21 +122,6 @@ public:
   static std::unique_ptr<NumericVector<T>>
   build(const Parallel::Communicator & comm,
         const SolverPackage solver_package = libMesh::default_solver_package());
-
-#ifndef LIBMESH_DISABLE_COMMWORLD
-  /**
-   * Builds a \p NumericVector on the processors in communicator
-   * CommWorld using the linear solver package specified by \p
-   * solver_package.
-   *
-   * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
-   * build() method that takes a Parallel::Communicator instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  static std::unique_ptr<NumericVector<T>>
-  build(const SolverPackage solver_package = libMesh::default_solver_package());
-#endif
-#endif
 
   /**
    * \returns \p true if the vector has been initialized,

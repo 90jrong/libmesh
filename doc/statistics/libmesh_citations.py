@@ -31,16 +31,16 @@ data = [
 '\'07', 8,
 '\'08', 23,
 '\'09', 29,
-'\'10', 25,
-'\'11', 32,
-'\'12', 53,
-'\'13', 78,
-'\'14', 64,
-'\'15', 79,
-'\'16', 106,
-'\'17', 118,
-'\'18', 35,
-'T', 79,
+'\'10', 26,
+'\'11', 34,
+'\'12', 56,
+'\'13', 82,
+'\'14', 74,
+'\'15', 92,
+'\'16', 124,
+'\'17', 127,
+'\'18', 49,
+'T', 85,
     ]
 
 # Extract the x-axis labels from the data array
@@ -68,8 +68,8 @@ width = 0.8
 # The colors used come from sns.color_palette("muted").as_hex() They
 # are the "same basic order of hues as the default matplotlib color
 # cycle but more attractive colors."
-ax.bar(x[0:N-1], n_papers[0:N-1], width, color=u'#4878cf')
-ax.bar(x[N-1:N], n_papers[N-1:N], width, color=u'#6acc65')
+ax.bar(x[0:N-1], n_papers[0:N-1], width, color=u'#4878cf', align='center')
+ax.bar(x[-1],    n_papers[-1],    width, color=u'#6acc65', align='center')
 
 # Label the x-axis
 plt.xlabel('T=PhD, MS, and BS Theses')
@@ -79,6 +79,8 @@ plt.xlabel('T=PhD, MS, and BS Theses')
 # the bars.
 ax.set_xticks(np.linspace(1,N,N))
 ax.set_xticklabels(ticklabels)
+ax.tick_params(direction='out')
+ax.set_xlim([0,N+1])
 
 # Create a title string
 title_string = 'Papers by People Using LibMesh, (' + str(sum(n_papers)) + ' Total)'

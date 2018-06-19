@@ -32,6 +32,7 @@
 #include "libmesh/shell_matrix.h"
 #include "libmesh/tensor_tools.h"
 #include "libmesh/auto_ptr.h" // libmesh_make_unique
+#include "libmesh/enum_solver_package.h"
 
 namespace libMesh
 {
@@ -74,19 +75,6 @@ NumericVector<T>::build(const Parallel::Communicator & comm, const SolverPackage
       return libmesh_make_unique<DistributedVector<T>>(comm, AUTOMATIC);
     }
 }
-
-
-#ifndef LIBMESH_DISABLE_COMMWORLD
-#ifdef LIBMESH_ENABLE_DEPRECATED
-template <typename T>
-std::unique_ptr<NumericVector<T>>
-NumericVector<T>::build(const SolverPackage solver_package)
-{
-  libmesh_deprecated();
-  return NumericVector<T>::build(CommWorld, solver_package);
-}
-#endif
-#endif
 
 
 

@@ -17,18 +17,19 @@
 
 
 
-// Local includes
 #include "libmesh/libmesh_config.h"
+
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
 
-
-// Local includes cont'd
+// Local includes
 #include "libmesh/face_inf_quad4.h"
 #include "libmesh/fe_interface.h"
 #include "libmesh/fe_type.h"
 #include "libmesh/side.h"
 #include "libmesh/edge_edge2.h"
 #include "libmesh/edge_inf_edge2.h"
+#include "libmesh/enum_io_package.h"
+#include "libmesh/enum_order.h"
 
 namespace libMesh
 {
@@ -163,6 +164,13 @@ bool InfQuad4::contains_point (const Point & p, Real tol) const
 
 
 
+Order InfQuad4::default_order() const
+{
+  return FIRST;
+}
+
+
+
 std::unique_ptr<Elem> InfQuad4::build_side_ptr (const unsigned int i,
                                                 bool proxy)
 {
@@ -247,6 +255,7 @@ void InfQuad4::connectivity(const unsigned int libmesh_dbg_var(sf),
         conn[1] = this->node_id(1);
         conn[2] = this->node_id(3);
         conn[3] = this->node_id(2);
+        return;
       }
     default:
       libmesh_error_msg("Unsupported IO package " << iop);

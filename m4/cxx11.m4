@@ -3,48 +3,129 @@ dnl Tests for various C++11 features.  These will probably only work
 dnl if they are run after the autoconf test that sets -std=c++11.
 dnl ----------------------------------------------------------------
 
-AC_DEFUN([LIBMESH_TEST_CXX11_MOVE],
+dnl Test C++11 std::tuple and several related helper functions.
+AC_DEFUN([LIBMESH_TEST_CXX11_TUPLE],
   [
-    have_cxx11_move=no
+    have_cxx11_tuple=no
 
-    AC_MSG_CHECKING(for C++11 std::move support)
+    AC_MSG_CHECKING(for C++11 std::tuple support)
     AC_LANG_PUSH([C++])
 
-    # For this and all of the C++ standards tests: Save the original
-    # CXXFLAGS (if any) before appending the $switch determined by
-    # AX_CXX_COMPILE_STDCXX_11, and any compiler flags specified by
-    # the user in the libmesh_CXXFLAGS environment variable, letting
-    # that override everything else.
+    dnl For this and all of the C++ standards tests: Save the original
+    dnl CXXFLAGS (if any) before appending the $switch determined by
+    dnl AX_CXX_COMPILE_STDCXX_11, and any compiler flags specified by
+    dnl the user in the libmesh_CXXFLAGS environment variable, letting
+    dnl that override everything else.
     old_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $switch $libmesh_CXXFLAGS"
 
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-    @%:@include <utility>
-    template <class T>
-    void move_swap(T& a, T& b)
-    {
-      T tmp(std::move(a));
-      a = std::move(b);
-      b = std::move(tmp);
-    }
+    @%:@include <tuple>
+    @%:@include <map>
+    @%:@include <string>
     ]], [[
-        int one = 1, two = 2;
-        move_swap(one,two);
+    // Test std::make_tuple
+    std::map<int, std::tuple<double, char, std::string>> students;
+    students[0] = std::make_tuple(3.8, 'A', "Lisa Simpson");
+    students[1] = std::make_tuple(2.9, 'C', "Milhouse Van Houten");
+
+    // Test templated std::get() method.
+    std::get<0>(students[0]);
+    std::get<1>(students[0]);
+    std::get<2>(students[0]);
+
+    // Test std::tie and std::ignore which are declared in the <tuple> header.
+    double gpa1;
+    std::string name1;
+    std::tie(gpa1, std::ignore, name1) = students[1];
+
+    // Test std::tuple_cat(), which combines together one or more
+    // objects, not necessarily tuples, into a single tuple.
+    auto t = std::tuple_cat(students[0], students[1], std::make_pair("foo", 42));
     ]])],[
         AC_MSG_RESULT(yes)
-        AC_DEFINE(HAVE_CXX11_MOVE, 1, [Flag indicating whether compiler supports std::move])
-        have_cxx11_move=yes
+        AC_DEFINE(HAVE_CXX11_TUPLE, 1, [Flag indicating whether compiler supports std::move])
+        have_cxx11_tuple=yes
     ],[
         AC_MSG_RESULT(no)
     ])
 
-    # Reset the flags
+    dnl Reset the flags
     CXXFLAGS="$old_CXXFLAGS"
     AC_LANG_POP([C++])
 
-    AM_CONDITIONAL(HAVE_CXX11_MOVE, test x$have_cxx11_move == xyes)
+    AM_CONDITIONAL(HAVE_CXX11_TUPLE, test x$have_cxx11_tuple == xyes)
   ])
 
+dnl Test C++11 fixed type enumerations.
+AC_DEFUN([LIBMESH_TEST_CXX11_FIXED_TYPE_ENUM],
+  [
+    have_cxx11_fixed_type_enum=no
+
+    AC_MSG_CHECKING(for C++11 fixed type enumeration support)
+    AC_LANG_PUSH([C++])
+
+    dnl For this and all of the C++ standards tests: Save the original
+    dnl CXXFLAGS (if any) before appending the $switch determined by
+    dnl AX_CXX_COMPILE_STDCXX_11, and any compiler flags specified by
+    dnl the user in the libmesh_CXXFLAGS environment variable, letting
+    dnl that override everything else.
+    old_CXXFLAGS="$CXXFLAGS"
+    CXXFLAGS="$CXXFLAGS $switch $libmesh_CXXFLAGS"
+
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    enum Fruit : int {APPLE=0, ORANGE=1};
+    ]], [[
+    Fruit f = APPLE;
+    ]])],[
+        AC_MSG_RESULT(yes)
+        AC_DEFINE(HAVE_CXX11_FIXED_TYPE_ENUM, 1, [Flag indicating whether compiler supports fixed type enumerations])
+        have_cxx11_fixed_type_enum=yes
+    ],[
+        AC_MSG_RESULT(no)
+    ])
+
+    dnl Reset the flags
+    CXXFLAGS="$old_CXXFLAGS"
+    AC_LANG_POP([C++])
+
+    AM_CONDITIONAL(HAVE_CXX11_FIXED_TYPE_ENUM, test x$have_cxx11_fixed_type_enum == xyes)
+  ])
+
+dnl Test C++11 fixed type enumeration forward declarations.
+AC_DEFUN([LIBMESH_TEST_CXX11_FIXED_TYPE_ENUM_FWD],
+  [
+    have_cxx11_fixed_type_enum_fwd=no
+
+    AC_MSG_CHECKING(for C++11 fixed type enumeration forward declaration support)
+    AC_LANG_PUSH([C++])
+
+    old_CXXFLAGS="$CXXFLAGS"
+    CXXFLAGS="$CXXFLAGS $switch $libmesh_CXXFLAGS"
+
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    @%:@include <iostream>
+    enum Foo : int;
+    void func(Foo f) { std::cout << f << std::endl; }
+    enum Foo : int { FOO0 = 0, FOO1 = 1, FOO2 = 2 };
+    ]], [[
+    func(FOO0);
+    func(FOO1);
+    func(FOO2);
+    ]])],[
+        AC_MSG_RESULT(yes)
+        AC_DEFINE(HAVE_CXX11_FIXED_TYPE_ENUM_FWD, 1, [Flag indicating whether compiler supports fixed type enumerations])
+        have_cxx11_fixed_type_enum_fwd=yes
+    ],[
+        AC_MSG_RESULT(no)
+    ])
+
+    dnl Reset the flags
+    CXXFLAGS="$old_CXXFLAGS"
+    AC_LANG_POP([C++])
+
+    AM_CONDITIONAL(HAVE_CXX11_FIXED_TYPE_ENUM_FWD, test x$have_cxx11_fixed_type_enum_fwd == xyes)
+  ])
 
 dnl Properly implemented move constructors require rvalue references,
 dnl std::move, and noexcept, so this tests for all of those features.
@@ -351,39 +432,37 @@ AC_DEFUN([LIBMESH_TEST_CXX11_SHARED_PTR],
 
         # If compilation fails for *any* of the methods, we'll disable
         # shared_ptr support for *all* methods.
-        if test "x$have_cxx11_shared_ptr" != xno; then
-          AC_MSG_CHECKING([for C++11 std::shared_ptr support with ${method} flags])
+        AS_IF([test "x$have_cxx11_shared_ptr" != "xno"],
+              [
+                AC_MSG_CHECKING([for C++11 std::shared_ptr support with ${method} flags])
 
-          AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-          @%:@include <memory>
-          ]], [[
-              std::shared_ptr<int> p1;
-              std::shared_ptr<int> p2 (new int);
-              std::shared_ptr<int> p3 (p2);
-              p3.reset(new int);
-          ]])],[
-              have_cxx11_shared_ptr=yes
-              AC_MSG_RESULT(yes)
-          ],[
-              have_cxx11_shared_ptr=no
-              AC_MSG_RESULT(no)
-          ])
-
-        fi
+                AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+                @%:@include <memory>
+                ]], [[
+                    std::shared_ptr<int> p1;
+                    std::shared_ptr<int> p2 (new int);
+                    std::shared_ptr<int> p3 (p2);
+                    p3.reset(new int);
+                ]])],[
+                    have_cxx11_shared_ptr=yes
+                    AC_MSG_RESULT(yes)
+                ],[
+                    have_cxx11_shared_ptr=no
+                    AC_MSG_RESULT(no)
+                ])
+              ])
 
         # Restore the original flags, whatever they were.
         CXXFLAGS="$saveCXXFLAGS"
     done
 
-    # Only set the header file variable if our flag was set to 'yes'.
-    if test "x$have_cxx11_shared_ptr" = xyes; then
-      AC_DEFINE(HAVE_CXX11_SHARED_PTR, 1, [Flag indicating whether compiler supports std::shared_ptr])
-    fi
+    dnl Only set the header file variable if our flag was set to 'yes'.
+    AS_IF([test "x$have_cxx11_shared_ptr" = "xyes"],
+          [AC_DEFINE(HAVE_CXX11_SHARED_PTR, 1, [Flag indicating whether compiler supports std::shared_ptr])])
 
-    # If the test compilation succeeded, but we have disabled C++11, set a different #define.
-    if test "x$have_cxx11_shared_ptr_but_disabled" = xyes; then
-      AC_DEFINE(HAVE_CXX11_SHARED_PTR_BUT_DISABLED, 1, [Compiler supports std::shared_ptr, but it is disabled in libmesh])
-    fi
+    dnl If the test compilation succeeded, but we have disabled C++11, set a different #define.
+    AS_IF([test "x$have_cxx11_shared_ptr_but_disabled" = "xyes"],
+          [AC_DEFINE(HAVE_CXX11_SHARED_PTR_BUT_DISABLED, 1, [Compiler supports std::shared_ptr, but it is disabled in libmesh])])
 
     AC_LANG_POP([C++])
 
@@ -768,6 +847,7 @@ AC_DEFUN([LIBMESH_TEST_CXX11_CONDITION_VARIABLE],
   ])
 
 
+
 AC_DEFUN([LIBMESH_TEST_CXX11_TYPE_TRAITS],
   [
     # This is designed to be an exhaustive test of the capabilities of
@@ -893,6 +973,8 @@ AC_DEFUN([LIBMESH_TEST_CXX11_TYPE_TRAITS],
                 << std::is_same<long, std::common_type<char, short, int, long>::type>::value // std::common_type
                 << std::is_same<int, std::underlying_type<e1>::type>::value // std::underlying_type
                 << std::is_same<char, std::result_of<fn_ptr()>::type>::value // std::result_of
+                << std::false_type::value
+                << std::true_type::value
                 << std::endl;
 
       // std::aligned_storage
@@ -1082,6 +1164,40 @@ AC_DEFUN([LIBMESH_TEST_CXX11_DELETED_FUNCTIONS],
   ])
 
 
+AC_DEFUN([LIBMESH_TEST_CXX11_DEFAULTED_FUNCTIONS],
+  [
+    have_cxx11_defaulted_functions=no
+
+    AC_MSG_CHECKING(for C++11 defaulted functions support)
+    AC_LANG_PUSH([C++])
+
+    old_CXXFLAGS="$CXXFLAGS"
+    CXXFLAGS="$CXXFLAGS $switch $libmesh_CXXFLAGS"
+
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+    class Foo
+    {
+      Foo(const Foo &) = default;
+      ~Foo();
+    };
+    Foo::~Foo() = default;
+    ]], [[
+    ]])],[
+        AC_MSG_RESULT(yes)
+        AC_DEFINE(HAVE_CXX11_DEFAULTED_FUNCTIONS, 1, [Flag indicating whether compiler supports defaulted functions])
+        have_cxx11_defaulted_functions=yes
+    ],[
+      AC_MSG_RESULT(no)
+    ])
+
+    # Reset the flags
+    CXXFLAGS="$old_CXXFLAGS"
+    AC_LANG_POP([C++])
+
+    AM_CONDITIONAL(HAVE_CXX11_DEFAULTED_FUNCTIONS, test x$have_cxx11_defaulted_functions == xyes)
+  ])
+
+
 AC_DEFUN([LIBMESH_TEST_CXX11_FINAL],
   [
     have_cxx11_final=no
@@ -1106,100 +1222,97 @@ AC_DEFUN([LIBMESH_TEST_CXX11_FINAL],
     };
     ]], [[
     ]])],[
-      if (test "x$enablecxx11" = "xyes"); then
-        have_cxx11_final=yes
-      else
-        have_cxx11_final_but_disabled=yes
-      fi
+      AS_IF([test "x$enablecxx11" = "xyes"],
+            [have_cxx11_final=yes],
+            [have_cxx11_final_but_disabled=yes])
     ],[
       have_cxx11_final=no
     ])
 
     # Confirm that you cannot declare a non-virtual function 'final'.
-    if (test "x$have_cxx11_final" != "xno"); then
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      struct A
-      {
-        // Error: non-virtual function cannot be final
-        void bar() final;
-      };
-      ]], [[
-      ]])],[
-        # If this code compiles, 'final' is not working correctly.
-        have_cxx11_final=no
-      ],[
-        if (test "x$enablecxx11" = "xyes"); then
-          have_cxx11_final=yes
-        else
-          have_cxx11_final_but_disabled=yes
-        fi
-      ])
-    fi
+    AS_IF([test "x$have_cxx11_final" != "xno"],
+          [
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+            struct A
+            {
+              // Error: non-virtual function cannot be final
+              void bar() final;
+            };
+            ]], [[
+            ]])],[
+              # If this code compiles, 'final' is not working correctly.
+              have_cxx11_final=no
+            ],[
+              AS_IF([test "x$enablecxx11" = "xyes"],
+                    [have_cxx11_final=yes],
+                    [have_cxx11_final_but_disabled=yes])
+            ])
+          ])
 
-    # Confirm that you cannot override a final function.
-    if (test "x$have_cxx11_final" != "xno"); then
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      struct A
-      {
-        virtual void foo() final;
-      };
-      struct B : A
-      {
-        // Error: foo cannot be overridden as it's final in A
-        void foo();
-      };
-      ]], [[
-      ]])],[
-        # If this code compiles, 'final' is not working correctly.
-        have_cxx11_final=no
-      ],[
-        if (test "x$enablecxx11" = "xyes"); then
-          have_cxx11_final=yes
-        else
-          have_cxx11_final_but_disabled=yes
-        fi
-      ])
-    fi
+    dnl Confirm that you cannot override a final function.
+    AS_IF([test "x$have_cxx11_final" != "xno"],
+          [
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+            struct A
+            {
+              virtual void foo() final;
+            };
+            struct B : A
+            {
+              // Error: foo cannot be overridden as it's final in A
+              void foo();
+            };
+            ]], [[
+            ]])],[
+              # If this code compiles, 'final' is not working correctly.
+              have_cxx11_final=no
+            ],[
+              AS_IF([test "x$enablecxx11" = "xyes"],
+                    [have_cxx11_final=yes],
+                    [have_cxx11_final_but_disabled=yes])
+            ])
+          ])
 
-    # Confirm that you cannot inherit from a 'final' class.
-    if (test "x$have_cxx11_final" != "xno"); then
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      struct A
-      {
-      };
+    dnl Confirm that you cannot inherit from a 'final' class.
+    AS_IF([test "x$have_cxx11_final" != "xno"],
+          [
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+            struct A
+            {
+            };
 
-      // struct B is final
-      struct B final : A
-      {
-      };
+            // struct B is final
+            struct B final : A
+            {
+            };
 
-      // Error: B is final
-      struct C : B
-      {
-      };
-      ]], [[
-      ]])],[
-        # If this code compiles, 'final' is not working correctly.
-        have_cxx11_final=no
-      ],[
-        if (test "x$enablecxx11" = "xyes"); then
-          have_cxx11_final=yes
-        else
-          have_cxx11_final_but_disabled=yes
-        fi
-      ])
-    fi
+            // Error: B is final
+            struct C : B
+            {
+            };
+            ]], [[
+            ]])],[
+              # If this code compiles, 'final' is not working correctly.
+              have_cxx11_final=no
+            ],[
+              AS_IF([test "x$enablecxx11" = "xyes"],
+                    [have_cxx11_final=yes],
+                    [have_cxx11_final_but_disabled=yes])
+            ])
+          ])
 
     # If the flag is still 'yes' after all the tests, set the #define.
-    if (test "x$have_cxx11_final" = "xyes"); then
-      AC_MSG_RESULT(yes)
-      AC_DEFINE(HAVE_CXX11_FINAL, 1, [Flag indicating whether compiler supports f() final;])
-    elif (test "x$have_cxx11_final_but_disabled" = "xyes"); then
-      AC_MSG_RESULT([yes, but disabled.])
-      AC_DEFINE(HAVE_CXX11_FINAL_BUT_DISABLED, 1, [Compiler supports final keyword, but it is disabled in libmesh])
-    else
-      AC_MSG_RESULT(no)
-    fi
+    AS_IF([test "x$have_cxx11_final" = "xyes"],
+          [
+            AC_MSG_RESULT(yes)
+            AC_DEFINE(HAVE_CXX11_FINAL, 1, [Flag indicating whether compiler supports f() final;])
+          ],
+          [test "x$have_cxx11_final_but_disabled" = "xyes"],
+          [
+            AC_MSG_RESULT([yes, but disabled.])
+            AC_DEFINE(HAVE_CXX11_FINAL_BUT_DISABLED, 1, [Compiler supports final keyword, but it is disabled in libmesh])
+          ],
+          [AC_MSG_RESULT(no)])
 
     # Reset the flags
     CXXFLAGS="$old_CXXFLAGS"
@@ -1228,14 +1341,16 @@ AC_DEFUN([LIBMESH_TEST_CXX11_NULLPTR],
     // would be ambiguous without void f(nullptr_t)
     f(nullptr);
     ]])],[
-      if (test "x$enablecxx11" = "xyes"); then
-        AC_MSG_RESULT(yes)
-        AC_DEFINE(HAVE_CXX11_NULLPTR, 1, [Flag indicating whether compiler supports nullptr])
-        have_cxx11_nullptr=yes
-      else
-        AC_MSG_RESULT([yes, but disabled.])
-        AC_DEFINE(HAVE_CXX11_NULLPTR_BUT_DISABLED, 1, [Compiler supports nullptr, but it is disabled in libmesh])
-      fi
+      AS_IF([test "x$enablecxx11" = "xyes"],
+            [
+              AC_MSG_RESULT(yes)
+              AC_DEFINE(HAVE_CXX11_NULLPTR, 1, [Flag indicating whether compiler supports nullptr])
+              have_cxx11_nullptr=yes
+            ],
+            [
+              AC_MSG_RESULT([yes, but disabled.])
+              AC_DEFINE(HAVE_CXX11_NULLPTR_BUT_DISABLED, 1, [Compiler supports nullptr, but it is disabled in libmesh])
+            ])
     ],[
       AC_MSG_RESULT(no)
     ])
@@ -1245,47 +1360,48 @@ AC_DEFUN([LIBMESH_TEST_CXX11_NULLPTR],
     AC_LANG_POP([C++])
 
     # Test the nullptr workaround if we don't have the real nullptr
-    if (test "x$have_cxx11_nullptr" != "xyes"); then
-      AC_MSG_CHECKING(for C++03 compatible nullptr workaround)
-      AC_LANG_PUSH([C++])
+    AS_IF([test "x$have_cxx11_nullptr" != "xyes"],
+          [
+            AC_MSG_CHECKING(for C++03 compatible nullptr workaround)
+            AC_LANG_PUSH([C++])
 
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      const class my_nullptr_t
-      {
-      public:
-        // convertible to any type of null non-member pointer...
-        template<class T>
-        inline operator T * () const { return 0; }
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+            const class my_nullptr_t
+            {
+            public:
+              // convertible to any type of null non-member pointer...
+              template<class T>
+              inline operator T * () const { return 0; }
 
-        // or any type of null member pointer...
-        template<class C, class T>
-        inline operator T C::*() const { return 0; }
+              // or any type of null member pointer...
+              template<class C, class T>
+              inline operator T C::*() const { return 0; }
 
-      private:
-        // Can't take address of nullptr
-        void operator & () const;
-      } my_nullptr = {};
+            private:
+              // Can't take address of nullptr
+              void operator & () const;
+            } my_nullptr = {};
 
-      void f(int) {}
-      void f(double *) {}
+            void f(int) {}
+            void f(double *) {}
 
-      ]], [[
-      // Test that it works the same way as NULL.
-      int * p = my_nullptr;
+            ]], [[
+            // Test that it works the same way as NULL.
+            int * p = my_nullptr;
 
-      // Test that the compiler can disambiguate the call correctly.
-      f(my_nullptr);
-      ]])],[
-        AC_MSG_RESULT(yes)
-        AC_DEFINE(HAVE_CXX11_NULLPTR_WORKAROUND, 1,
-                  [Flag indicating whether C++03 compatible nullptr workaround works])
-        have_cxx11_nullptr_workaround=yes
-      ],[
-        AC_MSG_RESULT(no)
-      ])
+            // Test that the compiler can disambiguate the call correctly.
+            f(my_nullptr);
+            ]])],[
+              AC_MSG_RESULT(yes)
+              AC_DEFINE(HAVE_CXX11_NULLPTR_WORKAROUND, 1,
+                        [Flag indicating whether C++03 compatible nullptr workaround works])
+              have_cxx11_nullptr_workaround=yes
+            ],[
+              AC_MSG_RESULT(no)
+            ])
 
-      AC_LANG_POP([C++])
-    fi
+            AC_LANG_POP([C++])
+          ])
 
     AM_CONDITIONAL(HAVE_CXX11_NULLPTR, test x$have_cxx11_nullptr == xyes)
     AM_CONDITIONAL(HAVE_CXX11_NULLPTR_WORKAROUND, test x$have_cxx11_nullptr_workaround == xyes)
@@ -1329,45 +1445,4 @@ AC_DEFUN([LIBMESH_TEST_CXX11_TO_STRING],
     AC_LANG_POP([C++])
 
     AM_CONDITIONAL(HAVE_CXX11_TO_STRING, test x$have_cxx11_to_string == xyes)
-  ])
-
-
-
-AC_DEFUN([LIBMESH_TEST_CXX11_NOEXCEPT],
-  [
-    have_cxx11_noexcept=no
-
-    AC_MSG_CHECKING(for C++11 noexcept support)
-    AC_LANG_PUSH([C++])
-
-    old_CXXFLAGS="$CXXFLAGS"
-    CXXFLAGS="$CXXFLAGS $switch $libmesh_CXXFLAGS"
-
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      @%:@include <stdexcept>
-
-      class MyException : public std::exception
-      {
-      public:
-        virtual const char * what() const noexcept
-        {
-          return "MyException description";
-        }
-      };
-    ]], [[
-      throw MyException();
-      return 0;
-    ]])],[
-        AC_MSG_RESULT(yes)
-        AC_DEFINE(HAVE_CXX11_NOEXCEPT, 1, [Flag indicating whether compiler supports noexcept])
-        have_cxx11_noexcept=yes
-    ],[
-      AC_MSG_RESULT(no)
-    ])
-
-    # Reset the flags
-    CXXFLAGS="$old_CXXFLAGS"
-    AC_LANG_POP([C++])
-
-    AM_CONDITIONAL(HAVE_CXX11_NOEXCEPT, test x$have_cxx11_noexcept == xyes)
   ])

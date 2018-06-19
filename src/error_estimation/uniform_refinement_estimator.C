@@ -38,6 +38,8 @@
 #include "libmesh/uniform_refinement_estimator.h"
 #include "libmesh/partitioner.h"
 #include "libmesh/tensor_tools.h"
+#include "libmesh/enum_error_estimator_type.h"
+#include "libmesh/enum_norm_type.h"
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -46,6 +48,23 @@ namespace libMesh
 
 //-----------------------------------------------------------------
 // ErrorEstimator implementations
+
+UniformRefinementEstimator::UniformRefinementEstimator() :
+    ErrorEstimator(),
+    number_h_refinements(1),
+    number_p_refinements(0)
+{
+  error_norm = H1;
+}
+
+
+
+ErrorEstimatorType UniformRefinementEstimator::type() const
+{
+  return UNIFORM_REFINEMENT;
+}
+
+
 void UniformRefinementEstimator::estimate_error (const System & _system,
                                                  ErrorVector & error_per_cell,
                                                  const NumericVector<Number> * solution_vector,
@@ -207,6 +226,10 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
 
   // And it'll be best to avoid any repartitioning
   std::unique_ptr<Partitioner> old_partitioner(mesh.partitioner().release());
+
+  // And we can't allow any renumbering
+  const bool old_renumbering_setting = mesh.allow_renumbering();
+  mesh.allow_renumbering(false);
 
   for (std::size_t i=0; i != system_list.size(); ++i)
     {
@@ -711,8 +734,9 @@ void UniformRefinementEstimator::_estimate_error (const EquationSystems * _es,
         }
     }
 
-  // Restore old partitioner settings
+  // Restore old partitioner and renumbering settings
   mesh.partitioner().reset(old_partitioner.release());
+  mesh.allow_renumbering(old_renumbering_setting);
 }
 
 } // namespace libMesh

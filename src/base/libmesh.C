@@ -25,7 +25,7 @@
 #include "libmesh/remote_elem.h"
 #include "libmesh/threads.h"
 #include "libmesh/print_trace.h"
-
+#include "libmesh/enum_solver_package.h"
 
 // C/C++ includes
 #include <iostream>
@@ -192,25 +192,10 @@ extern SolverPackage _solver_package;
 // ------------------------------------------------------------
 // libMesh data initialization
 #ifdef LIBMESH_HAVE_MPI
-#ifndef LIBMESH_DISABLE_COMMWORLD
-MPI_Comm           COMM_WORLD = MPI_COMM_NULL;
-#endif
 MPI_Comm           GLOBAL_COMM_WORLD = MPI_COMM_NULL;
 #else
-#ifndef LIBMESH_DISABLE_COMMWORLD
-int                COMM_WORLD = 0;
-#endif
 int                GLOBAL_COMM_WORLD = 0;
 #endif
-
-#ifdef LIBMESH_DISABLE_COMMWORLD
-Parallel::FakeCommunicator CommWorld;
-Parallel::FakeCommunicator & Parallel::Communicator_World = CommWorld;
-#else
-Parallel::Communicator CommWorld;
-Parallel::Communicator & Parallel::Communicator_World = CommWorld;
-#endif
-
 
 OStreamProxy out(std::cout);
 OStreamProxy err(std::cerr);
@@ -408,7 +393,6 @@ LibMeshInit::LibMeshInit (int argc, const char * const * argv,
 
       if (!flag)
         {
-#if MPI_VERSION > 1
           int mpi_thread_provided;
           const int mpi_thread_requested = libMesh::n_threads() > 1 ?
             MPI_THREAD_FUNNELED :
@@ -439,17 +423,6 @@ LibMeshInit::LibMeshInit (int argc, const char * const * argv,
               // libMesh::libMeshPrivateData::_n_threads = 1;
               // task_scheduler.reset (new Threads::task_scheduler_init(libMesh::n_threads()));
             }
-#else
-          if (libMesh::libMeshPrivateData::_n_threads > 1)
-            {
-              libmesh_warning("Warning: using MPI1 for threaded code.\n" <<
-                              "Be sure your library is funneled-thread-safe..." <<
-                              std::endl);
-            }
-
-          libmesh_call_mpi
-            (MPI_Init (&argc, const_cast<char ***>(&argv)));
-#endif
           libmesh_initialized_mpi = true;
         }
 
@@ -459,11 +432,6 @@ LibMeshInit::LibMeshInit (int argc, const char * const * argv,
       this->_comm = COMM_WORLD_IN;
 
       libMesh::GLOBAL_COMM_WORLD = COMM_WORLD_IN;
-
-#ifndef LIBMESH_DISABLE_COMMWORLD
-      libMesh::COMM_WORLD = COMM_WORLD_IN;
-      Parallel::Communicator_World = COMM_WORLD_IN;
-#endif
 
       //MPI_Comm_set_name not supported in at least SGI MPT's MPI implementation
       //MPI_Comm_set_name (libMesh::COMM_WORLD, "libMesh::COMM_WORLD");
@@ -477,21 +445,12 @@ LibMeshInit::LibMeshInit (int argc, const char * const * argv,
       // into a debugger with a proper stack when an MPI error occurs.
       if (libMesh::on_command_line ("--handle-mpi-errors"))
         {
-#if MPI_VERSION > 1
           libmesh_call_mpi
             (MPI_Comm_create_errhandler(libMesh_MPI_Handler, &libmesh_errhandler));
           libmesh_call_mpi
             (MPI_Comm_set_errhandler(libMesh::GLOBAL_COMM_WORLD, libmesh_errhandler));
           libmesh_call_mpi
             (MPI_Comm_set_errhandler(MPI_COMM_WORLD, libmesh_errhandler));
-#else
-          libmesh_call_mpi
-            (MPI_Errhandler_create(libMesh_MPI_Handler, &libmesh_errhandler));
-          libmesh_call_mpi
-            (MPI_Errhandler_set(libMesh::GLOBAL_COMM_WORLD, libmesh_errhandler));
-          libmesh_call_mpi
-            (MPI_Errhandler_set(MPI_COMM_WORLD, libmesh_errhandler));
-#endif // #if MPI_VERSION > 1
         }
     }
 
@@ -813,9 +772,6 @@ LibMeshInit::~LibMeshInit()
   if (!libMesh::on_command_line ("--disable-mpi"))
     {
       this->_comm.clear();
-#ifndef LIBMESH_DISABLE_COMMWORLD
-      Parallel::Communicator_World.clear();
-#endif
 
       if (libmesh_initialized_mpi)
         {
@@ -917,12 +873,34 @@ void enableSEGV(bool on)
 
 
 
-bool on_command_line (const std::string & arg)
+bool on_command_line (std::string arg)
 {
   // Make sure the command line parser is ready for use
   libmesh_assert(command_line.get());
 
-  return command_line->search (arg);
+  // Users had better not be asking about an empty string
+  libmesh_assert(!arg.empty());
+
+  bool found_it = command_line->search(arg);
+
+  if (!found_it)
+    {
+      // Try with all dashes instead of underscores
+      std::replace(arg.begin(), arg.end(), '_', '-');
+      found_it = command_line->search(arg);
+    }
+
+  if (!found_it)
+    {
+      // OK, try with all underscores instead of dashes
+      auto name_begin = arg.begin();
+      while (*name_begin == '-')
+        ++name_begin;
+      std::replace(name_begin, arg.end(), '-', '_');
+      found_it = command_line->search(arg);
+    }
+
+  return found_it;
 }
 
 
@@ -960,13 +938,12 @@ T command_line_value (const std::vector<std::string> & name, T value)
 
 
 template <typename T>
-T command_line_next (const std::string & name, T value)
+T command_line_next (std::string name, T value)
 {
-  // Make sure the command line parser is ready for use
-  libmesh_assert(command_line.get());
-
-  if (command_line->search(1, name.c_str()))
-    value = command_line->next(value);
+  // on_command_line also puts the command_line cursor in the spot we
+  // need
+  if (on_command_line(name))
+    return command_line->next(value);
 
   return value;
 }
@@ -1067,11 +1044,11 @@ template double       command_line_value<double>      (const std::vector<std::st
 template long double  command_line_value<long double> (const std::vector<std::string> &, long double);
 template std::string  command_line_value<std::string> (const std::vector<std::string> &, std::string);
 
-template int          command_line_next<int>         (const std::string &, int);
-template float        command_line_next<float>       (const std::string &, float);
-template double       command_line_next<double>      (const std::string &, double);
-template long double  command_line_next<long double> (const std::string &, long double);
-template std::string  command_line_next<std::string> (const std::string &, std::string);
+template int          command_line_next<int>         (std::string, int);
+template float        command_line_next<float>       (std::string, float);
+template double       command_line_next<double>      (std::string, double);
+template long double  command_line_next<long double> (std::string, long double);
+template std::string  command_line_next<std::string> (std::string, std::string);
 
 template void         command_line_vector<int>         (const std::string &, std::vector<int> &);
 template void         command_line_vector<float>       (const std::string &, std::vector<float> &);

@@ -35,6 +35,7 @@
 #include "libmesh/mesh_refinement.h"
 #include "libmesh/parallel.h"
 #include "libmesh/parallel_ghost_sync.h"
+#include "libmesh/partitioner.h"
 #include "libmesh/remote_elem.h"
 #include "libmesh/sync_refinement_flags.h"
 
@@ -159,19 +160,17 @@ Node * MeshRefinement::add_node(Elem & parent,
   const dof_id_type new_node_id =
     _new_nodes_map.find(bracketing_nodes);
 
-  // Return the node if it already exists, but first update the
-  // processor_id if the node is now going to be attached to the
-  // element of a processor which may take ownership of it.
+  // Return the node if it already exists.
+  //
+  // We'll leave the processor_id untouched in this case - if we're
+  // repartitioning later or if this is a new unpartitioned node,
+  // we'll update it then, and if not then we don't want to update it.
   if (new_node_id != DofObject::invalid_id)
-    {
-      Node * node = _mesh.node_ptr(new_node_id);
-      if (proc_id < node->processor_id())
-        node->processor_id() = proc_id;
-      return node;
-    }
+    return _mesh.node_ptr(new_node_id);
 
-  // Otherwise we need to add a new node, with a default id and the
-  // requested processor_id.  Figure out where to add the point:
+  // Otherwise we need to add a new node.
+  //
+  // Figure out where to add the point:
 
   Point p; // defaults to 0,0,0
 
@@ -189,9 +188,15 @@ Node * MeshRefinement::add_node(Elem & parent,
         }
     }
 
+  // Although we're leaving new nodes unpartitioned at first, with a
+  // DistributedMesh we would need a default id based on the numbering
+  // scheme for the requested processor_id.
   Node * new_node = _mesh.add_point (p, DofObject::invalid_id, proc_id);
 
   libmesh_assert(new_node);
+
+  // But then we'll make sure this node is marked as unpartitioned.
+  new_node->processor_id() = DofObject::invalid_processor_id;
 
   // Add the node to the map.
   _new_nodes_map.add_node(*new_node, bracketing_nodes);
@@ -1584,6 +1589,14 @@ bool MeshRefinement::_refine_elements ()
       _mesh.libmesh_assert_valid_parallel_ids();
 #endif
     }
+
+  // If we're refining a ReplicatedMesh, then we haven't yet assigned
+  // node processor ids.  But if we're refining a partitioned
+  // ReplicatedMesh, then we *need* to assign node processor ids.
+  if (mesh_changed && _mesh.is_replicated() &&
+      (_mesh.unpartitioned_elements_begin() ==
+       _mesh.unpartitioned_elements_end()))
+    Partitioner::set_node_processor_ids(_mesh);
 
   if (mesh_p_changed && !_mesh.is_replicated())
     {

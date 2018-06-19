@@ -89,13 +89,13 @@ struct SyncNeighbors
   }
 
   void act_on_data (const std::vector<dof_id_type> & ids,
-                    std::vector<datum> & neighbors) const
+                    const std::vector<datum> & neighbors) const
   {
     for (std::size_t i=0; i != ids.size(); ++i)
       {
         Elem & elem = mesh.elem_ref(ids[i]);
 
-        datum & new_neigh = neighbors[i];
+        const datum & new_neigh = neighbors[i];
 
         const unsigned int n_neigh = elem.n_neighbors();
         libmesh_assert_equal_to (n_neigh, new_neigh.size());
@@ -1246,7 +1246,7 @@ struct SyncIds
   }
 
   void act_on_data (const std::vector<dof_id_type> & old_ids,
-                    std::vector<datum> & new_ids) const
+                    const std::vector<datum> & new_ids) const
   {
     for (std::size_t i=0; i != old_ids.size(); ++i)
       if (old_ids[i] != new_ids[i])
@@ -1298,13 +1298,18 @@ struct SyncNodeIds
   }
 
   bool act_on_data (const std::vector<dof_id_type> & old_ids,
-                    std::vector<datum> & new_ids)
+                    const std::vector<datum> & new_ids)
   {
     bool data_changed = false;
     for (std::size_t i=0; i != old_ids.size(); ++i)
       {
         const dof_id_type new_id = new_ids[i];
-        if (new_id != DofObject::invalid_id)
+
+        // If we asked for an id but there's no definitive id ready
+        // for us yet, then we can't quit trying to sync yet.
+        if (new_id == DofObject::invalid_id)
+          data_changed = true;
+        else
           {
             const dof_id_type old_id = old_ids[i];
 
@@ -1369,7 +1374,7 @@ struct SyncPLevels
   }
 
   void act_on_data (const std::vector<dof_id_type> & old_ids,
-                    std::vector<datum> & new_p_levels) const
+                    const std::vector<datum> & new_p_levels) const
   {
     for (std::size_t i=0; i != old_ids.size(); ++i)
       {
@@ -1413,7 +1418,7 @@ struct SyncUniqueIds
   }
 
   void act_on_data (const std::vector<dof_id_type>& ids,
-                    std::vector<datum>& unique_ids) const
+                    const std::vector<datum>& unique_ids) const
   {
     for (std::size_t i=0; i != ids.size(); ++i)
       {
@@ -1435,12 +1440,26 @@ void MeshCommunication::make_node_ids_parallel_consistent (MeshBase & mesh)
   // This function must be run on all processors at once
   libmesh_parallel_only(mesh.comm());
 
+  // We need to agree on which processor owns every node, but we can't
+  // easily assert that here because we don't currently agree on which
+  // id every node has, and some of our temporary ids on unrelated
+  // nodes will "overlap".
+//#ifdef DEBUG
+//  MeshTools::libmesh_assert_parallel_consistent_procids<Node> (mesh);
+//#endif // DEBUG
+
   LOG_SCOPE ("make_node_ids_parallel_consistent()", "MeshCommunication");
 
   SyncNodeIds syncids(mesh);
   Parallel::sync_node_data_by_element_id
     (mesh, mesh.elements_begin(), mesh.elements_end(),
      Parallel::SyncEverything(), Parallel::SyncEverything(), syncids);
+
+  // At this point, with both ids and processor ids synced, we can
+  // finally check for topological consistency of node processor ids.
+#ifdef DEBUG
+  MeshTools::libmesh_assert_topology_consistent_procids<Node> (mesh);
+#endif
 }
 
 
@@ -1540,7 +1559,7 @@ struct SyncProcIds
 
   // ------------------------------------------------------------
   bool act_on_data (const std::vector<dof_id_type> & ids,
-                    std::vector<datum> proc_ids)
+                    const std::vector<datum> proc_ids)
   {
     bool data_changed = false;
 
@@ -1549,6 +1568,10 @@ struct SyncProcIds
       {
         Node & node = mesh.node_ref(ids[i]);
 
+        // We may not have ids synched when this synchronization is done, so we
+        // *can't* use id to load-balance processor id properly; we have to use
+        // the old heuristic of choosing the smallest valid processor id.
+        //
         // If someone tells us our node processor id is too low, then
         // they're wrong.  If they tell us our node processor id is
         // too high, then we're wrong.
@@ -1588,35 +1611,23 @@ struct ElemNodesMaybeNew
 };
 
 
-struct NodeMaybeNew
+struct NodeWasNew
 {
-  NodeMaybeNew() {}
+  NodeWasNew(const MeshBase & mesh)
+  {
+    for (const auto & node : mesh.node_ptr_range())
+      if (node->processor_id() == DofObject::invalid_processor_id)
+        was_new.insert(node);
+  }
 
   bool operator() (const Elem * elem, unsigned int local_node_num) const
   {
-#ifdef LIBMESH_ENABLE_AMR
-    const Elem * parent = elem->parent();
-
-    // If this is a child node which wasn't already a parent node then
-    // it might be a new node we need to work on.
-    if (parent)
-      {
-        const unsigned int c = parent->which_child_am_i(elem);
-        if (parent->as_parent_node(c, local_node_num) == libMesh::invalid_uint)
-          return true;
-      }
-#endif
-
-    // If this node is on a side with a remote element then there may
-    // have been refinement of that element which affects this node's
-    // processor_id()
-    for (auto s : elem->side_index_range())
-      if (elem->neighbor_ptr(s) == remote_elem)
-        if (elem->is_node_on_side(local_node_num, s))
-          return true;
-
+    if (was_new.count(elem->node_ptr(local_node_num)))
+      return true;
     return false;
   }
+
+  std::unordered_set<const Node *> was_new;
 };
 
 }
@@ -1664,16 +1675,68 @@ void MeshCommunication::make_new_node_proc_ids_parallel_consistent(MeshBase & me
   // should be in the following state:
   //
   // Local nodes should have unique authoritative ids,
-  // and processor ids consistent with all processors which own
-  // an element touching them.
+  // and new nodes should be unpartitioned.
   //
-  // Ghost nodes touching local elements should have processor ids
-  // consistent with all processors which own an element touching
-  // them.
+  // New ghost nodes touching local elements should be unpartitioned.
+
+  // We may not have consistent processor ids for new nodes (because a
+  // node may be old and partitioned on one processor but new and
+  // unpartitioned on another) when we start
+#ifdef DEBUG
+  MeshTools::libmesh_assert_parallel_consistent_procids<Node>(mesh);
+  // MeshTools::libmesh_assert_parallel_consistent_new_node_procids(mesh);
+#endif
+
+  // We have two kinds of new nodes.  *NEW* nodes are unpartitioned on
+  // all processors: we need to use a id-independent (i.e. dumb)
+  // heuristic to partition them.  But "new" nodes are newly created
+  // on some processors (when ghost elements are refined) yet
+  // correspond to existing nodes on other processors: we need to use
+  // the existing processor id for them.
+  //
+  // A node which is "new" on one processor will be associated with at
+  // least one ghost element, and we can just query that ghost
+  // element's owner to find out the correct processor id.
+
+  auto node_unpartitioned =
+    [](const Elem * elem, unsigned int local_node_num)
+    { return elem->node_ref(local_node_num).processor_id() ==
+        DofObject::invalid_processor_id; };
+
   SyncProcIds sync(mesh);
+
+  sync_node_data_by_element_id_once
+    (mesh, mesh.not_local_elements_begin(),
+     mesh.not_local_elements_end(), Parallel::SyncEverything(),
+     node_unpartitioned, sync);
+
+  // Nodes should now be unpartitioned iff they are truly new; those
+  // are the *only* nodes we will touch.
+#ifdef DEBUG
+  MeshTools::libmesh_assert_parallel_consistent_new_node_procids(mesh);
+#endif
+
+  NodeWasNew node_was_new(mesh);
+
+  // Set the lowest processor id we can on truly new nodes
+  for (auto & elem : mesh.element_ptr_range())
+    for (auto & node : elem->node_ref_range())
+      if (node_was_new.was_new.count(&node))
+        {
+          processor_id_type & pid = node.processor_id();
+          pid = std::min(pid, elem->processor_id());
+        }
+
+  // Then finally see if other processors have a lower option
   Parallel::sync_node_data_by_element_id
     (mesh, mesh.elements_begin(), mesh.elements_end(),
-     ElemNodesMaybeNew(), NodeMaybeNew(), sync);
+     ElemNodesMaybeNew(), node_was_new, sync);
+
+  // We should have consistent processor ids when we're done.
+#ifdef DEBUG
+  MeshTools::libmesh_assert_parallel_consistent_procids<Node>(mesh);
+  MeshTools::libmesh_assert_parallel_consistent_new_node_procids(mesh);
+#endif
 }
 
 
@@ -1733,20 +1796,16 @@ void MeshCommunication::make_new_nodes_parallel_consistent (MeshBase & mesh)
   // processor where they exist.
   //
   // Local nodes should have unique authoritative ids,
-  // and processor ids consistent with all processors which own
-  // an element touching them.
+  // and new nodes should be unpartitioned.
   //
-  // Ghost nodes touching local elements should have processor ids
-  // consistent with all processors which own an element touching
-  // them.
+  // New ghost nodes touching local elements should be unpartitioned.
   //
-  // Ghost nodes should have ids which are either already correct
+  // New ghost nodes should have ids which are either already correct
   // or which are in the "unpartitioned" id space.
+  //
+  // Non-new nodes should have correct ids and processor ids already.
 
-  // First, let's sync up processor ids.  Some of these processor ids
-  // may be "wrong" from coarsening, but they're right in the sense
-  // that they'll tell us who has the authoritative dofobject ids for
-  // each node.
+  // First, let's sync up new nodes' processor ids.
 
   this->make_new_node_proc_ids_parallel_consistent(mesh);
 

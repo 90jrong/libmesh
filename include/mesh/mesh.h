@@ -62,17 +62,6 @@ public:
         unsigned char dim=1)
     : DefaultMesh(comm_in,dim) {}
 
-#ifndef LIBMESH_DISABLE_COMMWORLD
-  /**
-   * Deprecated constructor.  Takes \p dim, the dimension of the mesh.
-   * The mesh dimension can be changed (and may automatically be
-   * changed by mesh generation/loading) later.
-   */
-  explicit
-  Mesh (unsigned char dim=1)
-    : DefaultMesh(dim) {}
-#endif
-
   /**
    * Copy-constructor.  This should be able to take a
    * serial or parallel mesh.
@@ -80,9 +69,17 @@ public:
   Mesh (const UnstructuredMesh & other_mesh) : DefaultMesh(other_mesh) {}
 
   /**
-   * Destructor.
+   * Default copy/move constructors and destructor.
    */
-  ~Mesh() {}
+  Mesh(const Mesh &) = default;
+  Mesh(Mesh &&) = default;
+  ~Mesh() = default;
+
+  /**
+   * Copy and move assignment are not allowed.
+   */
+  Mesh & operator= (const Mesh &) = delete;
+  Mesh & operator= (Mesh &&) = delete;
 };
 
 

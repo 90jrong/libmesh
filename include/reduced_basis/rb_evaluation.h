@@ -56,8 +56,7 @@ public:
   /**
    * Constructor.
    */
-  RBEvaluation (const Parallel::Communicator & comm
-                LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  RBEvaluation (const Parallel::Communicator & comm);
 
   /**
    * Destructor.
@@ -68,7 +67,7 @@ public:
    * Clear this RBEvaluation object. Delete the basis functions
    * and clear and extra data in subclasses.
    */
-  virtual void clear() libmesh_override;
+  virtual void clear() override;
 
   /**
    * Set the RBThetaExpansion object.

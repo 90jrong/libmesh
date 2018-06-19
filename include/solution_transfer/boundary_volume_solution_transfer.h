@@ -47,7 +47,7 @@ namespace libMesh {
 class BoundaryVolumeSolutionTransfer : public SolutionTransfer
 {
 public:
-  BoundaryVolumeSolutionTransfer (const Parallel::Communicator & comm_in LIBMESH_CAN_DEFAULT_TO_COMMWORLD) :
+  BoundaryVolumeSolutionTransfer (const Parallel::Communicator & comm_in) :
     SolutionTransfer(comm_in)
   {}
 
@@ -58,7 +58,7 @@ public:
    * volume mesh to a Variable in a System associated with the
    * corresponding BoundaryMesh, or vice-versa.
    */
-  virtual void transfer(const Variable & from_var, const Variable & to_var) libmesh_override;
+  virtual void transfer(const Variable & from_var, const Variable & to_var) override;
 
 private:
   /**

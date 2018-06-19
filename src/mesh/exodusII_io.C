@@ -108,7 +108,7 @@ void ExodusII_IO::write_timestep_discontinuous (const std::string &fname,
                                                 const std::set<std::string> * system_names)
 {
   _timestep = timestep;
-  write_discontinuous_exodusII(fname,es,system_names);
+  write_discontinuous_equation_systems (fname,es,system_names);
 
   if (MeshOutput<MeshBase>::mesh().processor_id())
     return;
@@ -636,6 +636,10 @@ void ExodusII_IO::write_element_data (const EquationSystems & es)
   std::vector<Number> soln;
   es.get_solution(soln, names);
 
+  // Also, store the list of subdomains on which each variable is active
+  std::vector<std::set<subdomain_id_type>> vars_active_subdomains;
+  es.get_vars_active_subdomains(names, vars_active_subdomains);
+
   if (soln.empty()) // If there is nothing to write just return
     return;
 
@@ -650,7 +654,9 @@ void ExodusII_IO::write_element_data (const EquationSystems & es)
 
   std::vector<std::string> complex_names = exio_helper->get_complex_names(names);
 
-  exio_helper->initialize_element_variables(complex_names);
+  std::vector<std::set<subdomain_id_type>> complex_vars_active_subdomains =
+    exio_helper->get_complex_vars_active_subdomains(vars_active_subdomains);
+  exio_helper->initialize_element_variables(complex_names, complex_vars_active_subdomains);
 
   unsigned int num_values = soln.size();
   unsigned int num_vars = names.size();
@@ -680,11 +686,11 @@ void ExodusII_IO::write_element_data (const EquationSystems & es)
         }
     }
 
-  exio_helper->write_element_values(mesh, complex_soln, _timestep);
+  exio_helper->write_element_values(mesh, complex_soln, _timestep, complex_vars_active_subdomains);
 
 #else
-  exio_helper->initialize_element_variables(names);
-  exio_helper->write_element_values(mesh, soln, _timestep);
+  exio_helper->initialize_element_variables(names, vars_active_subdomains);
+  exio_helper->write_element_values(mesh, soln, _timestep, vars_active_subdomains);
 #endif
 }
 
@@ -737,27 +743,47 @@ void ExodusII_IO::write_nodal_data (const std::string & fname,
       unsigned int variable_name_position =
         cast_int<unsigned int>(pos - output_names.begin());
 
-#ifdef LIBMESH_USE_COMPLEX_NUMBERS
-      std::vector<Real> real_parts(num_nodes);
-      std::vector<Real> imag_parts(num_nodes);
-      std::vector<Real> magnitudes(num_nodes);
+      // Set up temporary vectors to be passed to Exodus to write the
+      // nodal values for a single variable at a time.
+#ifdef LIBMESH_USE_REAL_NUMBERS
+      std::vector<Number> cur_soln;
 
-      for (unsigned int i=0; i<num_nodes; ++i)
-        {
-          real_parts[i] = soln[i*num_vars + c].real();
-          imag_parts[i] = soln[i*num_vars + c].imag();
-          magnitudes[i] = std::abs(soln[i*num_vars + c]);
-        }
-      exio_helper->write_nodal_values(3*variable_name_position+1,real_parts,_timestep);
-      exio_helper->write_nodal_values(3*variable_name_position+2,imag_parts,_timestep);
-      exio_helper->write_nodal_values(3*variable_name_position+3,magnitudes,_timestep);
+      // num_nodes is either exactly how much space we will need for
+      // each vector, or a safe upper bound for the amount of memory
+      // we will require when there are gaps in the numbering.
+      cur_soln.reserve(num_nodes);
 #else
-      std::vector<Number> cur_soln(num_nodes);
+      std::vector<Real> real_parts;
+      std::vector<Real> imag_parts;
+      std::vector<Real> magnitudes;
+      real_parts.reserve(num_nodes);
+      imag_parts.reserve(num_nodes);
+      magnitudes.reserve(num_nodes);
+#endif
 
-      // Copy out this variable's solution
-      for (dof_id_type i=0; i<num_nodes; i++)
-        cur_soln[i] = soln[i*num_vars + c];
-      exio_helper->write_nodal_values(variable_name_position+1,cur_soln,_timestep);
+      // There could be gaps in "soln", but it will always be in the
+      // order of [num_vars * node_id + var_id]. We now copy the
+      // proper solution values contiguously into "cur_soln",
+      // removing the gaps.
+      for (const auto & node : mesh.node_ptr_range())
+        {
+          dof_id_type idx = node->id()*num_vars + c;
+#ifdef LIBMESH_USE_REAL_NUMBERS
+          cur_soln.push_back(soln[idx]);
+#else
+          real_parts.push_back(soln[idx].real());
+          imag_parts.push_back(soln[idx].imag());
+          magnitudes.push_back(std::abs(soln[idx]));
+#endif
+        }
+
+      // Finally, actually call the Exodus API to write to file.
+#ifdef LIBMESH_USE_REAL_NUMBERS
+      exio_helper->write_nodal_values(variable_name_position+1, cur_soln, _timestep);
+#else
+      exio_helper->write_nodal_values(3*variable_name_position+1, real_parts, _timestep);
+      exio_helper->write_nodal_values(3*variable_name_position+2, imag_parts, _timestep);
+      exio_helper->write_nodal_values(3*variable_name_position+3, magnitudes, _timestep);
 #endif
 
     }
@@ -1013,6 +1039,16 @@ const std::vector<std::string> & ExodusII_IO::get_elem_var_names()
 {
   exio_helper->read_var_names(ExodusII_IO_Helper::ELEMENTAL);
   return exio_helper->elem_var_names;
+}
+
+ExodusII_IO_Helper & ExodusII_IO::get_exio_helper()
+{
+  // Provide a warning when accessing the helper object
+  // since it is a non-public API and is likely to see
+  // future API changes
+  libmesh_experimental();
+
+  return *exio_helper;
 }
 
 

@@ -33,14 +33,16 @@ namespace libMesh
  * \verbatim
  *          3           2
  *   QUAD4: o-----------o
- *          |           |
- *          |           |
- *          |           |
- *          |           |
- *          |           |
+ *          |           |           eta
+ *          |           |            ^
+ *          |           |            |
+ *          |           |            |
+ *          |           |            o---> xi
  *          o-----------o
  *          0           1
  * \endverbatim
+ * (xi, eta) are the reference element coordinates associated with
+ * the given numbering.
  *
  * \author Benjamin S. Kirk
  * \date 2002
@@ -57,63 +59,69 @@ public:
   Quad4 (Elem * p=libmesh_nullptr) :
     Quad(Quad4::n_nodes(), p, _nodelinks_data) {}
 
+  Quad4 (Quad4 &&) = delete;
+  Quad4 (const Quad4 &) = delete;
+  Quad4 & operator= (const Quad4 &) = delete;
+  Quad4 & operator= (Quad4 &&) = delete;
+  virtual ~Quad4() = default;
+
   /**
    * \returns \p QUAD4.
    */
-  virtual ElemType type () const libmesh_override { return QUAD4; }
+  virtual ElemType type () const override { return QUAD4; }
 
   /**
    * \returns 1.
    */
-  virtual unsigned int n_sub_elem() const libmesh_override { return 1; }
+  virtual unsigned int n_sub_elem() const override { return 1; }
 
   /**
    * \returns \p true if the specified (local) node number is a vertex.
    */
-  virtual bool is_vertex(const unsigned int i) const libmesh_override;
+  virtual bool is_vertex(const unsigned int i) const override;
 
   /**
    * \returns \p true if the specified (local) node number is an edge.
    */
-  virtual bool is_edge(const unsigned int i) const libmesh_override;
+  virtual bool is_edge(const unsigned int i) const override;
 
   /**
    * \returns \p true if the specified (local) node number is a face.
    */
-  virtual bool is_face(const unsigned int i) const libmesh_override;
+  virtual bool is_face(const unsigned int i) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the
    * specified side.
    */
   virtual bool is_node_on_side(const unsigned int n,
-                               const unsigned int s) const libmesh_override;
+                               const unsigned int s) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the
    * specified edge (== is_node_on_side in 2D).
    */
   virtual bool is_node_on_edge(const unsigned int n,
-                               const unsigned int e) const libmesh_override
+                               const unsigned int e) const override
   { return this->is_node_on_side(n,e); }
 
   /**
    * \returns \p true if the element map is definitely affine within
    * numerical tolerances.
    */
-  virtual bool has_affine_map () const libmesh_override;
+  virtual bool has_affine_map () const override;
 
   /**
    * \returns FIRST.
    */
-  virtual Order default_order() const libmesh_override { return FIRST; }
+  virtual Order default_order() const override;
 
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) libmesh_override;
+                                                bool proxy) override;
 
   virtual void connectivity(const unsigned int sf,
                             const IOPackage iop,
-                            std::vector<dof_id_type> & conn) const libmesh_override;
+                            std::vector<dof_id_type> & conn) const override;
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
@@ -126,7 +134,7 @@ public:
    * 4-node quad with straight sides, but not necessarily a
    * parallelogram.
    */
-  virtual Real volume () const libmesh_override;
+  virtual Real volume () const override;
 
 protected:
 
@@ -144,7 +152,7 @@ protected:
    */
   virtual float embedding_matrix (const unsigned int i,
                                   const unsigned int j,
-                                  const unsigned int k) const libmesh_override
+                                  const unsigned int k) const override
   { return _embedding_matrix[i][j][k]; }
 
   /**

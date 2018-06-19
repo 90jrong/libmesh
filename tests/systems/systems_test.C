@@ -56,11 +56,13 @@ public:
 
 #ifdef LIBMESH_ENABLE_AMR
 #ifdef LIBMESH_HAVE_METAPHYSICL
+#ifdef LIBMESH_HAVE_PETSC
   CPPUNIT_TEST( testProjectMatrixEdge2 );
   CPPUNIT_TEST( testProjectMatrixQuad4 );
   CPPUNIT_TEST( testProjectMatrixTri3 );
   CPPUNIT_TEST( testProjectMatrixHex8 );
   CPPUNIT_TEST( testProjectMatrixTet4 );
+#endif // LIBMESH_HAVE_PETSC
 #endif // LIBMESH_HAVE_METAPHYSICL
 #endif // LIBMESH_ENABLE_AMR
 
@@ -214,6 +216,7 @@ public:
 
 #ifdef LIBMESH_ENABLE_AMR
 #ifdef LIBMESH_HAVE_METAPHYSICL
+#ifdef LIBMESH_HAVE_PETSC
   void testProjectMatrix1D(const ElemType elem_type)
   {
     // Use ReplicatedMesh to get consistent child element node
@@ -281,7 +284,7 @@ public:
     std::unique_ptr<SparseMatrix<Number> > gold_mat_ptr =
       SparseMatrix<Number>::build(*TestCommWorld);
     SparseMatrix<Number> & gold_mat = *gold_mat_ptr;
-    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs);
+    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs_local);
 
     // construct the gold projection matrix using static node numbering as reference info
     for ( const auto & node : mesh.local_node_ptr_range() )
@@ -430,7 +433,7 @@ public:
     std::unique_ptr<SparseMatrix<Number> > gold_mat_ptr =
       SparseMatrix<Number>::build(*TestCommWorld);
     SparseMatrix<Number> & gold_mat = *gold_mat_ptr;
-    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs);
+    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs_local);
 
     // construct the gold projection matrix using static node numbering as reference info
     for ( const auto & node : mesh.local_node_ptr_range() )
@@ -608,7 +611,7 @@ public:
     std::unique_ptr<SparseMatrix<Number> > gold_mat_ptr =
       SparseMatrix<Number>::build(*TestCommWorld);
     SparseMatrix<Number> & gold_mat = *gold_mat_ptr;
-    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs);
+    gold_mat.init(n_new_dofs, n_old_dofs, n_new_dofs_local, n_old_dofs_local);
 
     // construct the gold projection matrix using static node numbering as reference info
     for ( const auto & node : mesh.local_node_ptr_range() )
@@ -669,6 +672,7 @@ public:
     Real diff_norm = proj_mat.linfty_norm();
     CPPUNIT_ASSERT(diff_norm/gold_norm < TOLERANCE*TOLERANCE);
   }
+#endif // LIBMESH_HAVE_PETSC
 #endif // LIBMESH_HAVE_METAPHYSICL
 #endif // LIBMESH_ENABLE_AMR
 
@@ -681,12 +685,14 @@ public:
 
 #ifdef LIBMESH_ENABLE_AMR
 #ifdef LIBMESH_HAVE_METAPHYSICL
+#ifdef LIBMESH_HAVE_PETSC
   // projection matrix tests
   void testProjectMatrixEdge2() { testProjectMatrix1D(EDGE2); }
   void testProjectMatrixQuad4() { testProjectMatrix2D(QUAD4); }
   void testProjectMatrixTri3() { testProjectMatrix2D(TRI3); }
   void testProjectMatrixHex8() { testProjectMatrix3D(HEX8); }
   void testProjectMatrixTet4() { testProjectMatrix3D(TET4); }
+#endif // LIBMESH_HAVE_PETSC
 #endif // LIBMESH_HAVE_METAPHYSICL
 #endif // LIBMESH_ENABLE_AMR
 

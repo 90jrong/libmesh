@@ -38,7 +38,7 @@ namespace libMesh
 {
 
 /**
- * This class implements a ``brute force'' goal-oriented error
+ * This class implements a "brute force" goal-oriented error
  * estimator which computes an estimate of error in a quantity of
  * interest based on the residual of the current coarse grid primal
  * solution as weighted against an adjoint solution on a uniformly
@@ -54,22 +54,17 @@ public:
   /**
    * Constructor.  Sets the most common default parameter values.
    */
-  AdjointRefinementEstimator() :
-    ErrorEstimator(),
-    number_h_refinements(1),
-    number_p_refinements(0),
-    _residual_evaluation_physics(libmesh_nullptr),
-    _qoi_set(QoISet())
-  {
-    // We're not actually going to use error_norm; our norms are
-    // absolute values of QoI error.
-    error_norm = INVALID_NORM;
-  }
+  AdjointRefinementEstimator();
 
   /**
-   * Destructor.
+   * Copy/move ctor, copy/move assignment operator, and destructor are
+   * all explicitly defaulted for this class.
    */
-  ~AdjointRefinementEstimator() {}
+  AdjointRefinementEstimator (const AdjointRefinementEstimator &) = default;
+  AdjointRefinementEstimator (AdjointRefinementEstimator &&) = default;
+  AdjointRefinementEstimator & operator= (const AdjointRefinementEstimator &) = default;
+  AdjointRefinementEstimator & operator= (AdjointRefinementEstimator &&) = default;
+  virtual ~AdjointRefinementEstimator() = default;
 
   /**
    * Access to the QoISet (default: weight all QoIs equally) to use
@@ -113,8 +108,7 @@ public:
     return computed_global_QoI_errors[qoi_index];
   }
 
-  virtual ErrorEstimatorType type() const
-  { return ADJOINT_REFINEMENT;}
+  virtual ErrorEstimatorType type() const;
 
   /**
    * How many h refinements to perform to get the fine grid

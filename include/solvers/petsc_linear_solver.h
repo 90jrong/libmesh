@@ -104,8 +104,7 @@ public:
   /**
    *  Constructor. Initializes Petsc data structures
    */
-  PetscLinearSolver (const libMesh::Parallel::Communicator & comm_in
-                     LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  PetscLinearSolver (const libMesh::Parallel::Communicator & comm_in);
 
   /**
    * Destructor.
@@ -115,14 +114,14 @@ public:
   /**
    * Release all memory and clear data structures.
    */
-  virtual void clear () libmesh_override;
+  virtual void clear () override;
 
   /**
    * Initialize data structures if not done so already.
    * Assigns a name, which is turned into an underscore-separated
    * prefix for the underlying KSP object.
    */
-  virtual void init (const char * name = libmesh_nullptr) libmesh_override;
+  virtual void init (const char * name = libmesh_nullptr) override;
 
   /**
    * Initialize data structures if not done so already plus much more
@@ -138,7 +137,7 @@ public:
    * Since field names are applied to DoF numberings, this method must
    * be called again after any System reinit.
    */
-  virtual void init_names (const System &) libmesh_override;
+  virtual void init_names (const System &) override;
 
   /**
    * After calling this method, all successive solves will be
@@ -148,7 +147,7 @@ public:
    * \p NULL pointer.
    */
   virtual void restrict_solve_to (const std::vector<unsigned int> * const dofs,
-                                  const SubsetSolveMode subset_solve_mode=SUBSET_ZERO) libmesh_override;
+                                  const SubsetSolveMode subset_solve_mode=SUBSET_ZERO) override;
 
   /**
    * Call the Petsc solver.  It calls the method below, using the
@@ -159,7 +158,7 @@ public:
          NumericVector<T> & solution_in,
          NumericVector<T> & rhs_in,
          const double tol,
-         const unsigned int m_its) libmesh_override
+         const unsigned int m_its) override
   {
     return this->solve(matrix_in, matrix_in, solution_in, rhs_in, tol, m_its);
   }
@@ -174,7 +173,7 @@ public:
                  NumericVector<T> & solution_in,
                  NumericVector<T> & rhs_in,
                  const double tol,
-                 const unsigned int m_its) libmesh_override;
+                 const unsigned int m_its) override;
 
   /**
    * This method allows you to call a linear solver while specifying
@@ -198,7 +197,7 @@ public:
          NumericVector<T> & solution,
          NumericVector<T> & rhs,
          const double tol,
-         const unsigned int m_its) libmesh_override;
+         const unsigned int m_its) override;
 
   /**
    * This function solves a system whose matrix is a shell matrix.
@@ -208,7 +207,7 @@ public:
          NumericVector<T> & solution_in,
          NumericVector<T> & rhs_in,
          const double tol,
-         const unsigned int m_its) libmesh_override;
+         const unsigned int m_its) override;
 
   /**
    * This function solves a system whose matrix is a shell matrix, but
@@ -221,7 +220,7 @@ public:
          NumericVector<T> & solution_in,
          NumericVector<T> & rhs_in,
          const double tol,
-         const unsigned int m_its) libmesh_override;
+         const unsigned int m_its) override;
 
   /**
    * \returns The raw PETSc preconditioner context pointer.
@@ -258,7 +257,7 @@ public:
   /**
    * \returns The solver's convergence flag
    */
-  virtual LinearConvergenceReason get_converged_reason() const libmesh_override;
+  virtual LinearConvergenceReason get_converged_reason() const override;
 
 private:
 
@@ -327,22 +326,6 @@ private:
 
 
 /*----------------------- functions ----------------------------------*/
-template <typename T>
-inline
-PetscLinearSolver<T>::PetscLinearSolver(const libMesh::Parallel::Communicator & comm_in) :
-  LinearSolver<T>(comm_in),
-  _restrict_solve_to_is(libmesh_nullptr),
-  _restrict_solve_to_is_complement(libmesh_nullptr),
-  _subset_solve_mode(SUBSET_ZERO)
-{
-  if (this->n_processors() == 1)
-    this->_preconditioner_type = ILU_PRECOND;
-  else
-    this->_preconditioner_type = BLOCK_JACOBI_PRECOND;
-}
-
-
-
 template <typename T>
 inline
 PetscLinearSolver<T>::~PetscLinearSolver ()

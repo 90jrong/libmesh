@@ -37,6 +37,7 @@ unit_tests_sources = \
   mesh/boundary_info.C \
   mesh/checkpoint.C \
   mesh/contains_point.C \
+  mesh/mesh_input.C \
   mesh/mixed_dim_mesh_test.C \
   mesh/nodal_neighbors.C \
   mesh/mesh_extruder.C \
@@ -80,16 +81,6 @@ endif
 
 check_PROGRAMS = # empty, append below
 noinst_PROGRAMS = # empty, append below
-
-if LIBMESH_ENABLE_CPPUNIT
-if LIBMESH_OPT_MODE
-  check_PROGRAMS         += unit_tests-opt
-  unit_tests_opt_SOURCES  = $(unit_tests_sources)
-  unit_tests_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
-  unit_tests_opt_CXXFLAGS = $(CXXFLAGS_OPT)
-  unit_tests_opt_LDADD    = $(top_builddir)/libmesh_opt.la
-endif
-endif
 
 # our GLIBC debugging preprocessor flags seem to potentially conflict
 # with libcppunit binaries.  Some cppunit versions work fine for us,
@@ -147,6 +138,16 @@ if LIBMESH_OPROF_MODE
 endif
 endif
 
+if LIBMESH_ENABLE_CPPUNIT
+if LIBMESH_OPT_MODE
+  check_PROGRAMS         += unit_tests-opt
+  unit_tests_opt_SOURCES  = $(unit_tests_sources)
+  unit_tests_opt_CPPFLAGS = $(CPPFLAGS_OPT) $(AM_CPPFLAGS)
+  unit_tests_opt_CXXFLAGS = $(CXXFLAGS_OPT)
+  unit_tests_opt_LDADD    = $(top_builddir)/libmesh_opt.la
+endif
+endif
+
 # Recursive automake builds subdirectories before parent directories.
 # But here we need the subdirectory to be able to link to
 # already-built parent directory libraries.
@@ -185,7 +186,8 @@ endif
 
 CLEANFILES = cube_mesh.xda \
              slit_mesh.xda slit_solution.xda \
-	     out.e
+	     out.e \
+	     mesh_with_soln.e
 
 # CLEANFILES only applies to files, handle directories separately
 clean-local:

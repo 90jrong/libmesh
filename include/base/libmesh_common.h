@@ -204,25 +204,12 @@ typedef float ErrorVectorReal;
 
 
 #ifdef LIBMESH_HAVE_MPI
-#ifndef LIBMESH_DISABLE_COMMWORLD
-/**
- * MPI Communicator to be used in the library.
- */
-extern MPI_Comm COMM_WORLD;
-#endif
 
 /**
  * MPI Communicator used to initialize libMesh.
  */
 extern MPI_Comm GLOBAL_COMM_WORLD;
 #else
-#ifndef LIBMESH_DISABLE_COMMWORLD
-/**
- * Something to use with CHKERRABORT if we're just using PETSc's MPI
- * "uni" stub.
- */
-extern int COMM_WORLD;
-#endif
 
 /**
  * Something to use with CHKERRABORT if we're just using PETSc's MPI
@@ -576,18 +563,9 @@ inline Tnew libmesh_cast_int (Told oldvar)
 #define LIBMESH_VERSION_ID(major,minor,patch) (((major) << 16) | ((minor) << 8) | ((patch) & 0xFF))
 
 
-/**
- * Allow for marking functions with \p override if the compiler
- * supports it.
- *
- * \note \p override ensures that the function is virtual and is
- * overriding a virtual function from the base class.
- */
-#ifdef LIBMESH_HAVE_CXX11_OVERRIDE
+// libmesh_override is simply a synonym for override as we now require
+// a C++11 compiler that supports this keyword.
 #define libmesh_override override
-#else
-#define libmesh_override
-#endif
 
 // Define C++03 backwards-compatible function deletion keyword.
 #ifdef LIBMESH_HAVE_CXX11_DELETED_FUNCTIONS

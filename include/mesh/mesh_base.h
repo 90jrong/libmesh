@@ -24,13 +24,21 @@
 #include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/boundary_info.h"
 #include "libmesh/dof_object.h" // for invalid_processor_id
-#include "libmesh/enum_elem_type.h"
 #include "libmesh/libmesh_common.h"
 #include "libmesh/multi_predicates.h"
 #include "libmesh/point_locator_base.h"
 #include "libmesh/variant_filter_iterator.h"
 #include "libmesh/parallel_object.h"
 #include "libmesh/simple_range.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum ElemType : int;
+}
+#else
+#include "libmesh/enum_elem_type.h"
+#endif
 
 // C++ Includes
 #include <cstddef>
@@ -78,24 +86,29 @@ public:
   MeshBase (const Parallel::Communicator & comm_in,
             unsigned char dim=1);
 
-#ifndef LIBMESH_DISABLE_COMMWORLD
-  /**
-   * Constructor which takes \p dim, the dimension of the mesh.  The
-   * mesh dimension can be changed (and may automatically be changed
-   * by mesh generation/loading) later.
-   *
-   * \deprecated LIBMESH_DISABLE_COMMWORLD is now the default, use the
-   * constructor that takes a Parallel::Communicator instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  MeshBase (unsigned char dim=1);
-#endif
-#endif
-
   /**
    * Copy-constructor.
    */
   MeshBase (const MeshBase & other_mesh);
+
+  /**
+   * Move-constructor - this function is defaulted out-of-line (in the
+   * C file) to play nicely with our forward declarations.
+   */
+  MeshBase(MeshBase &&);
+
+  /**
+   * Copy and move assignment are not allowed because MeshBase
+   * subclasses manually manage memory (Elems and Nodes) and therefore
+   * the default versions of these operators would leak memory.  Since
+   * we don't want to maintain non-default copy and move assignment
+   * operators at this time, the safest and most self-documenting
+   * approach is to delete them.
+   *
+   * If you need to copy a Mesh, use the clone() method.
+   */
+  MeshBase & operator= (const MeshBase &) = delete;
+  MeshBase & operator= (MeshBase &&) = delete;
 
   /**
    * Virtual "copy constructor"
@@ -618,6 +631,14 @@ public:
   virtual void delete_node (Node * n) = 0;
 
   /**
+   * Takes ownership of node \p n on this partition of a distributed
+   * mesh, by setting n.processor_id() to this->processor_id(), as
+   * well as changing n.id() and moving it in the mesh's internal
+   * container to give it a new authoritative id.
+   */
+  virtual void own_node (Node &) {}
+
+  /**
    * Changes the id of node \p old_id, both by changing node(old_id)->id() and
    * by moving node(old_id) in the mesh's internal container.  No element with
    * the id \p new_id should already exist.
@@ -746,6 +767,17 @@ public:
    * when being prepared for use.  This may slightly adversely affect
    * performance during subsequent element access, particularly when
    * using a distributed mesh.
+   *
+   * Important! When allow_renumbering(false) is set,
+   * ReplicatedMesh::n_elem() and ReplicatedMesh::n_nodes() will
+   * return *wrong* values whenever adaptive refinement is followed by
+   * adaptive coarsening. (Uniform refinement followed by uniform
+   * coarsening is OK.) This is due to the fact that n_elem() and
+   * n_nodes() are currently O(1) functions that just return the size
+   * of the respective underlying vectors, and this size is wrong when
+   * the numbering includes "gaps" from nodes and elements that have
+   * been deleted. We plan to implement a caching mechanism in the
+   * near future that will fix this incorrect behavior.
    */
   void allow_renumbering(bool allow) { _skip_renumber_nodes_and_elements = !allow; }
   bool allow_renumbering() const { return !_skip_renumber_nodes_and_elements; }
@@ -771,9 +803,13 @@ public:
    * imbalances.  However you might still want to use this if the
    * communication and computation of the rebalance and repartition is
    * too high for your application.
+   *
+   * It is also possible, for backwards-compatibility purposes, to
+   * skip partitioning by resetting the partitioner() pointer for this
+   * mesh.
    */
   void skip_partitioning(bool skip) { _skip_partitioning = skip; }
-  bool skip_partitioning() const { return _skip_partitioning; }
+  bool skip_partitioning() const { return _skip_partitioning || !_partitioner.get(); }
 
   /**
    * Adds a functor which can specify ghosting requirements for use on
@@ -1450,15 +1486,6 @@ protected:
    * it can create and interact with \p BoundaryMesh.
    */
   friend class BoundaryInfo;
-
-private:
-  /**
-   *  The default shallow assignment operator is a very bad idea, so
-   *  we'll make it a compile-time error to try and do it from other
-   *  classes and a link-time error to try and do it from this class.
-   *  Use clone() if necessary.
-   */
-  MeshBase & operator= (const MeshBase & other);
 };
 
 

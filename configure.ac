@@ -2,7 +2,7 @@
 # configure.ac file for libmesh.  Used by Automake to generate
 # aclocal.m4 and Makefile.in. See also: http://tinyurl.com/hatuyfn
 # --------------------------------------------------------------
-AC_INIT([libmesh], [1.3.0-pre], [libmesh-users@lists.sourceforge.net], [libmesh], [http://libmesh.github.io])
+AC_INIT([libmesh], [1.4.0-pre], [libmesh-users@lists.sourceforge.net], [libmesh], [http://libmesh.github.io])
 AC_PREREQ([2.69])
 
 # by default CFLAGS and CXXFLAGS are set to '-g -O2' on systems that support them.
@@ -126,6 +126,37 @@ AC_SUBST(PERL)
 # --------------------------------------------------------------
 LIBMESH_SET_COMPILERS
 
+# By default we do not set any -march flag, but this can be turned on
+# by configuring with --enable-march
+AC_ARG_ENABLE(march,
+              AC_HELP_STRING([--enable-march],
+                             [Determine the correct -march flag for this system]),
+              [AS_CASE("${enableval}",
+                       [yes], [enablemarch=yes],
+                       [no],  [enablemarch=no],
+                       [AC_MSG_ERROR(bad value ${enableval} for --enable-march)])],
+              [enablemarch=no])
+
+# Set the value of the cache variable $ax_cv_gcc_archflag based
+# on the current architecture. For the first argument:
+# [yes] = generate portable code (-mtune)
+# [no]  = generate architecture-specific code (-march)
+# This script is specifc to GCC; the flags it determines might not
+# work for other compilers. There is also an optional third
+# argument which controls what happens when determining an arch flag
+# fails, we don't do anything in that case.
+AS_IF([test "x$enablemarch" != "xno"],
+      [
+        AX_GCC_ARCHFLAG([no],
+                        [
+                          dnl Action if success - append $ax_cv_gcc_archflag to CXXFLAGS flags for
+                          dnl optimized and devel METHODS. I don't think it is needed with -O0 when
+                          dnl debugging.
+                          CXXFLAGS_OPT="$CXXFLAGS_OPT $ax_cv_gcc_archflag"
+                          CXXFLAGS_DEVEL="$CXXFLAGS_DEVEL $ax_cv_gcc_archflag"
+                        ])
+      ])
+
 # --------------------------------------------------------------
 # Allow the user to explicitly turn off C++11 support by saying
 # --disable-cxx11?  This is no longer supported.
@@ -220,31 +251,57 @@ LIBMESH_TEST_CXX11_MAKE_UNIQUE_WORKAROUND
 AS_IF([test "x$have_cxx11_make_unique_workaround" != "xyes"],
       [AC_MSG_ERROR([libMesh requires C++11 variadic template support])])
 
+LIBMESH_TEST_CXX11_TUPLE
+AS_IF([test "x$have_cxx11_tuple" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 std::tuple support])])
+
+LIBMESH_TEST_CXX11_LAMBDA
+AS_IF([test "x$have_cxx11_lambda" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 lambda support])])
+
+LIBMESH_TEST_CXX11_FIXED_TYPE_ENUM
+AS_IF([test "x$have_cxx11_fixed_type_enum" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 fixed type enumeration support])])
+
+LIBMESH_TEST_CXX11_FIXED_TYPE_ENUM_FWD
+AS_IF([test "x$have_cxx11_fixed_type_enum_fwd" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 fixed type enumeration forward declaration support])])
+
+LIBMESH_TEST_CXX11_OVERRIDE
+AS_IF([test "x$have_cxx11_override" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 compiler support the override keyword])])
+
+LIBMESH_TEST_CXX11_MOVE_CONSTRUCTORS
+AS_IF([test "x$have_cxx11_move_constructors" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 move constructor support])])
+
+LIBMESH_TEST_CXX11_DELETED_FUNCTIONS
+AS_IF([test "x$have_cxx11_deleted_functions" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 deleted function support])])
+
+LIBMESH_TEST_CXX11_DEFAULTED_FUNCTIONS
+AS_IF([test "x$have_cxx11_defaulted_functions" != "xyes"],
+      [AC_MSG_ERROR([libMesh requires C++11 defaulted function support])])
+
 # --------------------------------------------------------------
 # Test for optional modern C++ features, which libMesh offers shims
 # for and/or which libMesh applications may want to selectively use.
 # --------------------------------------------------------------
-LIBMESH_TEST_CXX11_MOVE
-LIBMESH_TEST_CXX11_MOVE_CONSTRUCTORS
 LIBMESH_TEST_CXX11_DECLTYPE
 LIBMESH_TEST_CXX11_RVALUE_REFERENCES
-LIBMESH_TEST_CXX11_LAMBDA
 LIBMESH_TEST_CXX11_CONSTEXPR
 LIBMESH_TEST_CXX11_ALIAS_DECLARATIONS
 LIBMESH_TEST_CXX11_SHARED_PTR
 LIBMESH_TEST_CXX14_MAKE_UNIQUE
 LIBMESH_TEST_CXX11_REGEX
-LIBMESH_TEST_CXX11_OVERRIDE
 LIBMESH_TEST_CXX11_VARIADIC_TEMPLATES
 LIBMESH_TEST_CXX11_THREAD
 LIBMESH_TEST_CXX11_CONDITION_VARIABLE
 LIBMESH_TEST_CXX11_TYPE_TRAITS
 LIBMESH_TEST_CXX11_MATH_FUNCS
-LIBMESH_TEST_CXX11_DELETED_FUNCTIONS
 LIBMESH_TEST_CXX11_FINAL
 LIBMESH_TEST_CXX11_NULLPTR
 LIBMESH_TEST_CXX11_TO_STRING
-LIBMESH_TEST_CXX11_NOEXCEPT
 LIBMESH_TEST_CXX17_FALLTHROUGH_ATTRIBUTE
 
 #-----------------------------------------------------

@@ -53,8 +53,7 @@ public:
   /**
    *  Constructor. Initializes Petsc data structures
    */
-  SlepcEigenSolver(const Parallel::Communicator & comm_in
-                   LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  SlepcEigenSolver(const Parallel::Communicator & comm_in);
 
 
   /**
@@ -66,13 +65,13 @@ public:
   /**
    * Release all memory and clear data structures.
    */
-  virtual void clear() libmesh_override;
+  virtual void clear() override;
 
 
   /**
    * Initialize data structures if not done so already.
    */
-  virtual void init() libmesh_override;
+  virtual void init() override;
 
 
   /**
@@ -90,7 +89,7 @@ public:
                   int nev,
                   int ncv,
                   const double tol,
-                  const unsigned int m_its) libmesh_override;
+                  const unsigned int m_its) override;
 
   /**
    * Same as above except that matrix_A is a ShellMatrix
@@ -101,7 +100,7 @@ public:
                   int nev,
                   int ncv,
                   const double tol,
-                  const unsigned int m_its) libmesh_override;
+                  const unsigned int m_its) override;
 
 
   /**
@@ -122,7 +121,7 @@ public:
                     int nev,
                     int ncv,
                     const double tol,
-                    const unsigned int m_its) libmesh_override;
+                    const unsigned int m_its) override;
 
   /**
    * Solve generalized eigenproblem when matrix_A is of
@@ -134,7 +133,7 @@ public:
                     int nev,
                     int ncv,
                     const double tol,
-                    const unsigned int m_its) libmesh_override;
+                    const unsigned int m_its) override;
 
   /**
    * Solve generalized eigenproblem when matrix_A is of
@@ -152,7 +151,7 @@ public:
                     int nev,
                     int ncv,
                     const double tol,
-                    const unsigned int m_its) libmesh_override;
+                    const unsigned int m_its) override;
 
   /**
    * Solve generalized eigenproblem when both matrix_A and
@@ -170,7 +169,7 @@ public:
                     int nev,
                     int ncv,
                     const double tol,
-                    const unsigned int m_its) libmesh_override;
+                    const unsigned int m_its) override;
 
 
 
@@ -182,13 +181,13 @@ public:
    */
   virtual std::pair<Real, Real>
   get_eigenpair (dof_id_type i,
-                 NumericVector<T> & solution_in) libmesh_override;
+                 NumericVector<T> & solution_in) override;
 
   /**
    * Same as above, but does not copy the eigenvector.
    */
   virtual std::pair<Real, Real>
-  get_eigenvalue (dof_id_type i) libmesh_override;
+  get_eigenvalue (dof_id_type i) override;
 
   /**
    * \returns The relative error \f$ ||A x - \lambda x|| / |\lambda x| \f$
@@ -199,13 +198,13 @@ public:
   /**
    * Attach a deflation space defined by a single vector.
    */
-  virtual void attach_deflation_space(NumericVector<T> & deflation_vector) libmesh_override;
+  virtual void attach_deflation_space(NumericVector<T> & deflation_vector) override;
 
   /**
    * Use \p initial_space_in as the initial guess.
    */
   virtual void
-  set_initial_space(NumericVector<T> & initial_space_in) libmesh_override;
+  set_initial_space(NumericVector<T> & initial_space_in) override;
 
   /**
    * \returns The raw SLEPc \p EPS pointer.
@@ -271,26 +270,6 @@ private:
   EPS _eps;
 
 };
-
-
-/*----------------------- inline functions ----------------------------------*/
-template <typename T>
-inline
-SlepcEigenSolver<T>::SlepcEigenSolver (const Parallel::Communicator & comm_in) :
-  EigenSolver<T>(comm_in)
-{
-  this->_eigen_solver_type  = ARNOLDI;
-  this->_eigen_problem_type = NHEP;
-}
-
-
-
-template <typename T>
-inline
-SlepcEigenSolver<T>::~SlepcEigenSolver ()
-{
-  this->clear ();
-}
 
 } // namespace libMesh
 

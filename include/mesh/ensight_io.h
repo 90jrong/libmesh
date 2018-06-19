@@ -21,9 +21,17 @@
 
 // libMesh includes
 #include "libmesh/libmesh.h"
-#include "libmesh/enum_elem_type.h"
 #include "libmesh/mesh_base.h"
 #include "libmesh/mesh_output.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum ElemType : int;
+}
+#else
+#include "libmesh/enum_elem_type.h"
+#endif
 
 // C++ includes
 #include <map>
@@ -107,7 +115,7 @@ public:
   /**
    * Calls this->write(0);
    */
-  virtual void write (const std::string & name) libmesh_override;
+  virtual void write (const std::string & name) override;
 
 private:
   // Represents the vectors that are used by the EnsightIO

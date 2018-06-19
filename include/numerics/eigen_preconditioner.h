@@ -50,19 +50,18 @@ public:
   /**
    *  Constructor. Initializes EigenPreconditioner data structures
    */
-  EigenPreconditioner (const libMesh::Parallel::Communicator & comm_in
-                       LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  EigenPreconditioner (const libMesh::Parallel::Communicator & comm_in);
 
   /**
    * Destructor.
    */
   virtual ~EigenPreconditioner ();
 
-  virtual void apply(const NumericVector<T> & x, NumericVector<T> & y) libmesh_override;
+  virtual void apply(const NumericVector<T> & x, NumericVector<T> & y) override;
 
-  virtual void clear () libmesh_override {}
+  virtual void clear () override {}
 
-  virtual void init () libmesh_override;
+  virtual void init () override;
 };
 
 

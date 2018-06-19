@@ -40,6 +40,7 @@
 #include "libmesh/string_to_enum.h"
 #include "libmesh/unstructured_mesh.h"
 #include "libmesh/partitioner.h"
+#include "libmesh/enum_order.h"
 
 namespace
 {
@@ -665,9 +666,23 @@ void UnstructuredMesh::all_second_order (const bool full_ordered)
               so_elem->set_node(son) = so_node;
 
               // We need to ensure that the processor who should own a
-              // node *knows* they own the node.
-              if (so_node->processor_id() > lo_elem->processor_id())
-                so_node->processor_id() = lo_elem->processor_id();
+              // node *knows* they own the node.  And because
+              // Node::choose_processor_id() may depend on Node id,
+              // which may not yet be authoritative, we still have to
+              // use a dumb-but-id-independent partitioning heuristic.
+              processor_id_type chosen_pid =
+                std::min (so_node->processor_id(),
+                          lo_elem->processor_id());
+
+              // Plus, if we just discovered that we own this node,
+              // then on a distributed mesh we need to make sure to
+              // give it a valid id, not just a placeholder id!
+              if (!this->is_replicated() &&
+                  so_node->processor_id() != this->processor_id() &&
+                  chosen_pid == this->processor_id())
+                this->own_node(*so_node);
+
+              so_node->processor_id() = chosen_pid;
             }
         }
 
@@ -715,9 +730,11 @@ void UnstructuredMesh::all_second_order (const bool full_ordered)
 
   STOP_LOG("all_second_order()", "Mesh");
 
-  // In a DistributedMesh our ghost node processor ids may be bad,
+  // On a DistributedMesh our ghost node processor ids may be bad,
   // the ids of nodes touching remote elements may be inconsistent,
-  // and unique_ids of newly added non-local nodes remain unset.
+  // unique_ids of newly added non-local nodes remain unset, and our
+  // partitioning of new nodes may not be well balanced.
+  //
   // make_nodes_parallel_consistent() will fix all this.
   if (!this->is_serial())
     MeshCommunication().make_nodes_parallel_consistent (*this);
@@ -1846,20 +1863,15 @@ void MeshTools::Modification::change_boundary_id (MeshBase & mesh,
   BoundaryInfo & bi = mesh.get_boundary_info();
 
   {
-    // Build a list of all nodes that have boundary IDs
-    std::vector<dof_id_type> node_list;
-    std::vector<boundary_id_type> bc_id_list;
-    bi.build_node_list (node_list, bc_id_list);
-
     // Temporary vector to hold ids
     std::vector<boundary_id_type> bndry_ids;
 
-    // For each node with the old_id...
-    for (std::size_t idx=0; idx<node_list.size(); ++idx)
-      if (bc_id_list[idx] == old_id)
+    // build_node_list returns a vector of (node, bc) tuples.
+    for (const auto & t : bi.build_node_list())
+      if (std::get<1>(t) == old_id)
         {
           // Get the node in question
-          const Node * node = mesh.node_ptr(node_list[idx]);
+          const Node * node = mesh.node_ptr(std::get<0>(t));
 
           // Get all the current IDs for this node.
           bi.boundary_ids(node, bndry_ids);
@@ -1876,24 +1888,18 @@ void MeshTools::Modification::change_boundary_id (MeshBase & mesh,
   }
 
   {
-    // Build a list of all edges that have boundary IDs
-    std::vector<dof_id_type> elem_list;
-    std::vector<unsigned short int> edge_list;
-    std::vector<boundary_id_type> bc_id_list;
-    bi.build_edge_list (elem_list, edge_list, bc_id_list);
-
     // Temporary vector to hold ids
     std::vector<boundary_id_type> bndry_ids;
 
-    // For each edge with the old_id...
-    for (std::size_t idx=0; idx<elem_list.size(); ++idx)
-      if (bc_id_list[idx] == old_id)
+    // build_edge_list returns a vector of (elem, side, bc) tuples.
+    for (const auto & t : bi.build_edge_list())
+      if (std::get<2>(t) == old_id)
         {
           // Get the elem in question
-          const Elem * elem = mesh.elem_ptr(elem_list[idx]);
+          const Elem * elem = mesh.elem_ptr(std::get<0>(t));
 
           // The edge of the elem in question
-          unsigned short int edge = edge_list[idx];
+          unsigned short int edge = std::get<1>(t);
 
           // Get all the current IDs for the edge in question.
           bi.edge_boundary_ids(elem, edge, bndry_ids);
@@ -1910,24 +1916,18 @@ void MeshTools::Modification::change_boundary_id (MeshBase & mesh,
   }
 
   {
-    // Build a list of all shell-faces that have boundary IDs
-    std::vector<dof_id_type> elem_list;
-    std::vector<unsigned short int> shellface_list;
-    std::vector<boundary_id_type> bc_id_list;
-    bi.build_shellface_list (elem_list, shellface_list, bc_id_list);
-
     // Temporary vector to hold ids
     std::vector<boundary_id_type> bndry_ids;
 
-    // For each shellface with the old_id...
-    for (std::size_t idx=0; idx<elem_list.size(); ++idx)
-      if (bc_id_list[idx] == old_id)
+    // build_shellface_list returns a vector of (elem, side, bc) tuples.
+    for (const auto & t : bi.build_shellface_list())
+      if (std::get<2>(t) == old_id)
         {
           // Get the elem in question
-          const Elem * elem = mesh.elem_ptr(elem_list[idx]);
+          const Elem * elem = mesh.elem_ptr(std::get<0>(t));
 
           // The shellface of the elem in question
-          unsigned short int shellface = shellface_list[idx];
+          unsigned short int shellface = std::get<1>(t);
 
           // Get all the current IDs for the shellface in question.
           bi.shellface_boundary_ids(elem, shellface, bndry_ids);
@@ -1944,24 +1944,18 @@ void MeshTools::Modification::change_boundary_id (MeshBase & mesh,
   }
 
   {
-    // Build a list of all sides that have boundary IDs
-    std::vector<dof_id_type> elem_list;
-    std::vector<unsigned short int> side_list;
-    std::vector<boundary_id_type> bc_id_list;
-    bi.build_side_list (elem_list, side_list, bc_id_list);
-
     // Temporary vector to hold ids
     std::vector<boundary_id_type> bndry_ids;
 
-    // For each side with the old_id...
-    for (std::size_t idx=0; idx<elem_list.size(); ++idx)
-      if (bc_id_list[idx] == old_id)
+    // build_side_list returns a vector of (elem, side, bc) tuples.
+    for (const auto & t : bi.build_side_list())
+      if (std::get<2>(t) == old_id)
         {
           // Get the elem in question
-          const Elem * elem = mesh.elem_ptr(elem_list[idx]);
+          const Elem * elem = mesh.elem_ptr(std::get<0>(t));
 
           // The side of the elem in question
-          unsigned short int side = side_list[idx];
+          unsigned short int side = std::get<1>(t);
 
           // Get all the current IDs for the side in question.
           bi.boundary_ids(elem, side, bndry_ids);

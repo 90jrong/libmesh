@@ -39,8 +39,7 @@ namespace libMesh
 class MeshfreeSolutionTransfer : public SolutionTransfer
 {
 public:
-  MeshfreeSolutionTransfer(const libMesh::Parallel::Communicator & comm_in
-                           LIBMESH_CAN_DEFAULT_TO_COMMWORLD) :
+  MeshfreeSolutionTransfer(const libMesh::Parallel::Communicator & comm_in) :
     SolutionTransfer(comm_in)
   {}
 
@@ -49,7 +48,7 @@ public:
   /**
    * Transfer the values of a variable to another.
    */
-  virtual void transfer(const Variable & from_var, const Variable & to_var) libmesh_override;
+  virtual void transfer(const Variable & from_var, const Variable & to_var) override;
 };
 
 } // namespace libMesh

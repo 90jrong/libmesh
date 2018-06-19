@@ -42,14 +42,13 @@ namespace libMesh
 class DirectSolutionTransfer : public SolutionTransfer
 {
 public:
-  DirectSolutionTransfer(const Parallel::Communicator & comm_in
-                         LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  DirectSolutionTransfer(const Parallel::Communicator & comm_in);
   virtual ~DirectSolutionTransfer();
 
   /**
    * Transfer the values of a variable to another.
    */
-  virtual void transfer(const Variable & from_var, const Variable & to_var) libmesh_override;
+  virtual void transfer(const Variable & from_var, const Variable & to_var) override;
 };
 
 } // namespace libMesh

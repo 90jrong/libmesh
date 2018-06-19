@@ -24,8 +24,16 @@
 #include "libmesh/libmesh_common.h"
 #include "libmesh/parameters.h"
 #include "libmesh/system.h"
-#include "libmesh/enum_xdr_mode.h"
 #include "libmesh/parallel_object.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum XdrMODE : int;
+}
+#else
+#include "libmesh/enum_xdr_mode.h"
+#endif
 
 // HP aCC needs these for some reason
 #ifdef __HP_aCC
@@ -316,6 +324,13 @@ public:
    */
   std::unique_ptr<NumericVector<Number>>
   build_parallel_solution_vector(const std::set<std::string> * system_names=libmesh_nullptr) const;
+
+  /**
+   * Retrieve \p vars_active_subdomains, which indicates the active
+   * subdomains for each variable in \p names.
+   */
+  void get_vars_active_subdomains(const std::vector<std::string> & names,
+                                  std::vector<std::set<subdomain_id_type>> & vars_active_subdomains) const;
 
   /**
    * Retrieve the solution data for CONSTANT MONOMIALs.  If \p names

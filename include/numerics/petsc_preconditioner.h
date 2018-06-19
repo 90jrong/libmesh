@@ -27,11 +27,18 @@
 // Local includes
 #include "libmesh/preconditioner.h"
 #include "libmesh/libmesh_common.h"
-#include "libmesh/enum_solver_package.h"
-#include "libmesh/enum_preconditioner_type.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/libmesh.h"
 #include "libmesh/petsc_macro.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum PreconditionerType : int;
+}
+#else
+#include "libmesh/enum_preconditioner_type.h"
+#endif
 
 // Petsc includes
 #include "petscpc.h"
@@ -60,19 +67,18 @@ public:
   /**
    *  Constructor. Initializes PetscPreconditioner data structures
    */
-  PetscPreconditioner (const libMesh::Parallel::Communicator & comm_in
-                       LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  PetscPreconditioner (const libMesh::Parallel::Communicator & comm_in);
 
   /**
    * Destructor.
    */
   virtual ~PetscPreconditioner ();
 
-  virtual void apply(const NumericVector<T> & x, NumericVector<T> & y) libmesh_override;
+  virtual void apply(const NumericVector<T> & x, NumericVector<T> & y) override;
 
-  virtual void clear () libmesh_override;
+  virtual void clear () override;
 
-  virtual void init () libmesh_override;
+  virtual void init () override;
 
   /**
    * \returns The PETSc PC object.  Can be useful for implementing

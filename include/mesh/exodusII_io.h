@@ -75,12 +75,12 @@ public:
    * by cubit.  Works in 2D for \p TRIs, \p TRI6s, \p QUAD s, and \p QUAD9s.
    * Works in 3D for \p TET4s, \p TET10s, \p HEX8s, and \p HEX27s.
    */
-  virtual void read (const std::string & name) libmesh_override;
+  virtual void read (const std::string & name) override;
 
   /**
    * This method implements writing a mesh to a specified file.
    */
-  virtual void write (const std::string & fname) libmesh_override;
+  virtual void write (const std::string & fname) override;
 
   /**
    * Set the flag indicating if we should be verbose.
@@ -189,20 +189,21 @@ public:
    * avoid warnings about hidden overloaded virtual functions.
    */
   using MeshOutput<MeshBase>::write_nodal_data;
+  using MeshOutput<MeshBase>::write_nodal_data_discontinuous;
 
   /**
    * Write out a nodal solution.
    */
   virtual void write_nodal_data (const std::string &,
                                  const std::vector<Number> &,
-                                 const std::vector<std::string> &) libmesh_override;
+                                 const std::vector<std::string> &) override;
 
   /**
    * Write out a discontinuous nodal solution.
    */
   void write_nodal_data_discontinuous (const std::string &,
                                        const std::vector<Number> &,
-                                       const std::vector<std::string> &);
+                                       const std::vector<std::string> &) override;
 
   /**
    * Write out global variables.
@@ -297,6 +298,21 @@ public:
    */
   const std::vector<std::string> & get_nodal_var_names();
 
+#ifdef LIBMESH_HAVE_EXODUS_API
+  /**
+   * Return a reference to the ExodusII_IO_Helper object.
+   */
+  ExodusII_IO_Helper & get_exio_helper();
+#endif
+
+  /**
+   * This function factors out a bunch of code which is common to the
+   * write_nodal_data() and write_nodal_data_discontinuous() functions
+   */
+  void write_nodal_data_common(std::string fname,
+                               const std::vector<std::string> & names,
+                               bool continuous=true);
+
 private:
   /**
    * Only attempt to instantiate an ExodusII helper class
@@ -329,14 +345,6 @@ private:
    * If this is empty then all variables are output.
    */
   std::vector<std::string> _output_variables;
-
-  /**
-   * This function factors out a bunch of code which is common to the
-   * write_nodal_data() and write_nodal_data_discontinuous() functions
-   */
-  void write_nodal_data_common(std::string fname,
-                               const std::vector<std::string> & names,
-                               bool continuous=true);
 
   /**
    * If true, _output_variables is allowed to remain empty.

@@ -39,13 +39,13 @@ namespace libMesh
 class MeshFunctionSolutionTransfer : public SolutionTransfer
 {
 public:
-  MeshFunctionSolutionTransfer(const libMesh::Parallel::Communicator & comm LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  MeshFunctionSolutionTransfer(const libMesh::Parallel::Communicator & comm);
   virtual ~MeshFunctionSolutionTransfer();
 
   /**
    * Transfer the values of a variable to another.
    */
-  virtual void transfer(const Variable & from_var, const Variable & to_var) libmesh_override;
+  virtual void transfer(const Variable & from_var, const Variable & to_var) override;
 };
 
 } // namespace libMesh

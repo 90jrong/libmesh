@@ -73,8 +73,7 @@ public:
    *
    * You have to initialize the matrix before usage with \p init(...).
    */
-  EpetraMatrix (const Parallel::Communicator & comm
-                LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+  EpetraMatrix (const Parallel::Communicator & comm);
 
   /**
    * Constructor.  Creates a EpetraMatrix assuming you already have a
@@ -85,8 +84,7 @@ public:
    * with the EpetraMatrix.
    */
   EpetraMatrix (Epetra_FECrsMatrix * m,
-                const Parallel::Communicator & comm
-                LIBMESH_CAN_DEFAULT_TO_COMMWORLD);
+                const Parallel::Communicator & comm);
 
   /**
    * Destructor. Free all memory, but do not release the memory of the
@@ -97,7 +95,7 @@ public:
   /**
    * The \p EpetraMatrix needs the full sparsity pattern.
    */
-  virtual bool need_full_sparsity_pattern () const libmesh_override
+  virtual bool need_full_sparsity_pattern () const override
   { return true; }
 
   /**
@@ -105,7 +103,7 @@ public:
    * underlying matrix storage scheme how to map the \f$ (i,j) \f$
    * elements.
    */
-  virtual void update_sparsity_pattern (const SparsityPattern::Graph &) libmesh_override;
+  virtual void update_sparsity_pattern (const SparsityPattern::Graph &) override;
 
   virtual void init (const numeric_index_type m,
                      const numeric_index_type n,
@@ -113,38 +111,38 @@ public:
                      const numeric_index_type n_l,
                      const numeric_index_type nnz=30,
                      const numeric_index_type noz=10,
-                     const numeric_index_type blocksize=1) libmesh_override;
+                     const numeric_index_type blocksize=1) override;
 
-  virtual void init () libmesh_override;
+  virtual void init () override;
 
-  virtual void clear () libmesh_override;
+  virtual void clear () override;
 
-  virtual void zero () libmesh_override;
+  virtual void zero () override;
 
-  virtual void close () libmesh_override;
+  virtual void close () override;
 
-  virtual numeric_index_type m () const libmesh_override;
+  virtual numeric_index_type m () const override;
 
-  virtual numeric_index_type n () const libmesh_override;
+  virtual numeric_index_type n () const override;
 
-  virtual numeric_index_type row_start () const libmesh_override;
+  virtual numeric_index_type row_start () const override;
 
-  virtual numeric_index_type row_stop () const libmesh_override;
+  virtual numeric_index_type row_stop () const override;
 
   virtual void set (const numeric_index_type i,
                     const numeric_index_type j,
-                    const T value) libmesh_override;
+                    const T value) override;
 
   virtual void add (const numeric_index_type i,
                     const numeric_index_type j,
-                    const T value) libmesh_override;
+                    const T value) override;
 
   virtual void add_matrix (const DenseMatrix<T> & dm,
                            const std::vector<numeric_index_type> & rows,
-                           const std::vector<numeric_index_type> & cols) libmesh_override;
+                           const std::vector<numeric_index_type> & cols) override;
 
   virtual void add_matrix (const DenseMatrix<T> & dm,
-                           const std::vector<numeric_index_type> & dof_indices) libmesh_override;
+                           const std::vector<numeric_index_type> & dof_indices) override;
 
   /**
    * Compute A += a*X for scalar \p a, matrix \p X.
@@ -156,22 +154,22 @@ public:
    * \note \p X will be closed, if not already done, before performing
    * any work.
    */
-  virtual void add (const T a, SparseMatrix<T> & X) libmesh_override;
+  virtual void add (const T a, SparseMatrix<T> & X) override;
 
   virtual T operator () (const numeric_index_type i,
-                         const numeric_index_type j) const libmesh_override;
+                         const numeric_index_type j) const override;
 
-  virtual Real l1_norm () const libmesh_override;
+  virtual Real l1_norm () const override;
 
-  virtual Real linfty_norm () const libmesh_override;
+  virtual Real linfty_norm () const override;
 
-  virtual bool closed() const libmesh_override;
+  virtual bool closed() const override;
 
-  virtual void print_personal(std::ostream & os=libMesh::out) const libmesh_override;
+  virtual void print_personal(std::ostream & os=libMesh::out) const override;
 
-  virtual void get_diagonal (NumericVector<T> & dest) const libmesh_override;
+  virtual void get_diagonal (NumericVector<T> & dest) const override;
 
-  virtual void get_transpose (SparseMatrix<T> & dest) const libmesh_override;
+  virtual void get_transpose (SparseMatrix<T> & dest) const override;
 
   /**
    * Swaps the internal data pointers, no actual values are swapped.

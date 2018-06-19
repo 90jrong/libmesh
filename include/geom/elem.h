@@ -27,10 +27,7 @@
 #include "libmesh/id_types.h"
 #include "libmesh/reference_counted_object.h"
 #include "libmesh/node.h"
-#include "libmesh/enum_elem_type.h"
-#include "libmesh/enum_elem_quality.h"
-#include "libmesh/enum_order.h"
-#include "libmesh/enum_io_package.h"
+#include "libmesh/enum_elem_type.h" // INVALID_ELEM
 #include "libmesh/auto_ptr.h" // deprecated
 #include "libmesh/multi_predicates.h"
 #include "libmesh/pointer_to_pointer_iter.h"
@@ -38,6 +35,19 @@
 #include "libmesh/simple_range.h"
 #include "libmesh/variant_filter_iterator.h"
 #include "libmesh/hashword.h" // Used in compute_key() functions
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum ElemQuality : int;
+enum IOPackage : int;
+enum Order : int;
+}
+#else
+#include "libmesh/enum_elem_quality.h"
+#include "libmesh/enum_io_package.h"
+#include "libmesh/enum_order.h"
+#endif
 
 // C++ includes
 #include <algorithm>
@@ -105,6 +115,20 @@ protected:
         Node ** nodelinkdata);
 
 public:
+
+  /**
+   * Elems are responsible for allocating and deleting their children
+   * during refinement, so they cannot be (default) copied or
+   * assigned. We therefore explicitly delete these operations.  Note
+   * that because _children is a C-style array, an Elem cannot even be
+   * safely default move-constructed (we would have to maintain a
+   * custom move constructor that explicitly sets _children to nullptr
+   * to do this safely).
+   */
+  Elem (Elem &&) = delete;
+  Elem (const Elem &) = delete;
+  Elem & operator= (const Elem &) = delete;
+  Elem & operator= (Elem &&) = delete;
 
   /**
    * Destructor.  Frees all the memory associated with the element.
@@ -2874,7 +2898,7 @@ SimpleRange<Elem::ConstNeighborPtrIter> Elem::neighbor_ptr_range() const
 #define LIBMESH_ENABLE_TOPOLOGY_CACHES                                  \
   virtual                                                               \
   std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> & \
-  _get_bracketing_node_cache() const libmesh_override                   \
+  _get_bracketing_node_cache() const override                   \
   {                                                                     \
     static std::vector<std::vector<std::vector<std::vector<std::pair<unsigned char, unsigned char>>>>> c; \
     return c;                                                           \
@@ -2882,7 +2906,7 @@ SimpleRange<Elem::ConstNeighborPtrIter> Elem::neighbor_ptr_range() const
                                                                         \
   virtual                                                               \
   std::vector<std::vector<std::vector<signed char>>> &                  \
-  _get_parent_indices_cache() const libmesh_override                    \
+  _get_parent_indices_cache() const override                    \
   {                                                                     \
     static std::vector<std::vector<std::vector<signed char>>> c;        \
     return c;                                                           \

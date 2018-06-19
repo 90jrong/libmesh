@@ -37,6 +37,8 @@
 #include "libmesh/partitioner.h"
 #include "libmesh/point_locator_base.h"
 #include "libmesh/threads.h"
+#include "libmesh/enum_elem_type.h"
+#include "libmesh/enum_point_locator_type.h"
 
 
 namespace libMesh
@@ -72,36 +74,6 @@ MeshBase::MeshBase (const Parallel::Communicator & comm_in,
 }
 
 
-#ifndef LIBMESH_DISABLE_COMMWORLD
-#ifdef LIBMESH_ENABLE_DEPRECATED
-MeshBase::MeshBase (unsigned char d) :
-  ParallelObject (CommWorld),
-  boundary_info  (new BoundaryInfo(*this)),
-  _n_parts       (1),
-  _is_prepared   (false),
-  _point_locator (),
-  _count_lower_dim_elems_in_point_locator(true),
-  _partitioner   (),
-#ifdef LIBMESH_ENABLE_UNIQUE_ID
-  _next_unique_id(DofObject::invalid_unique_id),
-#endif
-  _skip_partitioning(libMesh::on_command_line("--skip-partitioning")),
-  _skip_renumber_nodes_and_elements(false),
-  _allow_remote_element_removal(true),
-  _spatial_dimension(d),
-  _default_ghosting(new GhostPointNeighbors(*this))
-{
-  libmesh_deprecated();
-  _elem_dims.insert(d);
-  _ghosting_functors.insert(_default_ghosting.get());
-  libmesh_assert_less_equal (LIBMESH_DIM, 3);
-  libmesh_assert_greater_equal (LIBMESH_DIM, d);
-  libmesh_assert (libMesh::initialized());
-}
-#endif
-#endif // !LIBMESH_DISABLE_COMMWORLD
-
-
 
 MeshBase::MeshBase (const MeshBase & other_mesh) :
   ParallelObject (other_mesh),
@@ -135,6 +107,10 @@ MeshBase::MeshBase (const MeshBase & other_mesh) :
       _partitioner = other_mesh._partitioner->clone();
     }
 }
+
+
+
+MeshBase::MeshBase(MeshBase &&) = default;
 
 
 
@@ -293,7 +269,8 @@ void MeshBase::clear ()
   _is_prepared = false;
 
   // Clear boundary information
-  this->get_boundary_info().clear();
+  if (boundary_info)
+    boundary_info->clear();
 
   // Clear element dimensions
   _elem_dims.clear();
@@ -471,9 +448,10 @@ void MeshBase::partition (const unsigned int n_parts)
       libmesh_assert (this->is_serial());
       partitioner()->partition (*this, n_parts);
     }
-  // NULL partitioner means don't repartition
+  // NULL partitioner means don't repartition; skip_partitioning()
+  // checks on this.
   // Non-serial meshes may not be ready for repartitioning here.
-  else if (!skip_partitioning() && partitioner().get())
+  else if (!skip_partitioning())
     {
       partitioner()->partition (*this, n_parts);
     }
@@ -482,9 +460,9 @@ void MeshBase::partition (const unsigned int n_parts)
       // Adaptive coarsening may have "orphaned" nodes on processors
       // whose elements no longer share them.  We need to check for
       // and possibly fix that.
-      Partitioner::set_node_processor_ids(*this);
+      MeshTools::correct_node_proc_ids(*this);
 
-      // Make sure locally cached partition count
+      // Make sure locally cached partition count is correct
       this->recalculate_n_partitions();
 
       // Make sure any other locally cached data is correct

@@ -57,36 +57,29 @@ UnstructuredMesh::UnstructuredMesh (const Parallel::Communicator & comm_in,
 
 
 
-#ifndef LIBMESH_DISABLE_COMMWORLD
-#ifdef LIBMESH_ENABLE_DEPRECATED
-UnstructuredMesh::UnstructuredMesh (unsigned char d) :
-  MeshBase (d)
-{
-  libmesh_deprecated();
-  libmesh_assert (libMesh::initialized());
-}
-#endif
-#endif
-
-
-
 void UnstructuredMesh::copy_nodes_and_elements(const UnstructuredMesh & other_mesh,
-                                               const bool skip_find_neighbors)
+                                               const bool skip_find_neighbors,
+                                               dof_id_type element_id_offset,
+                                               dof_id_type node_id_offset,
+                                               unique_id_type unique_id_offset)
 {
   LOG_SCOPE("copy_nodes_and_elements()", "UnstructuredMesh");
 
-  // We expect to have at least as many processors as the other mesh
-  // is partitioned into, so that our partitioning will still be
-  // consistent afterwards.
-  libmesh_assert_greater_equal (_n_parts, other_mesh._n_parts);
+  // If we are partitioned into fewer parts than the incoming mesh,
+  // then we need to "wrap" the other Mesh's processor ids to fit
+  // within our range. This can happen, for example, while stitching
+  // ReplicatedMeshes with small numbers of elements in parallel...
+  bool wrap_proc_ids = (_n_parts < other_mesh._n_parts);
 
   // We're assuming our subclass data needs no copy
   libmesh_assert_equal_to (_is_prepared, other_mesh._is_prepared);
 
   // We're assuming the other mesh has proper element number ordering,
-  // so that we add parents before their children.
+  // so that we add parents before their children, and that the other
+  // mesh is consistently partitioned.
 #ifdef DEBUG
   MeshTools::libmesh_assert_valid_amr_elem_ids(other_mesh);
+  MeshTools::libmesh_assert_valid_procids<Node>(other_mesh);
 #endif
 
   //Copy in Nodes
@@ -96,14 +89,20 @@ void UnstructuredMesh::copy_nodes_and_elements(const UnstructuredMesh & other_me
 
     for (const auto & oldn : other_mesh.node_ptr_range())
       {
+        processor_id_type added_pid =
+          wrap_proc_ids ? oldn->processor_id() % _n_parts : oldn->processor_id();
+
         // Add new nodes in old node Point locations
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
         Node * newn =
 #endif
-          this->add_point(*oldn, oldn->id(), oldn->processor_id());
+          this->add_point(*oldn,
+                          oldn->id() + node_id_offset,
+                          added_pid);
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-        newn->set_unique_id() = oldn->unique_id();
+        newn->set_unique_id() =
+          oldn->unique_id() + unique_id_offset;
 #endif
       }
   }
@@ -122,7 +121,8 @@ void UnstructuredMesh::copy_nodes_and_elements(const UnstructuredMesh & other_me
       {
         // Build a new element
         Elem * newparent = old->parent() ?
-          this->elem_ptr(old->parent()->id()) : libmesh_nullptr;
+          this->elem_ptr(old->parent()->id() + element_id_offset) :
+          libmesh_nullptr;
         std::unique_ptr<Elem> ap = Elem::build(old->type(), newparent);
         Elem * el = ap.release();
 
@@ -157,16 +157,18 @@ void UnstructuredMesh::copy_nodes_and_elements(const UnstructuredMesh & other_me
 
         //Assign all the nodes
         for (auto i : el->node_index_range())
-          el->set_node(i) = this->node_ptr(old->node_id(i));
+          el->set_node(i) =
+            this->node_ptr(old->node_id(i) + node_id_offset);
 
-        // And start it off in the same subdomain
-        el->processor_id() = old->processor_id();
+        // And start it off with the same processor id (mod _n_parts).
+        el->processor_id() = (wrap_proc_ids ? old->processor_id() % _n_parts : old->processor_id());
 
         // Give it the same element and unique ids
-        el->set_id(old->id());
+        el->set_id(old->id() + element_id_offset);
 
 #ifdef LIBMESH_ENABLE_UNIQUE_ID
-        el->set_unique_id() = old->unique_id();
+        el->set_unique_id() =
+          old->unique_id() + unique_id_offset;
 #endif
 
         //Hold onto it

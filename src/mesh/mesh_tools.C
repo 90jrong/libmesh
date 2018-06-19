@@ -30,6 +30,7 @@
 #include "libmesh/sphere.h"
 #include "libmesh/threads.h"
 #include "libmesh/string_to_enum.h"
+#include "libmesh/enum_elem_type.h"
 
 #ifdef DEBUG
 #  include "libmesh/remote_elem.h"
@@ -1337,6 +1338,7 @@ void libmesh_assert_valid_boundary_ids(const MeshBase & mesh)
     }
 }
 
+
 void libmesh_assert_valid_dof_ids(const MeshBase & mesh, unsigned int sysnum)
 {
   LOG_SCOPE("libmesh_assert_valid_dof_ids()", "MeshTools");
@@ -1361,6 +1363,48 @@ void libmesh_assert_valid_dof_ids(const MeshBase & mesh, unsigned int sysnum)
     assert_semiverify_dofobj(mesh.comm(),
                              mesh.query_node_ptr(i),
                              sysnum);
+}
+
+
+void libmesh_assert_contiguous_dof_ids(const MeshBase & mesh, unsigned int sysnum)
+{
+  LOG_SCOPE("libmesh_assert_contiguous_dof_ids()", "MeshTools");
+
+  if (mesh.n_processors() == 1)
+    return;
+
+  libmesh_parallel_only(mesh.comm());
+
+  dof_id_type min_dof_id = std::numeric_limits<dof_id_type>::max(),
+              max_dof_id = std::numeric_limits<dof_id_type>::min();
+
+  // Figure out what our local dof id range is
+  for (const auto * node : mesh.local_node_ptr_range())
+    {
+      for (unsigned int v=0, nvars = node->n_vars(sysnum);
+           v != nvars; ++v)
+        for (unsigned int c=0; c != node->n_comp(sysnum, v); ++c)
+          {
+            dof_id_type id = node->dof_number(sysnum, v, c);
+            min_dof_id = std::min (min_dof_id, id);
+            max_dof_id = std::max (max_dof_id, id);
+          }
+    }
+
+  // Make sure no other processors' ids are inside it
+  for (const auto * node : mesh.node_ptr_range())
+    {
+      if (node->processor_id() == mesh.processor_id())
+        continue;
+      for (unsigned int v=0, nvars = node->n_vars(sysnum);
+           v != nvars; ++v)
+        for (unsigned int c=0; c != node->n_comp(sysnum, v); ++c)
+          {
+            dof_id_type id = node->dof_number(sysnum, v, c);
+            libmesh_assert (id < min_dof_id ||
+                            id > max_dof_id);
+          }
+    }
 }
 
 
@@ -1394,6 +1438,67 @@ void libmesh_assert_valid_unique_ids(const MeshBase & mesh)
     }
 }
 #endif
+
+void libmesh_assert_consistent_distributed(const MeshBase & mesh)
+{
+  libmesh_parallel_only(mesh.comm());
+
+  dof_id_type parallel_max_elem_id = mesh.max_elem_id();
+  mesh.comm().max(parallel_max_elem_id);
+
+  for (dof_id_type i=0; i != parallel_max_elem_id; ++i)
+    {
+      const Elem * elem = mesh.query_elem_ptr(i);
+      processor_id_type pid =
+        elem ? elem->processor_id() : DofObject::invalid_processor_id;
+      mesh.comm().min(pid);
+      libmesh_assert(elem || pid != mesh.processor_id());
+    }
+
+  dof_id_type parallel_max_node_id = mesh.max_node_id();
+  mesh.comm().max(parallel_max_node_id);
+
+  for (dof_id_type i=0; i != parallel_max_node_id; ++i)
+    {
+      const Node * node = mesh.query_node_ptr(i);
+      processor_id_type pid =
+        node ? node->processor_id() : DofObject::invalid_processor_id;
+      mesh.comm().min(pid);
+      libmesh_assert(node || pid != mesh.processor_id());
+    }
+}
+
+
+void libmesh_assert_consistent_distributed_nodes(const MeshBase & mesh)
+{
+  libmesh_parallel_only(mesh.comm());
+  auto locator = mesh.sub_point_locator();
+
+  dof_id_type parallel_max_elem_id = mesh.max_elem_id();
+  mesh.comm().max(parallel_max_elem_id);
+
+  for (dof_id_type i=0; i != parallel_max_elem_id; ++i)
+    {
+      const Elem * elem = mesh.query_elem_ptr(i);
+
+      const unsigned int my_n_nodes = elem ? elem->n_nodes() : 0;
+      unsigned int n_nodes = my_n_nodes;
+      mesh.comm().max(n_nodes);
+
+      if (n_nodes)
+        libmesh_assert(mesh.comm().semiverify(elem ? &my_n_nodes : libmesh_nullptr));
+
+      for (unsigned int n=0; n != n_nodes; ++n)
+        {
+          const Node * node = elem ? elem->node_ptr(n) : libmesh_nullptr;
+          processor_id_type pid =
+            node ? node->processor_id() : DofObject::invalid_processor_id;
+          mesh.comm().min(pid);
+          libmesh_assert(node || pid != mesh.processor_id());
+        }
+    }
+}
+
 
 template <>
 void libmesh_assert_topology_consistent_procids<Elem>(const MeshBase & mesh)
@@ -1449,9 +1554,14 @@ void libmesh_assert_parallel_consistent_procids<Elem>(const MeshBase & mesh)
 
   libmesh_parallel_only(mesh.comm());
 
-  // We want this test to be valid even when called even after nodes
-  // have been added asynchronously but before they're renumbered
-  dof_id_type parallel_max_elem_id = mesh.max_elem_id();
+  // Some code (looking at you, stitch_meshes) modifies DofObject ids
+  // without keeping max_elem_id()/max_node_id() consistent, but
+  // that's done in a safe way for performance reasons, so we'll play
+  // along and just figure out new max ids ourselves.
+  dof_id_type parallel_max_elem_id = 0;
+  for (const auto & elem : mesh.element_ptr_range())
+    parallel_max_elem_id = std::max(parallel_max_elem_id,
+                                    elem->id()+1);
   mesh.comm().max(parallel_max_elem_id);
 
   // Check processor ids for consistency between processors
@@ -1494,9 +1604,19 @@ void libmesh_assert_topology_consistent_procids<Node>(const MeshBase & mesh)
   libmesh_parallel_only(mesh.comm());
 
   // We want this test to be valid even when called even after nodes
-  // have been added asynchronously but before they're renumbered
-  dof_id_type parallel_max_node_id = mesh.max_node_id();
+  // have been added asynchronously but before they're renumbered.
+  //
+  // Plus, some code (looking at you, stitch_meshes) modifies
+  // DofObject ids without keeping max_elem_id()/max_node_id()
+  // consistent, but that's done in a safe way for performance
+  // reasons, so we'll play along and just figure out new max ids
+  // ourselves.
+  dof_id_type parallel_max_node_id = 0;
+  for (const auto & node : mesh.node_ptr_range())
+    parallel_max_node_id = std::max(parallel_max_node_id,
+                                    node->id()+1);
   mesh.comm().max(parallel_max_node_id);
+
 
   std::vector<bool> node_touched_by_me(parallel_max_node_id, false);
 
@@ -1525,6 +1645,43 @@ void libmesh_assert_topology_consistent_procids<Node>(const MeshBase & mesh)
 
 
 
+void libmesh_assert_parallel_consistent_new_node_procids(const MeshBase & mesh)
+{
+  LOG_SCOPE("libmesh_assert_parallel_consistent_new_node_procids()", "MeshTools");
+
+  if (mesh.n_processors() == 1)
+    return;
+
+  libmesh_parallel_only(mesh.comm());
+
+  // We want this test to hit every node when called even after nodes
+  // have been added asynchronously but before everything has been
+  // renumbered.
+  dof_id_type parallel_max_elem_id = mesh.max_elem_id();
+  mesh.comm().max(parallel_max_elem_id);
+
+  std::vector<bool> elem_touched_by_anyone(parallel_max_elem_id, false);
+
+  for (dof_id_type i=0; i != parallel_max_elem_id; ++i)
+    {
+      const Elem * elem = mesh.query_elem_ptr(i);
+
+      const unsigned int my_n_nodes = elem ? elem->n_nodes() : 0;
+      unsigned int n_nodes = my_n_nodes;
+      mesh.comm().max(n_nodes);
+
+      if (n_nodes)
+        libmesh_assert(mesh.comm().semiverify(elem ? &my_n_nodes : libmesh_nullptr));
+
+      for (unsigned int n=0; n != n_nodes; ++n)
+        {
+          const Node * node = elem ? elem->node_ptr(n) : libmesh_nullptr;
+          const processor_id_type pid = node ? node->processor_id() : 0;
+          libmesh_assert(mesh.comm().semiverify (node ? &pid : libmesh_nullptr));
+        }
+    }
+}
+
 template <>
 void libmesh_assert_parallel_consistent_procids<Node>(const MeshBase & mesh)
 {
@@ -1537,7 +1694,16 @@ void libmesh_assert_parallel_consistent_procids<Node>(const MeshBase & mesh)
 
   // We want this test to be valid even when called even after nodes
   // have been added asynchronously but before they're renumbered
-  dof_id_type parallel_max_node_id = mesh.max_node_id();
+  //
+  // Plus, some code (looking at you, stitch_meshes) modifies
+  // DofObject ids without keeping max_elem_id()/max_node_id()
+  // consistent, but that's done in a safe way for performance
+  // reasons, so we'll play along and just figure out new max ids
+  // ourselves.
+  dof_id_type parallel_max_node_id = 0;
+  for (const auto & node : mesh.node_ptr_range())
+    parallel_max_node_id = std::max(parallel_max_node_id,
+                                    node->id()+1);
   mesh.comm().max(parallel_max_node_id);
 
   std::vector<bool> node_touched_by_anyone(parallel_max_node_id, false);
@@ -1563,26 +1729,21 @@ void libmesh_assert_parallel_consistent_procids<Node>(const MeshBase & mesh)
         continue;
 
       const Node * node = mesh.query_node_ptr(i);
+      const processor_id_type pid = node ? node->processor_id() : 0;
 
-      processor_id_type min_id =
-        node ? node->processor_id() :
-        std::numeric_limits<processor_id_type>::max();
-      mesh.comm().min(min_id);
-
-      processor_id_type max_id =
-        node ? node->processor_id() :
-        std::numeric_limits<processor_id_type>::min();
-      mesh.comm().max(max_id);
-
-      if (node)
-        {
-          libmesh_assert_equal_to (min_id, node->processor_id());
-          libmesh_assert_equal_to (max_id, node->processor_id());
-        }
-
-      if (min_id == mesh.processor_id())
-        libmesh_assert(node);
+      libmesh_assert(mesh.comm().semiverify (node ? &pid : libmesh_nullptr));
     }
+}
+
+
+void libmesh_assert_canonical_node_procids (const MeshBase & mesh)
+{
+  for (const auto & elem : mesh.active_element_ptr_range())
+    for (auto & node : elem->node_ref_range())
+      libmesh_assert_equal_to
+        (node.processor_id(),
+         node.choose_processor_id(node.processor_id(),
+                                  elem->processor_id()));
 }
 
 
@@ -1741,6 +1902,78 @@ namespace {
 
 typedef std::unordered_map<dof_id_type, processor_id_type> proc_id_map_type;
 
+struct SyncNodeSet
+{
+  typedef unsigned char datum; // bool but without bit twiddling issues
+
+  SyncNodeSet(std::unordered_set<const Node *> & _set,
+              MeshBase & _mesh) :
+    node_set(_set), mesh(_mesh) {}
+
+  std::unordered_set<const Node *> & node_set;
+
+  MeshBase & mesh;
+
+  // ------------------------------------------------------------
+  void gather_data (const std::vector<dof_id_type> & ids,
+                    std::vector<datum> & data)
+  {
+    // Find whether each requested node belongs in the set
+    data.resize(ids.size());
+
+    for (std::size_t i=0; i != ids.size(); ++i)
+      {
+        const dof_id_type id = ids[i];
+
+        // We'd better have every node we're asked for
+        Node * node = mesh.node_ptr(id);
+
+        // Return if the node is in the set.
+        data[i] = node_set.count(node);
+      }
+  }
+
+  // ------------------------------------------------------------
+  bool act_on_data (const std::vector<dof_id_type> & ids,
+                    const std::vector<datum> in_set)
+  {
+    bool data_changed = false;
+
+    // Add nodes we've been informed of to our own set
+    for (std::size_t i=0; i != ids.size(); ++i)
+      {
+        if (in_set[i])
+          {
+            Node * node = mesh.node_ptr(ids[i]);
+            if (!node_set.count(node))
+              {
+                node_set.insert(node);
+                data_changed = true;
+              }
+          }
+      }
+
+    return data_changed;
+  }
+};
+
+
+struct NodesNotInSet
+{
+  NodesNotInSet(const std::unordered_set<const Node *> _set)
+    : node_set(_set) {}
+
+  bool operator() (const Node * node) const
+  {
+    if (node_set.count(node))
+      return false;
+    return true;
+  }
+
+  const std::unordered_set<const Node *> node_set;
+};
+
+
 struct SyncProcIdsFromMap
 {
   typedef processor_id_type datum;
@@ -1780,7 +2013,7 @@ struct SyncProcIdsFromMap
 
   // ------------------------------------------------------------
   void act_on_data (const std::vector<dof_id_type> & ids,
-                    std::vector<datum> proc_ids)
+                    const std::vector<datum> proc_ids)
   {
     // Set the node processor ids we've now been informed of
     for (std::size_t i=0; i != ids.size(); ++i)
@@ -1796,12 +2029,25 @@ struct SyncProcIdsFromMap
 
 void MeshTools::correct_node_proc_ids (MeshBase & mesh)
 {
+  LOG_SCOPE("correct_node_proc_ids()","MeshTools");
+
   // This function must be run on all processors at once
   libmesh_parallel_only(mesh.comm());
 
-  // Fix all nodes' processor ids.  Coarsening may have left us with
-  // nodes which are no longer touched by any elements of the same
-  // processor id, and for DofMap to work we need to fix that.
+  // We require all processors to agree on nodal processor ids before
+  // going into this algorithm.
+#ifdef DEBUG
+  MeshTools::libmesh_assert_parallel_consistent_procids<Node>(mesh);
+#endif
+
+  // If we have any unpartitioned elements at this
+  // stage there is a problem
+  libmesh_assert (MeshTools::n_elem(mesh.unpartitioned_elements_begin(),
+                                    mesh.unpartitioned_elements_end()) == 0);
+
+  // Fix nodes' processor ids.  Coarsening may have left us with nodes
+  // which are no longer touched by any elements of the same processor
+  // id, and for DofMap to work we need to fix that.
 
   // This is harder now that libMesh no longer requires a distributed
   // mesh to ghost all nodal neighbors: it is possible for two active
@@ -1809,11 +2055,32 @@ void MeshTools::correct_node_proc_ids (MeshBase & mesh)
   // such a way that neither processor knows the others' element
   // exists!
 
-  // We require all processors to agree on nodal processor ids before
-  // going into this algorithm.
-#ifdef DEBUG
-  MeshTools::libmesh_assert_parallel_consistent_procids<Node>(mesh);
-#endif
+  // While we're at it, if this mesh is configured to allow
+  // repartitioning, we'll repartition *all* the nodes' processor ids
+  // using the canonical Node heuristic, to try and improve DoF load
+  // balancing.  But if the mesh is disallowing repartitioning, we
+  // won't touch processor_id on any node where it's valid, regardless
+  // of whether or not it's canonical.
+  bool repartition_all_nodes = !mesh.skip_partitioning();
+  std::unordered_set<const Node *> valid_nodes;
+
+  // If we aren't allowed to repartition, then we're going to leave
+  // every node we can at its current processor_id, and *only*
+  // repartition the nodes whose current processor id is incompatible
+  // with DoFMap (because it doesn't touch an active element, e.g. due
+  // to coarsening)
+  if (!repartition_all_nodes)
+    {
+      for (const auto & elem : mesh.active_element_ptr_range())
+        for (const auto & node : elem->node_ref_range())
+          if (elem->processor_id() == node.processor_id())
+            valid_nodes.insert(&node);
+
+      SyncNodeSet syncv(valid_nodes, mesh);
+
+      Parallel::sync_dofobject_data_by_id
+        (mesh.comm(), mesh.nodes_begin(), mesh.nodes_end(), syncv);
+    }
 
   // We build up a set of compatible processor ids for each node
   proc_id_map_type new_proc_ids;
@@ -1829,13 +2096,13 @@ void MeshTools::correct_node_proc_ids (MeshBase & mesh)
           if (it == new_proc_ids.end())
             new_proc_ids.insert(std::make_pair(id,pid));
           else
-            it->second = std::min(it->second, pid);
+            it->second = node.choose_processor_id(it->second, pid);
         }
     }
 
   // Sort the new pids to push to each processor
-  std::vector<std::vector<std::pair<dof_id_type, processor_id_type>>>
-    ids_to_push(mesh.n_processors());
+  std::map<processor_id_type, std::vector<std::pair<dof_id_type, processor_id_type>>>
+    ids_to_push;
 
   for (const auto & node : mesh.node_ptr_range())
     {
@@ -1848,47 +2115,31 @@ void MeshTools::correct_node_proc_ids (MeshBase & mesh)
         ids_to_push[node->processor_id()].push_back(std::make_pair(id, pid));
     }
 
-  // Push using non-blocking I/O
-  std::vector<Parallel::Request> push_requests(mesh.n_processors());
-
-  for (processor_id_type p=1; p != mesh.n_processors(); ++p)
+  auto action_functor =
+    [& mesh, & new_proc_ids]
+    (processor_id_type,
+     const std::vector<std::pair<dof_id_type, processor_id_type>> & data)
     {
-      const processor_id_type procup =
-        cast_int<processor_id_type>
-        ((mesh.comm().rank() + p) % mesh.comm().size());
-
-      mesh.comm().send(procup, ids_to_push[procup], push_requests[procup]);
-    }
-
-  for (processor_id_type p=0; p != mesh.n_processors(); ++p)
-    {
-      const processor_id_type procdown =
-        cast_int<processor_id_type>
-        ((mesh.comm().size() + mesh.comm().rank() - p) %
-         mesh.comm().size());
-
-      std::vector<std::pair<dof_id_type, processor_id_type>>
-        ids_to_pull;
-
-      if (p)
-        mesh.comm().receive(procdown, ids_to_pull);
-      else
-        ids_to_pull.swap(ids_to_push[procdown]);
-
-      std::vector<std::pair<dof_id_type, processor_id_type>>::iterator
-        pulled_ids_it = ids_to_pull.begin(),
-        pulled_ids_end = ids_to_pull.end();
-      for (; pulled_ids_it != pulled_ids_end; ++pulled_ids_it)
+      for (auto & p : data)
         {
-          const dof_id_type id = pulled_ids_it->first;
-          const processor_id_type pid = pulled_ids_it->second;
+          const dof_id_type id = p.first;
+          const processor_id_type pid = p.second;
           const proc_id_map_type::iterator it = new_proc_ids.find(id);
           if (it == new_proc_ids.end())
             new_proc_ids.insert(std::make_pair(id,pid));
           else
-            it->second = std::min(it->second, pid);
+            {
+              const Node & node = mesh.node_ref(id);
+              it->second = node.choose_processor_id(it->second, pid);
+            }
         }
-    }
+    };
+
+  // Push using non-blocking I/O
+  std::vector<Parallel::Request> push_requests;
+
+  Parallel::push_parallel_vector_data
+    (mesh.comm(), ids_to_push, push_requests, action_functor);
 
   // Now new_proc_ids is correct for every node we used to own.  Let's
   // ask every other processor about the nodes they used to own.  But
@@ -1906,12 +2157,23 @@ void MeshTools::correct_node_proc_ids (MeshBase & mesh)
   Parallel::wait(push_requests);
 
   SyncProcIdsFromMap sync(new_proc_ids, mesh);
-  Parallel::sync_dofobject_data_by_id
-    (mesh.comm(), mesh.nodes_begin(), mesh.nodes_end(), sync);
+  if (repartition_all_nodes)
+    Parallel::sync_dofobject_data_by_id
+      (mesh.comm(), mesh.nodes_begin(), mesh.nodes_end(), sync);
+  else
+    {
+      NodesNotInSet nnis(valid_nodes);
+
+      Parallel::sync_dofobject_data_by_id
+        (mesh.comm(), mesh.nodes_begin(), mesh.nodes_end(), nnis, sync);
+    }
 
   // And finally let's update the nodes we used to own.
   for (const auto & node : ex_local_nodes)
     {
+      if (valid_nodes.count(node))
+        continue;
+
       const dof_id_type id = node->id();
       const proc_id_map_type::iterator it = new_proc_ids.find(id);
       libmesh_assert(it != new_proc_ids.end());
@@ -1919,9 +2181,12 @@ void MeshTools::correct_node_proc_ids (MeshBase & mesh)
     }
 
   // We should still have consistent nodal processor ids coming out of
-  // this algorithm.
+  // this algorithm, but if we're allowed to repartition the mesh then
+  // they should be canonically correct too.
 #ifdef DEBUG
   MeshTools::libmesh_assert_valid_procids<Node>(mesh);
+  if (repartition_all_nodes)
+    MeshTools::libmesh_assert_canonical_node_procids(mesh);
 #endif
 }
 

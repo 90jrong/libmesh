@@ -115,7 +115,11 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_cxx_rtti.m4 \
 	$(top_srcdir)/m4/all_static.m4 \
 	$(top_srcdir)/m4/ax_boost_base.m4 \
+	$(top_srcdir)/m4/ax_check_compile_flag.m4 \
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
 	$(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
+	$(top_srcdir)/m4/ax_gcc_archflag.m4 \
+	$(top_srcdir)/m4/ax_gcc_x86_cpuid.m4 \
 	$(top_srcdir)/m4/ax_openmp.m4 $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/ax_split_version.m4 \
 	$(top_srcdir)/m4/ax_tls.m4 $(top_srcdir)/m4/backtrace.m4 \
@@ -153,7 +157,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_cxx_rtti.m4 \
 	$(top_srcdir)/m4/tetgen.m4 $(top_srcdir)/m4/threads.m4 \
 	$(top_srcdir)/m4/triangle.m4 $(top_srcdir)/m4/trilinos.m4 \
 	$(top_srcdir)/m4/unordered.m4 $(top_srcdir)/m4/vtk.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/xdr.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -231,7 +235,7 @@ am__libmesh_dbg_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/error_estimation/kelly_error_estimator.C \
 	src/error_estimation/patch_recovery_error_estimator.C \
 	src/error_estimation/uniform_refinement_estimator.C \
-	src/error_estimation/weighted_patch_recovery_estimator.C \
+	src/error_estimation/weighted_patch_recovery_error_estimator.C \
 	src/fe/fe.C src/fe/fe_abstract.C src/fe/fe_base.C \
 	src/fe/fe_bernstein.C src/fe/fe_bernstein_shape_0D.C \
 	src/fe/fe_bernstein_shape_1D.C src/fe/fe_bernstein_shape_2D.C \
@@ -355,12 +359,13 @@ am__libmesh_dbg_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/numerics/trilinos_epetra_vector.C \
 	src/numerics/trilinos_preconditioner.C \
 	src/numerics/type_tensor.C src/numerics/type_vector.C \
+	src/parallel/communicator.C src/parallel/message_tag.C \
 	src/parallel/parallel_bin_sorter.C \
 	src/parallel/parallel_elem.C \
 	src/parallel/parallel_ghost_sync.C \
 	src/parallel/parallel_histogram.C src/parallel/parallel_node.C \
-	src/parallel/parallel_sort.C src/parallel/threads.C \
-	src/partitioning/centroid_partitioner.C \
+	src/parallel/parallel_sort.C src/parallel/request.C \
+	src/parallel/threads.C src/partitioning/centroid_partitioner.C \
 	src/partitioning/linear_partitioner.C \
 	src/partitioning/mapped_subdomain_partitioner.C \
 	src/partitioning/metis_partitioner.C \
@@ -480,8 +485,8 @@ am__libmesh_dbg_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/systems/optimization_system.C \
 	src/systems/parameter_vector.C src/systems/qoi_set.C \
 	src/systems/steady_system.C src/systems/system.C \
-	src/systems/system_io.C src/systems/system_projection.C \
-	src/systems/system_subset.C \
+	src/systems/system_io.C src/systems/system_norm.C \
+	src/systems/system_projection.C src/systems/system_subset.C \
 	src/systems/system_subset_by_subdomain.C \
 	src/systems/transient_system.C src/utils/error_vector.C \
 	src/utils/hashword.C src/utils/location_maps.C \
@@ -528,7 +533,7 @@ am__objects_1 = src/base/libmesh_dbg_la-default_coupling.lo \
 	src/error_estimation/libmesh_dbg_la-kelly_error_estimator.lo \
 	src/error_estimation/libmesh_dbg_la-patch_recovery_error_estimator.lo \
 	src/error_estimation/libmesh_dbg_la-uniform_refinement_estimator.lo \
-	src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo \
+	src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo \
 	src/fe/libmesh_dbg_la-fe.lo \
 	src/fe/libmesh_dbg_la-fe_abstract.lo \
 	src/fe/libmesh_dbg_la-fe_base.lo \
@@ -752,12 +757,15 @@ am__objects_1 = src/base/libmesh_dbg_la-default_coupling.lo \
 	src/numerics/libmesh_dbg_la-trilinos_preconditioner.lo \
 	src/numerics/libmesh_dbg_la-type_tensor.lo \
 	src/numerics/libmesh_dbg_la-type_vector.lo \
+	src/parallel/libmesh_dbg_la-communicator.lo \
+	src/parallel/libmesh_dbg_la-message_tag.lo \
 	src/parallel/libmesh_dbg_la-parallel_bin_sorter.lo \
 	src/parallel/libmesh_dbg_la-parallel_elem.lo \
 	src/parallel/libmesh_dbg_la-parallel_ghost_sync.lo \
 	src/parallel/libmesh_dbg_la-parallel_histogram.lo \
 	src/parallel/libmesh_dbg_la-parallel_node.lo \
 	src/parallel/libmesh_dbg_la-parallel_sort.lo \
+	src/parallel/libmesh_dbg_la-request.lo \
 	src/parallel/libmesh_dbg_la-threads.lo \
 	src/partitioning/libmesh_dbg_la-centroid_partitioner.lo \
 	src/partitioning/libmesh_dbg_la-linear_partitioner.lo \
@@ -894,6 +902,7 @@ am__objects_1 = src/base/libmesh_dbg_la-default_coupling.lo \
 	src/systems/libmesh_dbg_la-steady_system.lo \
 	src/systems/libmesh_dbg_la-system.lo \
 	src/systems/libmesh_dbg_la-system_io.lo \
+	src/systems/libmesh_dbg_la-system_norm.lo \
 	src/systems/libmesh_dbg_la-system_projection.lo \
 	src/systems/libmesh_dbg_la-system_subset.lo \
 	src/systems/libmesh_dbg_la-system_subset_by_subdomain.lo \
@@ -956,7 +965,7 @@ am__libmesh_devel_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/error_estimation/kelly_error_estimator.C \
 	src/error_estimation/patch_recovery_error_estimator.C \
 	src/error_estimation/uniform_refinement_estimator.C \
-	src/error_estimation/weighted_patch_recovery_estimator.C \
+	src/error_estimation/weighted_patch_recovery_error_estimator.C \
 	src/fe/fe.C src/fe/fe_abstract.C src/fe/fe_base.C \
 	src/fe/fe_bernstein.C src/fe/fe_bernstein_shape_0D.C \
 	src/fe/fe_bernstein_shape_1D.C src/fe/fe_bernstein_shape_2D.C \
@@ -1080,12 +1089,13 @@ am__libmesh_devel_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/numerics/trilinos_epetra_vector.C \
 	src/numerics/trilinos_preconditioner.C \
 	src/numerics/type_tensor.C src/numerics/type_vector.C \
+	src/parallel/communicator.C src/parallel/message_tag.C \
 	src/parallel/parallel_bin_sorter.C \
 	src/parallel/parallel_elem.C \
 	src/parallel/parallel_ghost_sync.C \
 	src/parallel/parallel_histogram.C src/parallel/parallel_node.C \
-	src/parallel/parallel_sort.C src/parallel/threads.C \
-	src/partitioning/centroid_partitioner.C \
+	src/parallel/parallel_sort.C src/parallel/request.C \
+	src/parallel/threads.C src/partitioning/centroid_partitioner.C \
 	src/partitioning/linear_partitioner.C \
 	src/partitioning/mapped_subdomain_partitioner.C \
 	src/partitioning/metis_partitioner.C \
@@ -1205,8 +1215,8 @@ am__libmesh_devel_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/systems/optimization_system.C \
 	src/systems/parameter_vector.C src/systems/qoi_set.C \
 	src/systems/steady_system.C src/systems/system.C \
-	src/systems/system_io.C src/systems/system_projection.C \
-	src/systems/system_subset.C \
+	src/systems/system_io.C src/systems/system_norm.C \
+	src/systems/system_projection.C src/systems/system_subset.C \
 	src/systems/system_subset_by_subdomain.C \
 	src/systems/transient_system.C src/utils/error_vector.C \
 	src/utils/hashword.C src/utils/location_maps.C \
@@ -1252,7 +1262,7 @@ am__objects_2 = src/base/libmesh_devel_la-default_coupling.lo \
 	src/error_estimation/libmesh_devel_la-kelly_error_estimator.lo \
 	src/error_estimation/libmesh_devel_la-patch_recovery_error_estimator.lo \
 	src/error_estimation/libmesh_devel_la-uniform_refinement_estimator.lo \
-	src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo \
+	src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo \
 	src/fe/libmesh_devel_la-fe.lo \
 	src/fe/libmesh_devel_la-fe_abstract.lo \
 	src/fe/libmesh_devel_la-fe_base.lo \
@@ -1476,12 +1486,15 @@ am__objects_2 = src/base/libmesh_devel_la-default_coupling.lo \
 	src/numerics/libmesh_devel_la-trilinos_preconditioner.lo \
 	src/numerics/libmesh_devel_la-type_tensor.lo \
 	src/numerics/libmesh_devel_la-type_vector.lo \
+	src/parallel/libmesh_devel_la-communicator.lo \
+	src/parallel/libmesh_devel_la-message_tag.lo \
 	src/parallel/libmesh_devel_la-parallel_bin_sorter.lo \
 	src/parallel/libmesh_devel_la-parallel_elem.lo \
 	src/parallel/libmesh_devel_la-parallel_ghost_sync.lo \
 	src/parallel/libmesh_devel_la-parallel_histogram.lo \
 	src/parallel/libmesh_devel_la-parallel_node.lo \
 	src/parallel/libmesh_devel_la-parallel_sort.lo \
+	src/parallel/libmesh_devel_la-request.lo \
 	src/parallel/libmesh_devel_la-threads.lo \
 	src/partitioning/libmesh_devel_la-centroid_partitioner.lo \
 	src/partitioning/libmesh_devel_la-linear_partitioner.lo \
@@ -1618,6 +1631,7 @@ am__objects_2 = src/base/libmesh_devel_la-default_coupling.lo \
 	src/systems/libmesh_devel_la-steady_system.lo \
 	src/systems/libmesh_devel_la-system.lo \
 	src/systems/libmesh_devel_la-system_io.lo \
+	src/systems/libmesh_devel_la-system_norm.lo \
 	src/systems/libmesh_devel_la-system_projection.lo \
 	src/systems/libmesh_devel_la-system_subset.lo \
 	src/systems/libmesh_devel_la-system_subset_by_subdomain.lo \
@@ -1677,7 +1691,7 @@ am__libmesh_oprof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/error_estimation/kelly_error_estimator.C \
 	src/error_estimation/patch_recovery_error_estimator.C \
 	src/error_estimation/uniform_refinement_estimator.C \
-	src/error_estimation/weighted_patch_recovery_estimator.C \
+	src/error_estimation/weighted_patch_recovery_error_estimator.C \
 	src/fe/fe.C src/fe/fe_abstract.C src/fe/fe_base.C \
 	src/fe/fe_bernstein.C src/fe/fe_bernstein_shape_0D.C \
 	src/fe/fe_bernstein_shape_1D.C src/fe/fe_bernstein_shape_2D.C \
@@ -1801,12 +1815,13 @@ am__libmesh_oprof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/numerics/trilinos_epetra_vector.C \
 	src/numerics/trilinos_preconditioner.C \
 	src/numerics/type_tensor.C src/numerics/type_vector.C \
+	src/parallel/communicator.C src/parallel/message_tag.C \
 	src/parallel/parallel_bin_sorter.C \
 	src/parallel/parallel_elem.C \
 	src/parallel/parallel_ghost_sync.C \
 	src/parallel/parallel_histogram.C src/parallel/parallel_node.C \
-	src/parallel/parallel_sort.C src/parallel/threads.C \
-	src/partitioning/centroid_partitioner.C \
+	src/parallel/parallel_sort.C src/parallel/request.C \
+	src/parallel/threads.C src/partitioning/centroid_partitioner.C \
 	src/partitioning/linear_partitioner.C \
 	src/partitioning/mapped_subdomain_partitioner.C \
 	src/partitioning/metis_partitioner.C \
@@ -1926,8 +1941,8 @@ am__libmesh_oprof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/systems/optimization_system.C \
 	src/systems/parameter_vector.C src/systems/qoi_set.C \
 	src/systems/steady_system.C src/systems/system.C \
-	src/systems/system_io.C src/systems/system_projection.C \
-	src/systems/system_subset.C \
+	src/systems/system_io.C src/systems/system_norm.C \
+	src/systems/system_projection.C src/systems/system_subset.C \
 	src/systems/system_subset_by_subdomain.C \
 	src/systems/transient_system.C src/utils/error_vector.C \
 	src/utils/hashword.C src/utils/location_maps.C \
@@ -1973,7 +1988,7 @@ am__objects_3 = src/base/libmesh_oprof_la-default_coupling.lo \
 	src/error_estimation/libmesh_oprof_la-kelly_error_estimator.lo \
 	src/error_estimation/libmesh_oprof_la-patch_recovery_error_estimator.lo \
 	src/error_estimation/libmesh_oprof_la-uniform_refinement_estimator.lo \
-	src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo \
+	src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo \
 	src/fe/libmesh_oprof_la-fe.lo \
 	src/fe/libmesh_oprof_la-fe_abstract.lo \
 	src/fe/libmesh_oprof_la-fe_base.lo \
@@ -2197,12 +2212,15 @@ am__objects_3 = src/base/libmesh_oprof_la-default_coupling.lo \
 	src/numerics/libmesh_oprof_la-trilinos_preconditioner.lo \
 	src/numerics/libmesh_oprof_la-type_tensor.lo \
 	src/numerics/libmesh_oprof_la-type_vector.lo \
+	src/parallel/libmesh_oprof_la-communicator.lo \
+	src/parallel/libmesh_oprof_la-message_tag.lo \
 	src/parallel/libmesh_oprof_la-parallel_bin_sorter.lo \
 	src/parallel/libmesh_oprof_la-parallel_elem.lo \
 	src/parallel/libmesh_oprof_la-parallel_ghost_sync.lo \
 	src/parallel/libmesh_oprof_la-parallel_histogram.lo \
 	src/parallel/libmesh_oprof_la-parallel_node.lo \
 	src/parallel/libmesh_oprof_la-parallel_sort.lo \
+	src/parallel/libmesh_oprof_la-request.lo \
 	src/parallel/libmesh_oprof_la-threads.lo \
 	src/partitioning/libmesh_oprof_la-centroid_partitioner.lo \
 	src/partitioning/libmesh_oprof_la-linear_partitioner.lo \
@@ -2339,6 +2357,7 @@ am__objects_3 = src/base/libmesh_oprof_la-default_coupling.lo \
 	src/systems/libmesh_oprof_la-steady_system.lo \
 	src/systems/libmesh_oprof_la-system.lo \
 	src/systems/libmesh_oprof_la-system_io.lo \
+	src/systems/libmesh_oprof_la-system_norm.lo \
 	src/systems/libmesh_oprof_la-system_projection.lo \
 	src/systems/libmesh_oprof_la-system_subset.lo \
 	src/systems/libmesh_oprof_la-system_subset_by_subdomain.lo \
@@ -2398,7 +2417,7 @@ am__libmesh_opt_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/error_estimation/kelly_error_estimator.C \
 	src/error_estimation/patch_recovery_error_estimator.C \
 	src/error_estimation/uniform_refinement_estimator.C \
-	src/error_estimation/weighted_patch_recovery_estimator.C \
+	src/error_estimation/weighted_patch_recovery_error_estimator.C \
 	src/fe/fe.C src/fe/fe_abstract.C src/fe/fe_base.C \
 	src/fe/fe_bernstein.C src/fe/fe_bernstein_shape_0D.C \
 	src/fe/fe_bernstein_shape_1D.C src/fe/fe_bernstein_shape_2D.C \
@@ -2522,12 +2541,13 @@ am__libmesh_opt_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/numerics/trilinos_epetra_vector.C \
 	src/numerics/trilinos_preconditioner.C \
 	src/numerics/type_tensor.C src/numerics/type_vector.C \
+	src/parallel/communicator.C src/parallel/message_tag.C \
 	src/parallel/parallel_bin_sorter.C \
 	src/parallel/parallel_elem.C \
 	src/parallel/parallel_ghost_sync.C \
 	src/parallel/parallel_histogram.C src/parallel/parallel_node.C \
-	src/parallel/parallel_sort.C src/parallel/threads.C \
-	src/partitioning/centroid_partitioner.C \
+	src/parallel/parallel_sort.C src/parallel/request.C \
+	src/parallel/threads.C src/partitioning/centroid_partitioner.C \
 	src/partitioning/linear_partitioner.C \
 	src/partitioning/mapped_subdomain_partitioner.C \
 	src/partitioning/metis_partitioner.C \
@@ -2647,8 +2667,8 @@ am__libmesh_opt_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/systems/optimization_system.C \
 	src/systems/parameter_vector.C src/systems/qoi_set.C \
 	src/systems/steady_system.C src/systems/system.C \
-	src/systems/system_io.C src/systems/system_projection.C \
-	src/systems/system_subset.C \
+	src/systems/system_io.C src/systems/system_norm.C \
+	src/systems/system_projection.C src/systems/system_subset.C \
 	src/systems/system_subset_by_subdomain.C \
 	src/systems/transient_system.C src/utils/error_vector.C \
 	src/utils/hashword.C src/utils/location_maps.C \
@@ -2694,7 +2714,7 @@ am__objects_4 = src/base/libmesh_opt_la-default_coupling.lo \
 	src/error_estimation/libmesh_opt_la-kelly_error_estimator.lo \
 	src/error_estimation/libmesh_opt_la-patch_recovery_error_estimator.lo \
 	src/error_estimation/libmesh_opt_la-uniform_refinement_estimator.lo \
-	src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo \
+	src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo \
 	src/fe/libmesh_opt_la-fe.lo \
 	src/fe/libmesh_opt_la-fe_abstract.lo \
 	src/fe/libmesh_opt_la-fe_base.lo \
@@ -2918,12 +2938,15 @@ am__objects_4 = src/base/libmesh_opt_la-default_coupling.lo \
 	src/numerics/libmesh_opt_la-trilinos_preconditioner.lo \
 	src/numerics/libmesh_opt_la-type_tensor.lo \
 	src/numerics/libmesh_opt_la-type_vector.lo \
+	src/parallel/libmesh_opt_la-communicator.lo \
+	src/parallel/libmesh_opt_la-message_tag.lo \
 	src/parallel/libmesh_opt_la-parallel_bin_sorter.lo \
 	src/parallel/libmesh_opt_la-parallel_elem.lo \
 	src/parallel/libmesh_opt_la-parallel_ghost_sync.lo \
 	src/parallel/libmesh_opt_la-parallel_histogram.lo \
 	src/parallel/libmesh_opt_la-parallel_node.lo \
 	src/parallel/libmesh_opt_la-parallel_sort.lo \
+	src/parallel/libmesh_opt_la-request.lo \
 	src/parallel/libmesh_opt_la-threads.lo \
 	src/partitioning/libmesh_opt_la-centroid_partitioner.lo \
 	src/partitioning/libmesh_opt_la-linear_partitioner.lo \
@@ -3060,6 +3083,7 @@ am__objects_4 = src/base/libmesh_opt_la-default_coupling.lo \
 	src/systems/libmesh_opt_la-steady_system.lo \
 	src/systems/libmesh_opt_la-system.lo \
 	src/systems/libmesh_opt_la-system_io.lo \
+	src/systems/libmesh_opt_la-system_norm.lo \
 	src/systems/libmesh_opt_la-system_projection.lo \
 	src/systems/libmesh_opt_la-system_subset.lo \
 	src/systems/libmesh_opt_la-system_subset_by_subdomain.lo \
@@ -3118,7 +3142,7 @@ am__libmesh_prof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/error_estimation/kelly_error_estimator.C \
 	src/error_estimation/patch_recovery_error_estimator.C \
 	src/error_estimation/uniform_refinement_estimator.C \
-	src/error_estimation/weighted_patch_recovery_estimator.C \
+	src/error_estimation/weighted_patch_recovery_error_estimator.C \
 	src/fe/fe.C src/fe/fe_abstract.C src/fe/fe_base.C \
 	src/fe/fe_bernstein.C src/fe/fe_bernstein_shape_0D.C \
 	src/fe/fe_bernstein_shape_1D.C src/fe/fe_bernstein_shape_2D.C \
@@ -3242,12 +3266,13 @@ am__libmesh_prof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/numerics/trilinos_epetra_vector.C \
 	src/numerics/trilinos_preconditioner.C \
 	src/numerics/type_tensor.C src/numerics/type_vector.C \
+	src/parallel/communicator.C src/parallel/message_tag.C \
 	src/parallel/parallel_bin_sorter.C \
 	src/parallel/parallel_elem.C \
 	src/parallel/parallel_ghost_sync.C \
 	src/parallel/parallel_histogram.C src/parallel/parallel_node.C \
-	src/parallel/parallel_sort.C src/parallel/threads.C \
-	src/partitioning/centroid_partitioner.C \
+	src/parallel/parallel_sort.C src/parallel/request.C \
+	src/parallel/threads.C src/partitioning/centroid_partitioner.C \
 	src/partitioning/linear_partitioner.C \
 	src/partitioning/mapped_subdomain_partitioner.C \
 	src/partitioning/metis_partitioner.C \
@@ -3367,8 +3392,8 @@ am__libmesh_prof_la_SOURCES_DIST = src/base/default_coupling.C \
 	src/systems/optimization_system.C \
 	src/systems/parameter_vector.C src/systems/qoi_set.C \
 	src/systems/steady_system.C src/systems/system.C \
-	src/systems/system_io.C src/systems/system_projection.C \
-	src/systems/system_subset.C \
+	src/systems/system_io.C src/systems/system_norm.C \
+	src/systems/system_projection.C src/systems/system_subset.C \
 	src/systems/system_subset_by_subdomain.C \
 	src/systems/transient_system.C src/utils/error_vector.C \
 	src/utils/hashword.C src/utils/location_maps.C \
@@ -3414,7 +3439,7 @@ am__objects_5 = src/base/libmesh_prof_la-default_coupling.lo \
 	src/error_estimation/libmesh_prof_la-kelly_error_estimator.lo \
 	src/error_estimation/libmesh_prof_la-patch_recovery_error_estimator.lo \
 	src/error_estimation/libmesh_prof_la-uniform_refinement_estimator.lo \
-	src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo \
+	src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo \
 	src/fe/libmesh_prof_la-fe.lo \
 	src/fe/libmesh_prof_la-fe_abstract.lo \
 	src/fe/libmesh_prof_la-fe_base.lo \
@@ -3638,12 +3663,15 @@ am__objects_5 = src/base/libmesh_prof_la-default_coupling.lo \
 	src/numerics/libmesh_prof_la-trilinos_preconditioner.lo \
 	src/numerics/libmesh_prof_la-type_tensor.lo \
 	src/numerics/libmesh_prof_la-type_vector.lo \
+	src/parallel/libmesh_prof_la-communicator.lo \
+	src/parallel/libmesh_prof_la-message_tag.lo \
 	src/parallel/libmesh_prof_la-parallel_bin_sorter.lo \
 	src/parallel/libmesh_prof_la-parallel_elem.lo \
 	src/parallel/libmesh_prof_la-parallel_ghost_sync.lo \
 	src/parallel/libmesh_prof_la-parallel_histogram.lo \
 	src/parallel/libmesh_prof_la-parallel_node.lo \
 	src/parallel/libmesh_prof_la-parallel_sort.lo \
+	src/parallel/libmesh_prof_la-request.lo \
 	src/parallel/libmesh_prof_la-threads.lo \
 	src/partitioning/libmesh_prof_la-centroid_partitioner.lo \
 	src/partitioning/libmesh_prof_la-linear_partitioner.lo \
@@ -3780,6 +3808,7 @@ am__objects_5 = src/base/libmesh_prof_la-default_coupling.lo \
 	src/systems/libmesh_prof_la-steady_system.lo \
 	src/systems/libmesh_prof_la-system.lo \
 	src/systems/libmesh_prof_la-system_io.lo \
+	src/systems/libmesh_prof_la-system_norm.lo \
 	src/systems/libmesh_prof_la-system_projection.lo \
 	src/systems/libmesh_prof_la-system_subset.lo \
 	src/systems/libmesh_prof_la-system_subset_by_subdomain.lo \
@@ -4574,6 +4603,7 @@ PETSC_DIR = @PETSC_DIR@
 PETSC_FC_INCLUDES = @PETSC_FC_INCLUDES@
 PKG_CONFIG = @PKG_CONFIG@
 PROFILING_FLAGS = @PROFILING_FLAGS@
+PRTDIAG = @PRTDIAG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -4639,8 +4669,8 @@ datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
-enabledefaultcommworld = @enabledefaultcommworld@
 enabledeprecated = @enabledeprecated@
+enablefwdenums = @enablefwdenums@
 enablelegacyincludepaths = @enablelegacyincludepaths@
 enablepetsc = @enablepetsc@
 enableuniqueptr = @enableuniqueptr@
@@ -4845,7 +4875,7 @@ libmesh_SOURCES = \
         src/error_estimation/kelly_error_estimator.C \
         src/error_estimation/patch_recovery_error_estimator.C \
         src/error_estimation/uniform_refinement_estimator.C \
-        src/error_estimation/weighted_patch_recovery_estimator.C \
+        src/error_estimation/weighted_patch_recovery_error_estimator.C \
         src/fe/fe.C \
         src/fe/fe_abstract.C \
         src/fe/fe_base.C \
@@ -5070,12 +5100,15 @@ libmesh_SOURCES = \
         src/numerics/trilinos_preconditioner.C \
         src/numerics/type_tensor.C \
         src/numerics/type_vector.C \
+        src/parallel/communicator.C \
+        src/parallel/message_tag.C \
         src/parallel/parallel_bin_sorter.C \
         src/parallel/parallel_elem.C \
         src/parallel/parallel_ghost_sync.C \
         src/parallel/parallel_histogram.C \
         src/parallel/parallel_node.C \
         src/parallel/parallel_sort.C \
+        src/parallel/request.C \
         src/parallel/threads.C \
         src/partitioning/centroid_partitioner.C \
         src/partitioning/linear_partitioner.C \
@@ -5212,6 +5245,7 @@ libmesh_SOURCES = \
         src/systems/steady_system.C \
         src/systems/system.C \
         src/systems/system_io.C \
+        src/systems/system_norm.C \
         src/systems/system_projection.C \
         src/systems/system_subset.C \
         src/systems/system_subset_by_subdomain.C \
@@ -5710,7 +5744,7 @@ src/error_estimation/libmesh_dbg_la-patch_recovery_error_estimator.lo:  \
 src/error_estimation/libmesh_dbg_la-uniform_refinement_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
-src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo:  \
+src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
 src/fe/$(am__dirstamp):
@@ -6220,6 +6254,12 @@ src/parallel/$(am__dirstamp):
 src/parallel/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) src/parallel/$(DEPDIR)
 	@: > src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_dbg_la-communicator.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_dbg_la-message_tag.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_dbg_la-parallel_bin_sorter.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -6237,6 +6277,8 @@ src/parallel/libmesh_dbg_la-parallel_node.lo:  \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_dbg_la-parallel_sort.lo:  \
 	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_dbg_la-request.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_dbg_la-threads.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -6682,6 +6724,9 @@ src/systems/libmesh_dbg_la-system.lo: src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_dbg_la-system_io.lo: src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
+src/systems/libmesh_dbg_la-system_norm.lo:  \
+	src/systems/$(am__dirstamp) \
+	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_dbg_la-system_projection.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
@@ -6823,7 +6868,7 @@ src/error_estimation/libmesh_devel_la-patch_recovery_error_estimator.lo:  \
 src/error_estimation/libmesh_devel_la-uniform_refinement_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
-src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo:  \
+src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
 src/fe/libmesh_devel_la-fe.lo: src/fe/$(am__dirstamp) \
@@ -7303,6 +7348,12 @@ src/numerics/libmesh_devel_la-type_tensor.lo:  \
 src/numerics/libmesh_devel_la-type_vector.lo:  \
 	src/numerics/$(am__dirstamp) \
 	src/numerics/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_devel_la-communicator.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_devel_la-message_tag.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_devel_la-parallel_bin_sorter.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -7319,6 +7370,9 @@ src/parallel/libmesh_devel_la-parallel_node.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_devel_la-parallel_sort.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_devel_la-request.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_devel_la-threads.lo:  \
@@ -7726,6 +7780,9 @@ src/systems/libmesh_devel_la-system.lo: src/systems/$(am__dirstamp) \
 src/systems/libmesh_devel_la-system_io.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
+src/systems/libmesh_devel_la-system_norm.lo:  \
+	src/systems/$(am__dirstamp) \
+	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_devel_la-system_projection.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
@@ -7861,7 +7918,7 @@ src/error_estimation/libmesh_oprof_la-patch_recovery_error_estimator.lo:  \
 src/error_estimation/libmesh_oprof_la-uniform_refinement_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
-src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo:  \
+src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
 src/fe/libmesh_oprof_la-fe.lo: src/fe/$(am__dirstamp) \
@@ -8341,6 +8398,12 @@ src/numerics/libmesh_oprof_la-type_tensor.lo:  \
 src/numerics/libmesh_oprof_la-type_vector.lo:  \
 	src/numerics/$(am__dirstamp) \
 	src/numerics/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_oprof_la-communicator.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_oprof_la-message_tag.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_oprof_la-parallel_bin_sorter.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -8357,6 +8420,9 @@ src/parallel/libmesh_oprof_la-parallel_node.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_oprof_la-parallel_sort.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_oprof_la-request.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_oprof_la-threads.lo:  \
@@ -8764,6 +8830,9 @@ src/systems/libmesh_oprof_la-system.lo: src/systems/$(am__dirstamp) \
 src/systems/libmesh_oprof_la-system_io.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
+src/systems/libmesh_oprof_la-system_norm.lo:  \
+	src/systems/$(am__dirstamp) \
+	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_oprof_la-system_projection.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
@@ -8899,7 +8968,7 @@ src/error_estimation/libmesh_opt_la-patch_recovery_error_estimator.lo:  \
 src/error_estimation/libmesh_opt_la-uniform_refinement_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
-src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo:  \
+src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
 src/fe/libmesh_opt_la-fe.lo: src/fe/$(am__dirstamp) \
@@ -9379,6 +9448,12 @@ src/numerics/libmesh_opt_la-type_tensor.lo:  \
 src/numerics/libmesh_opt_la-type_vector.lo:  \
 	src/numerics/$(am__dirstamp) \
 	src/numerics/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_opt_la-communicator.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_opt_la-message_tag.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_opt_la-parallel_bin_sorter.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -9396,6 +9471,8 @@ src/parallel/libmesh_opt_la-parallel_node.lo:  \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_opt_la-parallel_sort.lo:  \
 	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_opt_la-request.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_opt_la-threads.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -9799,6 +9876,9 @@ src/systems/libmesh_opt_la-system.lo: src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_opt_la-system_io.lo: src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
+src/systems/libmesh_opt_la-system_norm.lo:  \
+	src/systems/$(am__dirstamp) \
+	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_opt_la-system_projection.lo:  \
 	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
@@ -9934,7 +10014,7 @@ src/error_estimation/libmesh_prof_la-patch_recovery_error_estimator.lo:  \
 src/error_estimation/libmesh_prof_la-uniform_refinement_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
-src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo:  \
+src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo:  \
 	src/error_estimation/$(am__dirstamp) \
 	src/error_estimation/$(DEPDIR)/$(am__dirstamp)
 src/fe/libmesh_prof_la-fe.lo: src/fe/$(am__dirstamp) \
@@ -10414,6 +10494,12 @@ src/numerics/libmesh_prof_la-type_tensor.lo:  \
 src/numerics/libmesh_prof_la-type_vector.lo:  \
 	src/numerics/$(am__dirstamp) \
 	src/numerics/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_prof_la-communicator.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_prof_la-message_tag.lo:  \
+	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_prof_la-parallel_bin_sorter.lo:  \
 	src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -10431,6 +10517,8 @@ src/parallel/libmesh_prof_la-parallel_node.lo:  \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_prof_la-parallel_sort.lo:  \
 	src/parallel/$(am__dirstamp) \
+	src/parallel/$(DEPDIR)/$(am__dirstamp)
+src/parallel/libmesh_prof_la-request.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
 src/parallel/libmesh_prof_la-threads.lo: src/parallel/$(am__dirstamp) \
 	src/parallel/$(DEPDIR)/$(am__dirstamp)
@@ -10834,6 +10922,9 @@ src/systems/libmesh_prof_la-steady_system.lo:  \
 src/systems/libmesh_prof_la-system.lo: src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_prof_la-system_io.lo: src/systems/$(am__dirstamp) \
+	src/systems/$(DEPDIR)/$(am__dirstamp)
+src/systems/libmesh_prof_la-system_norm.lo:  \
+	src/systems/$(am__dirstamp) \
 	src/systems/$(DEPDIR)/$(am__dirstamp)
 src/systems/libmesh_prof_la-system_projection.lo:  \
 	src/systems/$(am__dirstamp) \
@@ -11548,7 +11639,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_dbg_la-kelly_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_dbg_la-patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_dbg_la-uniform_refinement_estimator.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_estimator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-adjoint_refinement_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-adjoint_residual_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-discontinuity_measure.Plo@am__quote@
@@ -11563,7 +11654,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-kelly_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-uniform_refinement_estimator.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_estimator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-adjoint_refinement_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-adjoint_residual_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-discontinuity_measure.Plo@am__quote@
@@ -11578,7 +11669,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-kelly_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-uniform_refinement_estimator.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_estimator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-adjoint_refinement_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-adjoint_residual_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-discontinuity_measure.Plo@am__quote@
@@ -11593,7 +11684,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-kelly_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-uniform_refinement_estimator.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_estimator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-adjoint_refinement_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-adjoint_residual_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-discontinuity_measure.Plo@am__quote@
@@ -11608,7 +11699,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-kelly_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-uniform_refinement_estimator.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_estimator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_error_estimator.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/fe/$(DEPDIR)/libmesh_dbg_la-fe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/fe/$(DEPDIR)/libmesh_dbg_la-fe_abstract.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/fe/$(DEPDIR)/libmesh_dbg_la-fe_base.Plo@am__quote@
@@ -12724,40 +12815,55 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/numerics/$(DEPDIR)/libmesh_prof_la-trilinos_preconditioner.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/numerics/$(DEPDIR)/libmesh_prof_la-type_tensor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/numerics/$(DEPDIR)/libmesh_prof_la-type_vector.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-communicator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-message_tag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_bin_sorter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_elem.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_ghost_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_histogram.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_sort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-request.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_dbg_la-threads.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-communicator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-message_tag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_bin_sorter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_elem.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_ghost_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_histogram.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_sort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-request.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_devel_la-threads.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-communicator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-message_tag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_bin_sorter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_elem.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_ghost_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_histogram.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_sort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-request.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_oprof_la-threads.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-communicator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-message_tag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_bin_sorter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_elem.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_ghost_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_histogram.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_sort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-request.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_opt_la-threads.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-communicator.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-message_tag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_bin_sorter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_elem.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_ghost_sync.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_histogram.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_sort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-request.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/parallel/$(DEPDIR)/libmesh_prof_la-threads.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/partitioning/$(DEPDIR)/libmesh_dbg_la-centroid_partitioner.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/partitioning/$(DEPDIR)/libmesh_dbg_la-linear_partitioner.Plo@am__quote@
@@ -13346,6 +13452,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-steady_system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system_norm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system_projection.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system_subset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_dbg_la-system_subset_by_subdomain.Plo@am__quote@
@@ -13372,6 +13479,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-steady_system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system_norm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system_projection.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system_subset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_devel_la-system_subset_by_subdomain.Plo@am__quote@
@@ -13398,6 +13506,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-steady_system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system_norm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system_projection.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system_subset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_oprof_la-system_subset_by_subdomain.Plo@am__quote@
@@ -13424,6 +13533,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-steady_system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system_norm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system_projection.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system_subset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_opt_la-system_subset_by_subdomain.Plo@am__quote@
@@ -13450,6 +13560,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-steady_system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system_io.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system_norm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system_projection.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system_subset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/systems/$(DEPDIR)/libmesh_prof_la-system_subset_by_subdomain.Plo@am__quote@
@@ -13807,12 +13918,12 @@ src/error_estimation/libmesh_dbg_la-uniform_refinement_estimator.lo: src/error_e
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_dbg_la-uniform_refinement_estimator.lo `test -f 'src/error_estimation/uniform_refinement_estimator.C' || echo '$(srcdir)/'`src/error_estimation/uniform_refinement_estimator.C
 
-src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo: src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_estimator.Tpo -c -o src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_estimator.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_estimator.C' object='src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo' libtool=yes @AMDEPBACKSLASH@
+src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo: src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_error_estimator.Tpo -c -o src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_error_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_dbg_la-weighted_patch_recovery_error_estimator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_error_estimator.C' object='src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_dbg_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
 
 src/fe/libmesh_dbg_la-fe.lo: src/fe/fe.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/fe/libmesh_dbg_la-fe.lo -MD -MP -MF src/fe/$(DEPDIR)/libmesh_dbg_la-fe.Tpo -c -o src/fe/libmesh_dbg_la-fe.lo `test -f 'src/fe/fe.C' || echo '$(srcdir)/'`src/fe/fe.C
@@ -15375,6 +15486,20 @@ src/numerics/libmesh_dbg_la-type_vector.lo: src/numerics/type_vector.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/numerics/libmesh_dbg_la-type_vector.lo `test -f 'src/numerics/type_vector.C' || echo '$(srcdir)/'`src/numerics/type_vector.C
 
+src/parallel/libmesh_dbg_la-communicator.lo: src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_dbg_la-communicator.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_dbg_la-communicator.Tpo -c -o src/parallel/libmesh_dbg_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_dbg_la-communicator.Tpo src/parallel/$(DEPDIR)/libmesh_dbg_la-communicator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/communicator.C' object='src/parallel/libmesh_dbg_la-communicator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_dbg_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+
+src/parallel/libmesh_dbg_la-message_tag.lo: src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_dbg_la-message_tag.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_dbg_la-message_tag.Tpo -c -o src/parallel/libmesh_dbg_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_dbg_la-message_tag.Tpo src/parallel/$(DEPDIR)/libmesh_dbg_la-message_tag.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/message_tag.C' object='src/parallel/libmesh_dbg_la-message_tag.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_dbg_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+
 src/parallel/libmesh_dbg_la-parallel_bin_sorter.lo: src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_dbg_la-parallel_bin_sorter.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_bin_sorter.Tpo -c -o src/parallel/libmesh_dbg_la-parallel_bin_sorter.lo `test -f 'src/parallel/parallel_bin_sorter.C' || echo '$(srcdir)/'`src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_bin_sorter.Tpo src/parallel/$(DEPDIR)/libmesh_dbg_la-parallel_bin_sorter.Plo
@@ -15416,6 +15541,13 @@ src/parallel/libmesh_dbg_la-parallel_sort.lo: src/parallel/parallel_sort.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/parallel_sort.C' object='src/parallel/libmesh_dbg_la-parallel_sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_dbg_la-parallel_sort.lo `test -f 'src/parallel/parallel_sort.C' || echo '$(srcdir)/'`src/parallel/parallel_sort.C
+
+src/parallel/libmesh_dbg_la-request.lo: src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_dbg_la-request.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_dbg_la-request.Tpo -c -o src/parallel/libmesh_dbg_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_dbg_la-request.Tpo src/parallel/$(DEPDIR)/libmesh_dbg_la-request.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/request.C' object='src/parallel/libmesh_dbg_la-request.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_dbg_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
 
 src/parallel/libmesh_dbg_la-threads.lo: src/parallel/threads.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_dbg_la-threads.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_dbg_la-threads.Tpo -c -o src/parallel/libmesh_dbg_la-threads.lo `test -f 'src/parallel/threads.C' || echo '$(srcdir)/'`src/parallel/threads.C
@@ -16369,6 +16501,13 @@ src/systems/libmesh_dbg_la-system_io.lo: src/systems/system_io.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_dbg_la-system_io.lo `test -f 'src/systems/system_io.C' || echo '$(srcdir)/'`src/systems/system_io.C
 
+src/systems/libmesh_dbg_la-system_norm.lo: src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_dbg_la-system_norm.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_dbg_la-system_norm.Tpo -c -o src/systems/libmesh_dbg_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_dbg_la-system_norm.Tpo src/systems/$(DEPDIR)/libmesh_dbg_la-system_norm.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_norm.C' object='src/systems/libmesh_dbg_la-system_norm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_dbg_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+
 src/systems/libmesh_dbg_la-system_projection.lo: src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_dbg_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_dbg_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_dbg_la-system_projection.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_dbg_la-system_projection.Tpo -c -o src/systems/libmesh_dbg_la-system_projection.lo `test -f 'src/systems/system_projection.C' || echo '$(srcdir)/'`src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_dbg_la-system_projection.Tpo src/systems/$(DEPDIR)/libmesh_dbg_la-system_projection.Plo
@@ -16761,12 +16900,12 @@ src/error_estimation/libmesh_devel_la-uniform_refinement_estimator.lo: src/error
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_devel_la-uniform_refinement_estimator.lo `test -f 'src/error_estimation/uniform_refinement_estimator.C' || echo '$(srcdir)/'`src/error_estimation/uniform_refinement_estimator.C
 
-src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo: src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_estimator.Tpo -c -o src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_estimator.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_estimator.C' object='src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo' libtool=yes @AMDEPBACKSLASH@
+src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo: src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_error_estimator.Tpo -c -o src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_error_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_devel_la-weighted_patch_recovery_error_estimator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_error_estimator.C' object='src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_devel_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_devel_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
 
 src/fe/libmesh_devel_la-fe.lo: src/fe/fe.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/fe/libmesh_devel_la-fe.lo -MD -MP -MF src/fe/$(DEPDIR)/libmesh_devel_la-fe.Tpo -c -o src/fe/libmesh_devel_la-fe.lo `test -f 'src/fe/fe.C' || echo '$(srcdir)/'`src/fe/fe.C
@@ -18329,6 +18468,20 @@ src/numerics/libmesh_devel_la-type_vector.lo: src/numerics/type_vector.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/numerics/libmesh_devel_la-type_vector.lo `test -f 'src/numerics/type_vector.C' || echo '$(srcdir)/'`src/numerics/type_vector.C
 
+src/parallel/libmesh_devel_la-communicator.lo: src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_devel_la-communicator.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_devel_la-communicator.Tpo -c -o src/parallel/libmesh_devel_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_devel_la-communicator.Tpo src/parallel/$(DEPDIR)/libmesh_devel_la-communicator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/communicator.C' object='src/parallel/libmesh_devel_la-communicator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_devel_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+
+src/parallel/libmesh_devel_la-message_tag.lo: src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_devel_la-message_tag.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_devel_la-message_tag.Tpo -c -o src/parallel/libmesh_devel_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_devel_la-message_tag.Tpo src/parallel/$(DEPDIR)/libmesh_devel_la-message_tag.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/message_tag.C' object='src/parallel/libmesh_devel_la-message_tag.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_devel_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+
 src/parallel/libmesh_devel_la-parallel_bin_sorter.lo: src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_devel_la-parallel_bin_sorter.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_bin_sorter.Tpo -c -o src/parallel/libmesh_devel_la-parallel_bin_sorter.lo `test -f 'src/parallel/parallel_bin_sorter.C' || echo '$(srcdir)/'`src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_bin_sorter.Tpo src/parallel/$(DEPDIR)/libmesh_devel_la-parallel_bin_sorter.Plo
@@ -18370,6 +18523,13 @@ src/parallel/libmesh_devel_la-parallel_sort.lo: src/parallel/parallel_sort.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/parallel_sort.C' object='src/parallel/libmesh_devel_la-parallel_sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_devel_la-parallel_sort.lo `test -f 'src/parallel/parallel_sort.C' || echo '$(srcdir)/'`src/parallel/parallel_sort.C
+
+src/parallel/libmesh_devel_la-request.lo: src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_devel_la-request.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_devel_la-request.Tpo -c -o src/parallel/libmesh_devel_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_devel_la-request.Tpo src/parallel/$(DEPDIR)/libmesh_devel_la-request.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/request.C' object='src/parallel/libmesh_devel_la-request.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_devel_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
 
 src/parallel/libmesh_devel_la-threads.lo: src/parallel/threads.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_devel_la-threads.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_devel_la-threads.Tpo -c -o src/parallel/libmesh_devel_la-threads.lo `test -f 'src/parallel/threads.C' || echo '$(srcdir)/'`src/parallel/threads.C
@@ -19323,6 +19483,13 @@ src/systems/libmesh_devel_la-system_io.lo: src/systems/system_io.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_devel_la-system_io.lo `test -f 'src/systems/system_io.C' || echo '$(srcdir)/'`src/systems/system_io.C
 
+src/systems/libmesh_devel_la-system_norm.lo: src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_devel_la-system_norm.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_devel_la-system_norm.Tpo -c -o src/systems/libmesh_devel_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_devel_la-system_norm.Tpo src/systems/$(DEPDIR)/libmesh_devel_la-system_norm.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_norm.C' object='src/systems/libmesh_devel_la-system_norm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_devel_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+
 src/systems/libmesh_devel_la-system_projection.lo: src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_devel_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_devel_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_devel_la-system_projection.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_devel_la-system_projection.Tpo -c -o src/systems/libmesh_devel_la-system_projection.lo `test -f 'src/systems/system_projection.C' || echo '$(srcdir)/'`src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_devel_la-system_projection.Tpo src/systems/$(DEPDIR)/libmesh_devel_la-system_projection.Plo
@@ -19715,12 +19882,12 @@ src/error_estimation/libmesh_oprof_la-uniform_refinement_estimator.lo: src/error
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_oprof_la-uniform_refinement_estimator.lo `test -f 'src/error_estimation/uniform_refinement_estimator.C' || echo '$(srcdir)/'`src/error_estimation/uniform_refinement_estimator.C
 
-src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo: src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_estimator.Tpo -c -o src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_estimator.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_estimator.C' object='src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo' libtool=yes @AMDEPBACKSLASH@
+src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo: src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_error_estimator.Tpo -c -o src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_error_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_oprof_la-weighted_patch_recovery_error_estimator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_error_estimator.C' object='src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_oprof_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
 
 src/fe/libmesh_oprof_la-fe.lo: src/fe/fe.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/fe/libmesh_oprof_la-fe.lo -MD -MP -MF src/fe/$(DEPDIR)/libmesh_oprof_la-fe.Tpo -c -o src/fe/libmesh_oprof_la-fe.lo `test -f 'src/fe/fe.C' || echo '$(srcdir)/'`src/fe/fe.C
@@ -21283,6 +21450,20 @@ src/numerics/libmesh_oprof_la-type_vector.lo: src/numerics/type_vector.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/numerics/libmesh_oprof_la-type_vector.lo `test -f 'src/numerics/type_vector.C' || echo '$(srcdir)/'`src/numerics/type_vector.C
 
+src/parallel/libmesh_oprof_la-communicator.lo: src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_oprof_la-communicator.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_oprof_la-communicator.Tpo -c -o src/parallel/libmesh_oprof_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_oprof_la-communicator.Tpo src/parallel/$(DEPDIR)/libmesh_oprof_la-communicator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/communicator.C' object='src/parallel/libmesh_oprof_la-communicator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_oprof_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+
+src/parallel/libmesh_oprof_la-message_tag.lo: src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_oprof_la-message_tag.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_oprof_la-message_tag.Tpo -c -o src/parallel/libmesh_oprof_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_oprof_la-message_tag.Tpo src/parallel/$(DEPDIR)/libmesh_oprof_la-message_tag.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/message_tag.C' object='src/parallel/libmesh_oprof_la-message_tag.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_oprof_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+
 src/parallel/libmesh_oprof_la-parallel_bin_sorter.lo: src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_oprof_la-parallel_bin_sorter.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_bin_sorter.Tpo -c -o src/parallel/libmesh_oprof_la-parallel_bin_sorter.lo `test -f 'src/parallel/parallel_bin_sorter.C' || echo '$(srcdir)/'`src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_bin_sorter.Tpo src/parallel/$(DEPDIR)/libmesh_oprof_la-parallel_bin_sorter.Plo
@@ -21324,6 +21505,13 @@ src/parallel/libmesh_oprof_la-parallel_sort.lo: src/parallel/parallel_sort.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/parallel_sort.C' object='src/parallel/libmesh_oprof_la-parallel_sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_oprof_la-parallel_sort.lo `test -f 'src/parallel/parallel_sort.C' || echo '$(srcdir)/'`src/parallel/parallel_sort.C
+
+src/parallel/libmesh_oprof_la-request.lo: src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_oprof_la-request.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_oprof_la-request.Tpo -c -o src/parallel/libmesh_oprof_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_oprof_la-request.Tpo src/parallel/$(DEPDIR)/libmesh_oprof_la-request.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/request.C' object='src/parallel/libmesh_oprof_la-request.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_oprof_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
 
 src/parallel/libmesh_oprof_la-threads.lo: src/parallel/threads.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_oprof_la-threads.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_oprof_la-threads.Tpo -c -o src/parallel/libmesh_oprof_la-threads.lo `test -f 'src/parallel/threads.C' || echo '$(srcdir)/'`src/parallel/threads.C
@@ -22277,6 +22465,13 @@ src/systems/libmesh_oprof_la-system_io.lo: src/systems/system_io.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_oprof_la-system_io.lo `test -f 'src/systems/system_io.C' || echo '$(srcdir)/'`src/systems/system_io.C
 
+src/systems/libmesh_oprof_la-system_norm.lo: src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_oprof_la-system_norm.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_oprof_la-system_norm.Tpo -c -o src/systems/libmesh_oprof_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_oprof_la-system_norm.Tpo src/systems/$(DEPDIR)/libmesh_oprof_la-system_norm.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_norm.C' object='src/systems/libmesh_oprof_la-system_norm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_oprof_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+
 src/systems/libmesh_oprof_la-system_projection.lo: src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_oprof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_oprof_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_oprof_la-system_projection.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_oprof_la-system_projection.Tpo -c -o src/systems/libmesh_oprof_la-system_projection.lo `test -f 'src/systems/system_projection.C' || echo '$(srcdir)/'`src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_oprof_la-system_projection.Tpo src/systems/$(DEPDIR)/libmesh_oprof_la-system_projection.Plo
@@ -22669,12 +22864,12 @@ src/error_estimation/libmesh_opt_la-uniform_refinement_estimator.lo: src/error_e
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_opt_la-uniform_refinement_estimator.lo `test -f 'src/error_estimation/uniform_refinement_estimator.C' || echo '$(srcdir)/'`src/error_estimation/uniform_refinement_estimator.C
 
-src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo: src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_estimator.Tpo -c -o src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_estimator.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_estimator.C' object='src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo' libtool=yes @AMDEPBACKSLASH@
+src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo: src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_error_estimator.Tpo -c -o src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_error_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_opt_la-weighted_patch_recovery_error_estimator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_error_estimator.C' object='src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_opt_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_opt_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
 
 src/fe/libmesh_opt_la-fe.lo: src/fe/fe.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/fe/libmesh_opt_la-fe.lo -MD -MP -MF src/fe/$(DEPDIR)/libmesh_opt_la-fe.Tpo -c -o src/fe/libmesh_opt_la-fe.lo `test -f 'src/fe/fe.C' || echo '$(srcdir)/'`src/fe/fe.C
@@ -24237,6 +24432,20 @@ src/numerics/libmesh_opt_la-type_vector.lo: src/numerics/type_vector.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/numerics/libmesh_opt_la-type_vector.lo `test -f 'src/numerics/type_vector.C' || echo '$(srcdir)/'`src/numerics/type_vector.C
 
+src/parallel/libmesh_opt_la-communicator.lo: src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_opt_la-communicator.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_opt_la-communicator.Tpo -c -o src/parallel/libmesh_opt_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_opt_la-communicator.Tpo src/parallel/$(DEPDIR)/libmesh_opt_la-communicator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/communicator.C' object='src/parallel/libmesh_opt_la-communicator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_opt_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+
+src/parallel/libmesh_opt_la-message_tag.lo: src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_opt_la-message_tag.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_opt_la-message_tag.Tpo -c -o src/parallel/libmesh_opt_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_opt_la-message_tag.Tpo src/parallel/$(DEPDIR)/libmesh_opt_la-message_tag.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/message_tag.C' object='src/parallel/libmesh_opt_la-message_tag.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_opt_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+
 src/parallel/libmesh_opt_la-parallel_bin_sorter.lo: src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_opt_la-parallel_bin_sorter.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_bin_sorter.Tpo -c -o src/parallel/libmesh_opt_la-parallel_bin_sorter.lo `test -f 'src/parallel/parallel_bin_sorter.C' || echo '$(srcdir)/'`src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_bin_sorter.Tpo src/parallel/$(DEPDIR)/libmesh_opt_la-parallel_bin_sorter.Plo
@@ -24278,6 +24487,13 @@ src/parallel/libmesh_opt_la-parallel_sort.lo: src/parallel/parallel_sort.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/parallel_sort.C' object='src/parallel/libmesh_opt_la-parallel_sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_opt_la-parallel_sort.lo `test -f 'src/parallel/parallel_sort.C' || echo '$(srcdir)/'`src/parallel/parallel_sort.C
+
+src/parallel/libmesh_opt_la-request.lo: src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_opt_la-request.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_opt_la-request.Tpo -c -o src/parallel/libmesh_opt_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_opt_la-request.Tpo src/parallel/$(DEPDIR)/libmesh_opt_la-request.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/request.C' object='src/parallel/libmesh_opt_la-request.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_opt_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
 
 src/parallel/libmesh_opt_la-threads.lo: src/parallel/threads.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_opt_la-threads.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_opt_la-threads.Tpo -c -o src/parallel/libmesh_opt_la-threads.lo `test -f 'src/parallel/threads.C' || echo '$(srcdir)/'`src/parallel/threads.C
@@ -25231,6 +25447,13 @@ src/systems/libmesh_opt_la-system_io.lo: src/systems/system_io.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_opt_la-system_io.lo `test -f 'src/systems/system_io.C' || echo '$(srcdir)/'`src/systems/system_io.C
 
+src/systems/libmesh_opt_la-system_norm.lo: src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_opt_la-system_norm.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_opt_la-system_norm.Tpo -c -o src/systems/libmesh_opt_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_opt_la-system_norm.Tpo src/systems/$(DEPDIR)/libmesh_opt_la-system_norm.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_norm.C' object='src/systems/libmesh_opt_la-system_norm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_opt_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+
 src/systems/libmesh_opt_la-system_projection.lo: src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_opt_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_opt_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_opt_la-system_projection.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_opt_la-system_projection.Tpo -c -o src/systems/libmesh_opt_la-system_projection.lo `test -f 'src/systems/system_projection.C' || echo '$(srcdir)/'`src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_opt_la-system_projection.Tpo src/systems/$(DEPDIR)/libmesh_opt_la-system_projection.Plo
@@ -25623,12 +25846,12 @@ src/error_estimation/libmesh_prof_la-uniform_refinement_estimator.lo: src/error_
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_prof_la-uniform_refinement_estimator.lo `test -f 'src/error_estimation/uniform_refinement_estimator.C' || echo '$(srcdir)/'`src/error_estimation/uniform_refinement_estimator.C
 
-src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo: src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_estimator.Tpo -c -o src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_estimator.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_estimator.C' object='src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo' libtool=yes @AMDEPBACKSLASH@
+src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo: src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo -MD -MP -MF src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_error_estimator.Tpo -c -o src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_error_estimator.Tpo src/error_estimation/$(DEPDIR)/libmesh_prof_la-weighted_patch_recovery_error_estimator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/error_estimation/weighted_patch_recovery_error_estimator.C' object='src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_prof_la-weighted_patch_recovery_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_estimator.C
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/error_estimation/libmesh_prof_la-weighted_patch_recovery_error_estimator.lo `test -f 'src/error_estimation/weighted_patch_recovery_error_estimator.C' || echo '$(srcdir)/'`src/error_estimation/weighted_patch_recovery_error_estimator.C
 
 src/fe/libmesh_prof_la-fe.lo: src/fe/fe.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/fe/libmesh_prof_la-fe.lo -MD -MP -MF src/fe/$(DEPDIR)/libmesh_prof_la-fe.Tpo -c -o src/fe/libmesh_prof_la-fe.lo `test -f 'src/fe/fe.C' || echo '$(srcdir)/'`src/fe/fe.C
@@ -27191,6 +27414,20 @@ src/numerics/libmesh_prof_la-type_vector.lo: src/numerics/type_vector.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/numerics/libmesh_prof_la-type_vector.lo `test -f 'src/numerics/type_vector.C' || echo '$(srcdir)/'`src/numerics/type_vector.C
 
+src/parallel/libmesh_prof_la-communicator.lo: src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_prof_la-communicator.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_prof_la-communicator.Tpo -c -o src/parallel/libmesh_prof_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_prof_la-communicator.Tpo src/parallel/$(DEPDIR)/libmesh_prof_la-communicator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/communicator.C' object='src/parallel/libmesh_prof_la-communicator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_prof_la-communicator.lo `test -f 'src/parallel/communicator.C' || echo '$(srcdir)/'`src/parallel/communicator.C
+
+src/parallel/libmesh_prof_la-message_tag.lo: src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_prof_la-message_tag.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_prof_la-message_tag.Tpo -c -o src/parallel/libmesh_prof_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_prof_la-message_tag.Tpo src/parallel/$(DEPDIR)/libmesh_prof_la-message_tag.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/message_tag.C' object='src/parallel/libmesh_prof_la-message_tag.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_prof_la-message_tag.lo `test -f 'src/parallel/message_tag.C' || echo '$(srcdir)/'`src/parallel/message_tag.C
+
 src/parallel/libmesh_prof_la-parallel_bin_sorter.lo: src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_prof_la-parallel_bin_sorter.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_bin_sorter.Tpo -c -o src/parallel/libmesh_prof_la-parallel_bin_sorter.lo `test -f 'src/parallel/parallel_bin_sorter.C' || echo '$(srcdir)/'`src/parallel/parallel_bin_sorter.C
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_bin_sorter.Tpo src/parallel/$(DEPDIR)/libmesh_prof_la-parallel_bin_sorter.Plo
@@ -27232,6 +27469,13 @@ src/parallel/libmesh_prof_la-parallel_sort.lo: src/parallel/parallel_sort.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/parallel_sort.C' object='src/parallel/libmesh_prof_la-parallel_sort.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_prof_la-parallel_sort.lo `test -f 'src/parallel/parallel_sort.C' || echo '$(srcdir)/'`src/parallel/parallel_sort.C
+
+src/parallel/libmesh_prof_la-request.lo: src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_prof_la-request.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_prof_la-request.Tpo -c -o src/parallel/libmesh_prof_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/parallel/$(DEPDIR)/libmesh_prof_la-request.Tpo src/parallel/$(DEPDIR)/libmesh_prof_la-request.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/parallel/request.C' object='src/parallel/libmesh_prof_la-request.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/parallel/libmesh_prof_la-request.lo `test -f 'src/parallel/request.C' || echo '$(srcdir)/'`src/parallel/request.C
 
 src/parallel/libmesh_prof_la-threads.lo: src/parallel/threads.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/parallel/libmesh_prof_la-threads.lo -MD -MP -MF src/parallel/$(DEPDIR)/libmesh_prof_la-threads.Tpo -c -o src/parallel/libmesh_prof_la-threads.lo `test -f 'src/parallel/threads.C' || echo '$(srcdir)/'`src/parallel/threads.C
@@ -28184,6 +28428,13 @@ src/systems/libmesh_prof_la-system_io.lo: src/systems/system_io.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_io.C' object='src/systems/libmesh_prof_la-system_io.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_prof_la-system_io.lo `test -f 'src/systems/system_io.C' || echo '$(srcdir)/'`src/systems/system_io.C
+
+src/systems/libmesh_prof_la-system_norm.lo: src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_prof_la-system_norm.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_prof_la-system_norm.Tpo -c -o src/systems/libmesh_prof_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) src/systems/$(DEPDIR)/libmesh_prof_la-system_norm.Tpo src/systems/$(DEPDIR)/libmesh_prof_la-system_norm.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='src/systems/system_norm.C' object='src/systems/libmesh_prof_la-system_norm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -c -o src/systems/libmesh_prof_la-system_norm.lo `test -f 'src/systems/system_norm.C' || echo '$(srcdir)/'`src/systems/system_norm.C
 
 src/systems/libmesh_prof_la-system_projection.lo: src/systems/system_projection.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libmesh_prof_la_CPPFLAGS) $(CPPFLAGS) $(libmesh_prof_la_CXXFLAGS) $(CXXFLAGS) -MT src/systems/libmesh_prof_la-system_projection.lo -MD -MP -MF src/systems/$(DEPDIR)/libmesh_prof_la-system_projection.Tpo -c -o src/systems/libmesh_prof_la-system_projection.lo `test -f 'src/systems/system_projection.C' || echo '$(srcdir)/'`src/systems/system_projection.C

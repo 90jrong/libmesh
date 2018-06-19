@@ -25,7 +25,15 @@
 // Local includes
 #include "libmesh/parallel_object.h"
 #include "libmesh/point.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum ElemType : int;
+}
+#else
 #include "libmesh/enum_elem_type.h"
+#endif
 
 // C++ includes
 #include <iostream>
@@ -297,7 +305,8 @@ public:
   /**
    * Sets up the nodal variables
    */
-  void initialize_element_variables(std::vector<std::string> names);
+  void initialize_element_variables(std::vector<std::string> names,
+                                    const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
 
   /**
    * Sets up the nodal variables
@@ -317,7 +326,10 @@ public:
   /**
    * Writes the vector of values to the element variables.
    */
-  void write_element_values(const MeshBase & mesh, const std::vector<Real> & values, int timestep);
+  void write_element_values(const MeshBase & mesh,
+                            const std::vector<Real> & values,
+                            int timestep,
+                            const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
 
   /**
    * Writes the vector of values to a nodal variable.
@@ -374,6 +386,13 @@ public:
    * starting with r_, i_ and a_ respectively.
    */
   std::vector<std::string> get_complex_names(const std::vector<std::string> & names) const;
+
+  /**
+   * returns a "tripled" copy of \p vars_active_subdomains, which is necessary in the
+   * complex-valued case.
+   */
+  std::vector<std::set<subdomain_id_type>> get_complex_vars_active_subdomains(
+    const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains) const;
 
   /**
    * This is the \p ExodusII_IO_Helper Conversion class.  It provides

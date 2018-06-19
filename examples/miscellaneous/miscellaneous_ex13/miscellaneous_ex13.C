@@ -57,6 +57,8 @@
 #include "libmesh/linear_solver.h"
 #include "libmesh/libmesh_nullptr.h"
 #include "libmesh/getpot.h"
+#include "libmesh/enum_solver_package.h"
+#include "libmesh/enum_solver_type.h"
 
 // Eigen includes
 #ifdef LIBMESH_HAVE_EIGEN
@@ -177,7 +179,7 @@ int main (int argc, char ** argv)
 
     // Most DirichletBoundary users will want to supply a "locally
     // indexed" functor
-    DirichletBoundary dirichlet_bc 
+    DirichletBoundary dirichlet_bc
       (boundary_ids,
        std::vector<unsigned int>(variables, variables+3), zf,
        LOCAL_VARIABLE_ORDER);

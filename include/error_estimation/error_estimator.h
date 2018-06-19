@@ -24,7 +24,15 @@
 #include "libmesh/libmesh_common.h"
 #include "libmesh/parallel.h"
 #include "libmesh/system_norm.h"
+
+#ifdef LIBMESH_FORWARD_DECLARE_ENUMS
+namespace libMesh
+{
+enum ErrorEstimatorType : int;
+}
+#else
 #include "libmesh/enum_error_estimator_type.h"
+#endif
 
 // C++ includes
 #include <cstddef>
@@ -61,14 +69,17 @@ public:
    * Constructor.  Empty.  Derived classes should reset error_norm as
    * appropriate.
    */
-  ErrorEstimator() :
-    error_norm()
-  {}
+  ErrorEstimator() = default;
 
   /**
-   * Destructor.
+   * Copy/move ctor, copy/move assignment operator, and destructor are
+   * all explicitly defaulted for this simple class.
    */
-  virtual ~ErrorEstimator() {}
+  ErrorEstimator (const ErrorEstimator &) = default;
+  ErrorEstimator (ErrorEstimator &&) = default;
+  ErrorEstimator & operator= (const ErrorEstimator &) = default;
+  ErrorEstimator & operator= (ErrorEstimator &&) = default;
+  virtual ~ErrorEstimator() = default;
 
 
   /**
@@ -157,8 +168,7 @@ protected:
    * them to get the global error vector.
    */
   void reduce_error (std::vector<ErrorVectorReal> & error_per_cell,
-                     const Parallel::Communicator & comm
-                     LIBMESH_CAN_DEFAULT_TO_COMMWORLD) const;
+                     const Parallel::Communicator & comm) const;
 };
 
 

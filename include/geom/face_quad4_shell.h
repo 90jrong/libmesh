@@ -43,10 +43,16 @@ public:
   QuadShell4 (Elem * p=libmesh_nullptr) :
     Quad4(p) {}
 
+  QuadShell4 (QuadShell4 &&) = delete;
+  QuadShell4 (const QuadShell4 &) = delete;
+  QuadShell4 & operator= (const QuadShell4 &) = delete;
+  QuadShell4 & operator= (QuadShell4 &&) = delete;
+  virtual ~QuadShell4() = default;
+
   /**
    * \returns \p QUADSHELL4.
    */
-  virtual ElemType type () const libmesh_override { return QUADSHELL4; }
+  virtual ElemType type () const override { return QUADSHELL4; }
 };
 
 } // namespace libMesh
