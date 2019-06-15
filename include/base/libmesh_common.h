@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -57,9 +57,6 @@
 // _basic_ library functionality
 #include "libmesh/libmesh_base.h"
 #include "libmesh/libmesh_exceptions.h"
-extern "C" {
-#include "libmesh/libmesh_C_isnan.h"
-}
 
 // Proxy class for libMesh::out/err output
 #include "libmesh/ostream_proxy.h"
@@ -76,8 +73,8 @@ extern "C" {
 #  include "libmesh/libmesh_augment_std_namespace.h"
 #endif
 
-// Make sure the C++03 compatible libmesh_nullptr is available
-// throughout the library.
+// Make sure the libmesh_nullptr define is available for backwards
+// compatibility, although we no longer use it in the library.
 #include "libmesh/libmesh_nullptr.h"
 
 namespace libMesh
@@ -167,22 +164,21 @@ inline T libmesh_real(std::complex<T> a) { return std::real(a); }
 template<typename T>
 inline std::complex<T> libmesh_conj(std::complex<T> a) { return std::conj(a); }
 
-// isnan isn't actually C++ standard yet; in contexts where it's not defined in
-// cmath, libmesh_isnan will just end up returning false.
-inline bool libmesh_isnan(float a) { return libmesh_C_isnan_float(a); }
-inline bool libmesh_isnan(double a) { return libmesh_C_isnan_double(a); }
-inline bool libmesh_isnan(long double a) { return libmesh_C_isnan_longdouble(a); }
+// std::isnan() is in <cmath> as of C++11.
+template <typename T>
+inline bool libmesh_isnan(T x) { return std::isnan(x); }
 
 template <typename T>
-inline bool libmesh_isnan(std::complex<T> a) { return (libmesh_isnan(std::real(a)) || libmesh_isnan(std::imag(a))); }
+inline bool libmesh_isnan(std::complex<T> a)
+{ return (std::isnan(std::real(a)) || std::isnan(std::imag(a))); }
 
-// Same goes for isinf, which can be implemented in terms of isnan.
-// http://stackoverflow.com/a/2249173/659433
+// std::isinf() is in <cmath> as of C++11.
 template <typename T>
-inline bool libmesh_isinf(T x) { return !libmesh_isnan(x) && libmesh_isnan(x - x); }
+inline bool libmesh_isinf(T x) { return std::isinf(x); }
 
 template <typename T>
-inline bool libmesh_isinf(std::complex<T> a) { return (libmesh_isinf(std::real(a)) || libmesh_isinf(std::imag(a))); }
+inline bool libmesh_isinf(std::complex<T> a)
+{ return (std::isinf(std::real(a)) || std::isinf(std::imag(a))); }
 
 // Define the value type for unknowns in simulations.
 // This is either Real or Complex, depending on how
@@ -458,7 +454,7 @@ extern bool warned_about_auto_ptr;
 // A function template for ignoring unused variables.  This is a way
 // to shut up unused variable compiler warnings on a case by case
 // basis.
-template<class T> inline void libmesh_ignore( const T & ) { }
+template<class ...Args> inline void libmesh_ignore( const Args&... ) { }
 
 
 // cast_ref and cast_ptr do a dynamic cast and assert
@@ -477,7 +473,7 @@ inline Tnew cast_ref(Told & oldvar)
       Tnew newvar = dynamic_cast<Tnew>(oldvar);
       return newvar;
     }
-  catch (std::bad_cast)
+  catch (std::bad_cast &)
     {
       libMesh::err << "Failed to convert " << typeid(Told).name()
                    << " reference to " << typeid(Tnew).name()
@@ -567,19 +563,13 @@ inline Tnew libmesh_cast_int (Told oldvar)
 // a C++11 compiler that supports this keyword.
 #define libmesh_override override
 
-// Define C++03 backwards-compatible function deletion keyword.
-#ifdef LIBMESH_HAVE_CXX11_DELETED_FUNCTIONS
+// libmesh_delete is simply a synonym for '=delete' as we now require
+// a C++11 compiler that supports this keyword.
 #define libmesh_delete =delete
-#else
-#define libmesh_delete
-#endif
 
-// Define C++03 backwards-compatible final keyword.
-#ifdef LIBMESH_HAVE_CXX11_FINAL
+// libmesh_final is simply a synonym for 'final' as we now require
+// a C++11 compiler that supports this keyword.
 #define libmesh_final final
-#else
-#define libmesh_final
-#endif
 
 // Define backwards-compatible fallthrough attribute.  We could
 // eventually also add support for other compiler-specific fallthrough

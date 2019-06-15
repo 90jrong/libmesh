@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -96,7 +96,7 @@ public:
    */
   virtual void estimate_error (const System & system,
                                ErrorVector & error_per_cell,
-                               const NumericVector<Number> * solution_vector = libmesh_nullptr,
+                               const NumericVector<Number> * solution_vector = nullptr,
                                bool estimate_parent_error = false);
 
   /**
@@ -121,7 +121,7 @@ public:
   unsigned char number_p_refinements;
 
   /**
-   * \returns A pointer to the DifferentiablePhysics object or \p NULL if
+   * \returns A pointer to the DifferentiablePhysics object or \p nullptr if
    * no external Physics object is attached.
    */
   DifferentiablePhysics * get_residual_evaluation_physics()
@@ -137,7 +137,7 @@ protected:
 
   /**
    * Pointer to object to use for physics assembly evaluations.
-   * Defaults to libmesh_nullptr for backwards compatibility.
+   * Defaults to nullptr for backwards compatibility.
    */
   DifferentiablePhysics * _residual_evaluation_physics;
 

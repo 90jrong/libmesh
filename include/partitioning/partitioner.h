@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <memory>
 #include <unordered_map>
+#include <queue>
 
 namespace libMesh
 {
@@ -53,7 +54,7 @@ public:
   /**
    * Constructor.
    */
-  Partitioner () : _weights(libmesh_nullptr) {}
+  Partitioner () : _weights(nullptr) {}
 
   /**
    * Copy/move ctor, copy/move assignment operator, and destructor are
@@ -169,6 +170,32 @@ public:
   static void set_node_processor_ids(MeshBase & mesh);
 
   /**
+   * On the partitioning interface, a surface is shared by two and only two processors.
+   * Try to find which pair of processors corresponds to which surfaces, and store their
+   * nodes.
+   */
+  static void processor_pairs_to_interface_nodes(MeshBase & mesh, std::map<std::pair<processor_id_type, processor_id_type>, std::set<dof_id_type>> & processor_pair_to_nodes);
+
+  /**
+  * Nodes on the partitioning interface is linearly assigned to
+  * each pair of processors
+  */
+  static void set_interface_node_processor_ids_linear(MeshBase & mesh);
+
+  /**
+  * Nodes on the partitioning interface is clustered into two groups BFS (Breadth First Search)scheme
+  * for per pair of processors
+  */
+  static void set_interface_node_processor_ids_BFS(MeshBase & mesh);
+
+
+  /**
+  * Nodes on the partitioning interface is partitioned into two groups using a PETSc partitioner
+  * for each pair of processors
+  */
+  static void set_interface_node_processor_ids_petscpartitioner(MeshBase & mesh);
+
+  /**
    * Attach weights that can be used for partitioning.  This ErrorVector should be
    * _exactly_ the same on every processor and should have mesh->max_elem_id()
    * entries.
@@ -248,7 +275,7 @@ protected:
    * The number of active elements on each processor.
    *
    * \note ParMETIS requires that each processor have some active
-   * elements; it will abort if any processor passes a NULL _part
+   * elements; it will abort if any processor passes a nullptr _part
    * array.
    */
   std::vector<dof_id_type> _n_active_elem_on_proc;
@@ -259,6 +286,9 @@ protected:
    * element neighbors.
    */
   std::vector<std::vector<dof_id_type>> _dual_graph;
+
+
+  std::vector<Elem *> _local_id_to_elem;
 };
 
 } // namespace libMesh

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ namespace libMesh
 
 DGFEMContext::DGFEMContext (const System & sys)
   : FEMContext(sys),
-    _neighbor(libmesh_nullptr),
+    _neighbor(nullptr),
     _neighbor_dof_indices_var(sys.n_vars()),
     _dg_terms_active(false)
 {
@@ -63,7 +63,7 @@ DGFEMContext::DGFEMContext (const System & sys)
     {
       FEType fe_type = sys.variable_type(i);
 
-      if (_neighbor_side_fe[fe_type] == libmesh_nullptr)
+      if (_neighbor_side_fe[fe_type] == nullptr)
         _neighbor_side_fe[fe_type] = FEAbstract::build(this->_dim, fe_type);
 
       _neighbor_side_fe_var[i] = _neighbor_side_fe[fe_type].get();

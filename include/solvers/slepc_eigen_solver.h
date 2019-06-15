@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,9 @@
 
 // SLEPc include files.
 EXTERN_C_FOR_SLEPC_BEGIN
+# include "libmesh/ignore_warnings.h"
 # include <slepceps.h>
+# include "libmesh/restore_warnings.h"
 EXTERN_C_FOR_SLEPC_END
 
 namespace libMesh

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -72,12 +72,19 @@ class FEType;
 class SystemNorm;
 
 /**
- * This is the base class for classes which contain
- * information related to any physical process that might be simulated.
- * Such information may range from the actual solution values to
- * algorithmic flags that may be used to control the numerical methods
- * employed.  In general, use an \p EqnSystems<T_sys> object to handle
- * one or more of the children of this class.
+ * \brief Manages consistently variables, degrees of freedom, and coefficient
+ * vectors.
+ *
+ * This is the base class for classes which contain information related to any
+ * physical process that might be simulated. Such information may range from
+ * the actual solution values to algorithmic flags that may be used to control
+ * the numerical methods employed. In general, use an EquationSystems
+ * object to handle one or more of the children of this class.
+ *
+ * Especially, this class manages the variables of the differential equation,
+ * the coefficient vectors and the \p DofMap, and ensures that these are
+ * consistent. It provides storage for the solution.  Furthermore, (de-)
+ * serialization functionality is provided.
  *
  * \author Benjamin S. Kirk
  * \date 2003-2004
@@ -308,7 +315,7 @@ public:
   /**
    * After calling this method, any solve will be restricted to the
    * given subdomain.  To disable this mode, call this method with \p
-   * subset being a \p NULL pointer.
+   * subset being a \p nullptr.
    */
   virtual void restrict_solve_to (const SystemSubset * subset,
                                   const SubsetSolveMode subset_solve_mode=SUBSET_ZERO);
@@ -346,7 +353,7 @@ public:
 
   /**
    * Solves the adjoint system, for the specified qoi indices, or for
-   * every qoi if \p qoi_indices is NULL.  Must be overridden in
+   * every qoi if \p qoi_indices is nullptr.  Must be overridden in
    * derived systems.
    *
    * \returns A pair with the total number of linear iterations
@@ -489,7 +496,7 @@ public:
    * in the \p parameters argument.
    */
   void project_solution (FunctionBase<Number> * f,
-                         FunctionBase<Gradient> * g = libmesh_nullptr) const;
+                         FunctionBase<Gradient> * g = nullptr) const;
 
   /**
    * Projects arbitrary functions onto the current solution.
@@ -501,7 +508,7 @@ public:
    * in the \p parameters argument.
    */
   void project_solution (FEMFunctionBase<Number> * f,
-                         FEMFunctionBase<Gradient> * g = libmesh_nullptr) const;
+                         FEMFunctionBase<Gradient> * g = nullptr) const;
 
   /**
    * Projects arbitrary functions onto the current solution.
@@ -537,7 +544,7 @@ public:
    */
   void project_vector (NumericVector<Number> & new_vector,
                        FunctionBase<Number> * f,
-                       FunctionBase<Gradient> * g = libmesh_nullptr,
+                       FunctionBase<Gradient> * g = nullptr,
                        int is_adjoint = -1) const;
 
   /**
@@ -555,7 +562,7 @@ public:
    */
   void project_vector (NumericVector<Number> & new_vector,
                        FEMFunctionBase<Number> * f,
-                       FEMFunctionBase<Gradient> * g = libmesh_nullptr,
+                       FEMFunctionBase<Gradient> * g = nullptr,
                        int is_adjoint = -1) const;
 
   /**
@@ -592,7 +599,7 @@ public:
   void boundary_project_solution (const std::set<boundary_id_type> & b,
                                   const std::vector<unsigned int> & variables,
                                   FunctionBase<Number> * f,
-                                  FunctionBase<Gradient> * g = libmesh_nullptr);
+                                  FunctionBase<Gradient> * g = nullptr);
 
   /**
    * Projects arbitrary boundary functions onto a vector of degree of
@@ -633,7 +640,7 @@ public:
                                 const std::vector<unsigned int> & variables,
                                 NumericVector<Number> & new_vector,
                                 FunctionBase<Number> * f,
-                                FunctionBase<Gradient> * g = libmesh_nullptr,
+                                FunctionBase<Gradient> * g = nullptr,
                                 int is_adjoint = -1) const;
 
   /**
@@ -795,27 +802,27 @@ public:
 
   /**
    * \returns A const pointer to the vector if this \p System has a
-   * vector associated with the given name, \p NULL otherwise.
+   * vector associated with the given name, \p nullptr otherwise.
    */
   const NumericVector<Number> * request_vector (const std::string & vec_name) const;
 
   /**
    * \returns A pointer to the vector if this \p System has a
-   * vector associated with the given name, \p NULL otherwise.
+   * vector associated with the given name, \p nullptr otherwise.
    */
   NumericVector<Number> * request_vector (const std::string & vec_name);
 
   /**
    * \returns A const pointer to this system's additional vector
    * number \p vec_num (where the vectors are counted starting with
-   * 0), or \p NULL if the system has no such vector.
+   * 0), or \p nullptr if the system has no such vector.
    */
   const NumericVector<Number> * request_vector (const unsigned int vec_num) const;
 
   /**
    * \returns A writable pointer to this system's additional
    * vector number \p vec_num (where the vectors are counted starting
-   * with 0), or \p NULL if the system has no such vector.
+   * with 0), or \p nullptr if the system has no such vector.
    */
   NumericVector<Number> * request_vector (const unsigned int vec_num);
 
@@ -1084,7 +1091,7 @@ public:
    */
   unsigned int add_variable (const std::string & var,
                              const FEType & type,
-                             const std::set<subdomain_id_type> * const active_subdomains = libmesh_nullptr);
+                             const std::set<subdomain_id_type> * const active_subdomains = nullptr);
 
   /**
    * Adds the variable \p var to the list of variables
@@ -1094,7 +1101,7 @@ public:
   unsigned int add_variable (const std::string & var,
                              const Order order = FIRST,
                              const FEFamily = LAGRANGE,
-                             const std::set<subdomain_id_type> * const active_subdomains = libmesh_nullptr);
+                             const std::set<subdomain_id_type> * const active_subdomains = nullptr);
 
   /**
    * Adds the variable \p var to the list of variables
@@ -1104,7 +1111,7 @@ public:
    */
   unsigned int add_variables (const std::vector<std::string> & vars,
                               const FEType & type,
-                              const std::set<subdomain_id_type> * const active_subdomains = libmesh_nullptr);
+                              const std::set<subdomain_id_type> * const active_subdomains = nullptr);
 
   /**
    * Adds the variable \p var to the list of variables
@@ -1114,7 +1121,7 @@ public:
   unsigned int add_variables (const std::vector<std::string> & vars,
                               const Order order = FIRST,
                               const FEFamily = LAGRANGE,
-                              const std::set<subdomain_id_type> * const active_subdomains = libmesh_nullptr);
+                              const std::set<subdomain_id_type> * const active_subdomains = nullptr);
 
   /**
    * Return a constant reference to \p Variable \p var.
@@ -1203,7 +1210,7 @@ public:
   Real calculate_norm(const NumericVector<Number> & v,
                       unsigned int var,
                       FEMNormType norm_type,
-                      std::set<unsigned int> * skip_dimensions=libmesh_nullptr) const;
+                      std::set<unsigned int> * skip_dimensions=nullptr) const;
 
   /**
    * \returns A norm of the vector \p v, using \p component_norm and \p
@@ -1211,7 +1218,7 @@ public:
    */
   Real calculate_norm(const NumericVector<Number> & v,
                       const SystemNorm & norm,
-                      std::set<unsigned int> * skip_dimensions=libmesh_nullptr) const;
+                      std::set<unsigned int> * skip_dimensions=nullptr) const;
 
   /**
    * Reads the basic data header for this System.
@@ -1538,6 +1545,11 @@ public:
   Real time;
 
   /**
+   * Number of currently active quantities of interest.
+   */
+  unsigned int n_qois() const;
+
+  /**
    * Values of the quantities of interest.  This vector needs
    * to be both resized and filled by the user before any quantity of
    * interest assembly is done and before any sensitivities are
@@ -1548,7 +1560,8 @@ public:
   /**
    * \returns The value of the solution variable \p var at the physical
    * point \p p in the mesh, without knowing a priori which element
-   * contains \p p.
+   * contains \p p, using the degree of freedom coefficients in \p sol
+   * (or in \p current_local_solution if \p sol is left null).
    *
    * \note This function uses \p MeshBase::sub_point_locator(); users
    * may or may not want to call \p MeshBase::clear_point_locator()
@@ -1566,16 +1579,20 @@ public:
    * the method to return 0 when the point is not located.
    */
   Number point_value(unsigned int var, const Point & p,
-                     const bool insist_on_success = true) const;
+                     const bool insist_on_success = true,
+                     const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * \returns The value of the solution variable \p var at the physical
-   * point \p p contained in local Elem \p e
+   * point \p p contained in local Elem \p e, using the degree of
+   * freedom coefficients in \p sol (or in \p current_local_solution
+   * if \p sol is left null).
    *
    * This version of point_value can be run in serial, but assumes \p e is in
    * the local mesh partition or is algebraically ghosted.
    */
-  Number point_value(unsigned int var, const Point & p, const Elem & e) const;
+  Number point_value(unsigned int var, const Point & p, const Elem & e,
+                     const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * Calls the version of point_value() which takes a reference.
@@ -1586,17 +1603,27 @@ public:
   Number point_value(unsigned int var, const Point & p, const Elem * e) const;
 
   /**
+   * Calls the parallel version of point_value().
+   * This function exists only to prevent people from accidentally
+   * calling the version of point_value() that has a boolean third
+   * argument, which would result in incorrect output.
+   */
+  Number point_value(unsigned int var, const Point & p, const NumericVector<Number> * sol) const;
+
+  /**
    * \returns The gradient of the solution variable \p var at the physical
    * point \p p in the mesh, similarly to point_value.
    */
   Gradient point_gradient(unsigned int var, const Point & p,
-                          const bool insist_on_success = true) const;
+                          const bool insist_on_success = true,
+                          const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * \returns The gradient of the solution variable \p var at the physical
    * point \p p in local Elem \p e in the mesh, similarly to point_value.
    */
-  Gradient point_gradient(unsigned int var, const Point & p, const Elem & e) const;
+  Gradient point_gradient(unsigned int var, const Point & p, const Elem & e,
+                          const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * Calls the version of point_gradient() which takes a reference.
@@ -1607,18 +1634,28 @@ public:
   Gradient point_gradient(unsigned int var, const Point & p, const Elem * e) const;
 
   /**
+   * Calls the parallel version of point_gradient().
+   * This function exists only to prevent people from accidentally
+   * calling the version of point_gradient() that has a boolean third
+   * argument, which would result in incorrect output.
+   */
+  Gradient point_gradient(unsigned int var, const Point & p, const NumericVector<Number> * sol) const;
+
+  /**
    * \returns The second derivative tensor of the solution variable \p var
    * at the physical point \p p in the mesh, similarly to point_value.
    */
   Tensor point_hessian(unsigned int var, const Point & p,
-                       const bool insist_on_success = true) const;
+                       const bool insist_on_success = true,
+                       const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * \returns The second derivative tensor of the solution variable \p var
    * at the physical point \p p in local Elem \p e in the mesh, similarly to
    * point_value.
    */
-  Tensor point_hessian(unsigned int var, const Point & p, const Elem & e) const;
+  Tensor point_hessian(unsigned int var, const Point & p, const Elem & e,
+                       const NumericVector<Number> * sol = nullptr) const;
 
   /**
    * Calls the version of point_hessian() which takes a reference.
@@ -1627,6 +1664,15 @@ public:
    * would result in unnecessary PointLocator calls.
    */
   Tensor point_hessian(unsigned int var, const Point & p, const Elem * e) const;
+
+  /**
+   * Calls the parallel version of point_hessian().
+   * This function exists only to prevent people from accidentally
+   * calling the version of point_hessian() that has a boolean third
+   * argument, which would result in incorrect output.
+   */
+  Tensor point_hessian(unsigned int var, const Point & p, const NumericVector<Number> * sol) const;
+
 
   /**
    * Fills the std::set with the degrees of freedom on the local
@@ -2261,6 +2307,12 @@ void System::assemble_residual_derivatives (const ParameterVector &)
 
 inline
 void System::disable_cache () { assemble_before_solve = true; }
+
+inline
+unsigned int System::n_qois() const
+{
+  return cast_int<unsigned int>(this->qoi.size());
+}
 
 inline
 std::pair<unsigned int, Real>

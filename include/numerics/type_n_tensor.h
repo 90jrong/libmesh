@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@
 // Local includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/type_vector.h"
+#include "libmesh/tuple_of.h"
 
 // C++ includes
 #include <cstdlib> // *must* precede <cmath> for proper std:abs() on PGI, Sun Studio CC
@@ -47,6 +48,11 @@ template <unsigned int N, typename T>
 class TypeNTensor
 {
 public:
+  /**
+   * Helper typedef for generic index programming
+   */
+  typedef tuple_of<N, unsigned int> index_type;
+
   TypeNTensor () : _coords(std::vector<T>(int_pow(LIBMESH_DIM, N))) {}
 
   TypeNTensor (const T &) : _coords(std::vector<T>(int_pow(LIBMESH_DIM, N))) {}
@@ -164,14 +170,14 @@ public:
    * \deprecated Use the norm_sq() function instead.
    */
 #ifdef LIBMESH_ENABLE_DEPRECATED
-  Real size_sq() const { libmesh_deprecated(); return 0.;}
+  auto size_sq() const -> decltype(std::norm(T())) { libmesh_deprecated(); return 0.;}
 #endif
 
   /**
    * \returns The Frobenius norm of the tensor squared, i.e. the sum of the
    * entry magnitudes squared.
    */
-  Real norm_sq() const { return 0.;}
+  auto norm_sq() const -> decltype(std::norm(T())) { return 0.;}
 
   /**
    * \returns \p true if two tensors are equal, \p false otherwise.
@@ -240,6 +246,27 @@ void TypeNTensor<N, T>::add_scaled (const TypeNTensor<N, T2> & p, const T & fact
   for (unsigned int i = 0; i < size ; i++)
     _coords[i] += factor*p._coords[i];
 }
+
+template <unsigned int N, typename T, typename Scalar>
+typename boostcopy::enable_if_c<
+  ScalarTraits<Scalar>::value,
+  TypeNTensor<N,typename CompareTypes<Scalar, T>::supertype>>::type
+operator * (const Scalar &, const TypeNTensor<N, T> &)
+{
+  libmesh_not_implemented();
+  return TypeNTensor<N,typename CompareTypes<Scalar, T>::supertype>();
+}
+
+template <unsigned int N, typename T, typename Scalar>
+typename boostcopy::enable_if_c<
+  ScalarTraits<Scalar>::value,
+  TypeNTensor<N,typename CompareTypes<Scalar, T>::supertype>>::type
+operator / (const Scalar &, const TypeNTensor<N, T> &)
+{
+  libmesh_not_implemented();
+  return TypeNTensor<N,typename CompareTypes<Scalar, T>::supertype>();
+}
+
 
 } // namespace libMesh
 

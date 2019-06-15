@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -49,7 +49,7 @@ class FEMap
 {
 public:
 
-  FEMap();
+  FEMap(Real jtol = 0);
   virtual ~FEMap(){}
 
   static std::unique_ptr<FEMap> build(FEType fe_type);
@@ -181,6 +181,8 @@ public:
   { libmesh_assert(!calculations_started || calculate_dxyz);
     calculate_dxyz = true; return dxyzdzeta_map; }
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * \returns The second partial derivatives in xi.
    */
@@ -195,8 +197,6 @@ public:
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return d2xyzdeta2_map; }
 
-#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-
   /**
    * \returns The second partial derivatives in zeta.
    */
@@ -204,16 +204,12 @@ public:
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return d2xyzdzeta2_map; }
 
-#endif
-
   /**
    * \returns The second partial derivatives in xi-eta.
    */
   const std::vector<RealGradient> & get_d2xyzdxideta() const
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return d2xyzdxideta_map; }
-
-#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
    * \returns The second partial derivatives in xi-zeta.
@@ -374,12 +370,16 @@ public:
   { libmesh_assert(!calculations_started || calculate_dxyz);
     calculate_dxyz = true; return normals; }
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * \returns The curvatures for use in face integration.
    */
   const std::vector<Real> & get_curvatures() const
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return curvatures;}
+
+#endif
 
   /**
    * Prints the Jacobian times the weight for each quadrature point.
@@ -409,6 +409,10 @@ public:
   { libmesh_assert(!calculations_started || calculate_dxyz);
     calculate_dxyz = true; return dpsidxi_map; }
 
+  const std::vector<std::vector<Real>> & get_dpsidxi() const
+  { libmesh_assert(!calculations_started || calculate_dxyz);
+    calculate_dxyz = true; return dpsidxi_map; }
+
   /**
    * \returns The reference to physical map derivative for the side/edge
    */
@@ -416,10 +420,23 @@ public:
   { libmesh_assert(!calculations_started || calculate_dxyz);
     calculate_dxyz = true; return dpsideta_map; }
 
+  const std::vector<std::vector<Real>> & get_dpsideta() const
+  { libmesh_assert(!calculations_started || calculate_dxyz);
+    calculate_dxyz = true; return dpsideta_map; }
+
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * \returns The reference to physical map 2nd derivative for the side/edge
    */
   std::vector<std::vector<Real>> & get_d2psidxi2()
+  { libmesh_assert(!calculations_started || calculate_d2xyz);
+    calculate_d2xyz = true; return d2psidxi2_map; }
+
+  /**
+   * \returns const reference to physical map 2nd derivative for the side/edge
+   */
+  const std::vector<std::vector<Real>> & get_d2psidxi2() const
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return d2psidxi2_map; }
 
@@ -431,11 +448,28 @@ public:
     calculate_d2xyz = true; return d2psidxideta_map; }
 
   /**
+   * \returns const reference to physical map 2nd derivative for the side/edge
+   */
+  const std::vector<std::vector<Real>> & get_d2psidxideta() const
+  { libmesh_assert(!calculations_started || calculate_d2xyz);
+    calculate_d2xyz = true; return d2psidxideta_map; }
+
+  /**
    * \returns The reference to physical map 2nd derivative for the side/edge
    */
   std::vector<std::vector<Real>> & get_d2psideta2()
   { libmesh_assert(!calculations_started || calculate_d2xyz);
     calculate_d2xyz = true; return d2psideta2_map; }
+
+
+  /**
+   * \returns const reference to physical map 2nd derivative for the side/edge
+   */
+  const std::vector<std::vector<Real>> & get_d2psideta2() const
+  { libmesh_assert(!calculations_started || calculate_d2xyz);
+    calculate_d2xyz = true; return d2psideta2_map; }
+
+#endif //LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
    * \returns The reference to physical map for the element
@@ -518,6 +552,12 @@ public:
   std::vector<Real> & get_JxW()
   { libmesh_assert(!calculations_started || calculate_dxyz);
     calculate_dxyz = true; return JxW; }
+
+  /**
+   * Set the Jacobian tolerance used for determining when the mapping fails. The mapping is
+   * determined to fail if jac <= jacobian_tolerance.
+   */
+  void set_jacobian_tolerance(Real tol) { jacobian_tolerance = tol; }
 
 protected:
 
@@ -635,6 +675,8 @@ protected:
    */
   std::vector<RealGradient> dxyzdzeta_map;
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * Vector of second partial derivatives in xi:
    * d^2(x)/d(xi)^2, d^2(y)/d(xi)^2, d^2(z)/d(xi)^2
@@ -652,8 +694,6 @@ protected:
    * d^2(x)/d(eta)^2
    */
   std::vector<RealGradient> d2xyzdeta2_map;
-
-#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
    * Vector of second partial derivatives in xi-zeta:
@@ -673,7 +713,7 @@ protected:
    */
   std::vector<RealGradient> d2xyzdzeta2_map;
 
-#endif
+#endif //LIBMESH_ENABLE_SECOND_DERIVATIVES
 
   /**
    * Map for partial derivatives:
@@ -822,6 +862,8 @@ protected:
    */
   std::vector<std::vector<Real>> dpsideta_map;
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * Map for the second derivatives (in xi) of the
    * side shape functions.  Useful for computing
@@ -843,6 +885,8 @@ protected:
    */
   std::vector<std::vector<Real>> d2psideta2_map;
 
+#endif
+
   /**
    * Tangent vectors on boundary at quadrature points.
    */
@@ -853,12 +897,15 @@ protected:
    */
   std::vector<Point> normals;
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
   /**
    * The mean curvature (= one half the sum of the principal
    * curvatures) on the boundary at the quadrature points.
    * The mean curvature is a scalar value.
    */
   std::vector<Real> curvatures;
+
+#endif
 
   /**
    * Jacobian values at quadrature points
@@ -886,10 +933,14 @@ protected:
    */
   mutable bool calculate_dxyz;
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
+
   /**
    * Should we calculate mapping hessians?
    */
   mutable bool calculate_d2xyz;
+
+#endif
 
   /**
    * FE classes should be able to reset calculations_started in a few
@@ -897,6 +948,13 @@ protected:
    */
   template <unsigned int Dim, FEFamily T>
   friend class FE;
+
+  /**
+   * The Jacobian tolerance used for determining when the mapping fails. The mapping is
+   * determined to fail if jac <= jacobian_tolerance. If not set by the user, this number
+   * defaults to 0
+   */
+  Real jacobian_tolerance;
 
 private:
   /**
@@ -908,7 +966,7 @@ private:
   /**
    * Work vector for compute_affine_map()
    */
-  std::vector<const Node *> elem_nodes;
+  std::vector<const Node *> _elem_nodes;
 };
 
 }

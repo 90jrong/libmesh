@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 
 // libMesh Includes
 #include "libmesh/libmesh_common.h"
+#include "libmesh/auto_ptr.h"
 
 // C++ includes
 #include <array>
@@ -73,7 +74,7 @@ class StandardType : public DataType
    * form.
    */
 private:
-  StandardType(const T * example = libmesh_nullptr);
+  StandardType(const T * example = nullptr);
 };
 
 
@@ -89,7 +90,7 @@ private:
   {                                                                     \
   public:                                                               \
     explicit                                                            \
-      StandardType(const cxxtype * = libmesh_nullptr) : DataType(mpitype) {} \
+      StandardType(const cxxtype * = nullptr) : DataType(mpitype) {} \
   }
 
 #else
@@ -100,7 +101,7 @@ private:
   {                                                                     \
   public:                                                               \
     explicit                                                            \
-      StandardType(const cxxtype * = libmesh_nullptr) : DataType() {}   \
+      StandardType(const cxxtype * = nullptr) : DataType() {}   \
   }
 
 #endif
@@ -125,7 +126,7 @@ class StandardType<std::pair<T1, T2>> : public DataType
 {
 public:
   explicit
-  StandardType(const std::pair<T1, T2> * example = libmesh_nullptr) {
+  StandardType(const std::pair<T1, T2> * example = nullptr) {
     // We need an example for MPI_Address to use
     static const std::pair<T1, T2> p;
     if (!example)
@@ -178,10 +179,8 @@ public:
 
   StandardType(const StandardType<std::pair<T1, T2>> & t)
   {
-#ifdef LIBMESH_HAVE_MPI
     libmesh_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
-#endif
   }
 
   ~StandardType() { this->free(); }
@@ -216,15 +215,16 @@ void BuildStandardTypeVector<n_minus_i>::build
   typedef typename
     std::tuple_element<sizeof...(Types)-n_minus_i, std::tuple<Types...>>::type
     ith_type;
+
   out_vec.push_back
-    (new StandardType<ith_type>
-      (&std::get<sizeof...(Types)-n_minus_i>(example)));
+    (libmesh_make_unique<
+       StandardType<ith_type>
+     >(&std::get<sizeof...(Types)-n_minus_i>(example)));
 
   BuildStandardTypeVector<n_minus_i-1>::build(out_vec, example);
 }
 
 
-#ifdef LIBMESH_HAVE_MPI
 template<std::size_t n_minus_i>
 struct FillDisplacementArray
 {
@@ -251,11 +251,10 @@ void FillDisplacementArray<n_minus_i>::fill
   libmesh_call_mpi
     (MPI_Get_address
       (&std::get<sizeof...(Types)-n_minus_i>(example),
-       out_vec[sizeof...(Types)-n_minus_i]));
+       &out_vec[sizeof...(Types)-n_minus_i]));
 
   FillDisplacementArray<n_minus_i-1>::fill(out_vec, example);
 }
-#endif // LIBMESH_HAVE_MPI
 
 
 template<typename... Types>
@@ -263,7 +262,7 @@ class StandardType<std::tuple<Types...>> : public DataType
 {
 public:
   explicit
-  StandardType(const std::tuple<Types...> * example = libmesh_nullptr) {
+  StandardType(const std::tuple<Types...> * example = nullptr) {
     // We need an example for MPI_Address to use
     static const std::tuple<Types...> t;
     if (!example)
@@ -296,7 +295,7 @@ public:
     // create a prototype structure
     MPI_Datatype tmptype;
     libmesh_call_mpi
-      (MPI_Type_create_struct (tuplesize, blocklengths, displs, types,
+      (MPI_Type_create_struct (tuplesize, blocklengths.data(), displs.data(), types.data(),
                                &tmptype));
     libmesh_call_mpi
       (MPI_Type_commit (&tmptype));
@@ -317,10 +316,8 @@ public:
 
   StandardType(const StandardType<std::tuple<Types...>> & t)
   {
-#ifdef LIBMESH_HAVE_MPI
     libmesh_call_mpi
       (MPI_Type_dup (t._datatype, &_datatype));
-#endif
   }
 
   ~StandardType() { this->free(); }
@@ -332,8 +329,8 @@ class StandardType<std::complex<T>> : public DataType
 {
 public:
   explicit
-  StandardType(const std::complex<T> * /*example*/ = libmesh_nullptr) :
-    DataType(StandardType<T>(libmesh_nullptr), 2) {}
+  StandardType(const std::complex<T> * /*example*/ = nullptr) :
+    DataType(StandardType<T>(nullptr), 2) {}
 
   ~StandardType() { this->free(); }
 };

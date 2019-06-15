@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -582,7 +582,7 @@ void assemble_shell (EquationSystems & es,
       for (auto s : elem->side_index_range())
         {
           const Tri3Subdivision * nb_elem = static_cast<const Tri3Subdivision *> (elem->neighbor_ptr(s));
-          if (nb_elem == libmesh_nullptr || nb_elem->is_ghost())
+          if (nb_elem == nullptr || nb_elem->is_ghost())
             continue;
 
           /*

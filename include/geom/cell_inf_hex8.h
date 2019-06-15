@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -52,7 +52,7 @@ namespace libMesh
  * \date 2002
  * \brief A 3D infinite hexahedral element with 8 nodes.
  */
-class InfHex8 libmesh_final : public InfHex
+class InfHex8 final : public InfHex
 {
 public:
 
@@ -60,7 +60,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  InfHex8 (Elem * p=libmesh_nullptr) :
+  InfHex8 (Elem * p=nullptr) :
     InfHex(InfHex8::n_nodes(), p, _nodelinks_data)
   {}
 
@@ -73,7 +73,7 @@ public:
   /**
    * \returns 8.  The \p InfHex8 has 8 nodes.
    */
-  virtual unsigned int n_nodes() const override { return 8; }
+  virtual unsigned int n_nodes() const override { return num_nodes; }
 
   /**
    * \returns \p INFHEX8.
@@ -107,6 +107,8 @@ public:
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
 
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
+
   /**
    * \returns \p true if the specified (local) node number is on the
    * specified edge.
@@ -126,7 +128,14 @@ public:
    * \note that the \p std::unique_ptr<Elem> takes care of freeing memory.
    */
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds a \p QUAD4 built coincident with face 0, or an \p INFQUAD4
+   * built coincident with faces 1 to 4.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   /**
    * \returns An \p EDGE2 built coincident with edges 0 to 3, or an \p INFEDGE2
@@ -144,16 +153,26 @@ public:
   { return 12; }
 
   /**
-   * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
-   * element node numbers.
+   * Geometric constants for InfHex8.
    */
-  static const unsigned int side_nodes_map[5][4];
+  static const int num_nodes = 8;
+  static const int num_sides = 5;
+  static const int num_edges = 8;
+  static const int num_children = 4;
+  static const int nodes_per_side = 4;
+  static const int nodes_per_edge = 2;
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int edge_nodes_map[8][2];
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
+
+  /**
+   * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
+   * element node numbers.
+   */
+  static const unsigned int edge_nodes_map[num_edges][nodes_per_edge];
 
 
 protected:
@@ -161,7 +180,7 @@ protected:
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[8];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -179,7 +198,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[4][8][8];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

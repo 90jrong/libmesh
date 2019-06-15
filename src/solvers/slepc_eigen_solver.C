@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -108,6 +108,8 @@ SlepcEigenSolver<T>::solve_standard (SparseMatrix<T> & matrix_A_in,
 {
   LOG_SCOPE("solve_standard()", "SlepcEigenSolver");
 
+  this->clear ();
+
   this->init ();
 
   // Make sure the SparseMatrix passed in is really a PetscMatrix
@@ -132,6 +134,8 @@ SlepcEigenSolver<T>::solve_standard (ShellMatrix<T> & shell_matrix,
                                      const double tol,         // solver tolerance
                                      const unsigned int m_its) // maximum number of iterations
 {
+  this->clear ();
+
   this->init ();
 
   PetscErrorCode ierr=0;
@@ -294,6 +298,8 @@ SlepcEigenSolver<T>::solve_generalized (SparseMatrix<T> & matrix_A_in,
                                         const double tol,         // solver tolerance
                                         const unsigned int m_its) // maximum number of iterations
 {
+  this->clear ();
+
   this->init ();
 
   // Make sure the data passed in are really of Petsc types
@@ -322,6 +328,8 @@ SlepcEigenSolver<T>::solve_generalized (ShellMatrix<T> & shell_matrix_A,
                                         const double tol,         // solver tolerance
                                         const unsigned int m_its) // maximum number of iterations
 {
+  this->clear();
+
   this->init ();
 
   PetscErrorCode ierr=0;
@@ -366,6 +374,8 @@ SlepcEigenSolver<T>::solve_generalized (SparseMatrix<T> & matrix_A_in,
                                         const double tol,         // solver tolerance
                                         const unsigned int m_its) // maximum number of iterations
 {
+  this->clear();
+
   this->init ();
 
   PetscErrorCode ierr=0;
@@ -411,6 +421,8 @@ SlepcEigenSolver<T>::solve_generalized (ShellMatrix<T> & shell_matrix_A,
                                         const double tol,         // solver tolerance
                                         const unsigned int m_its) // maximum number of iterations
 {
+  this->clear();
+
   this->init ();
 
   PetscErrorCode ierr=0;
@@ -598,17 +610,17 @@ void SlepcEigenSolver<T>::set_slepc_solver_type()
   switch (this->_eigen_solver_type)
     {
     case POWER:
-      ierr = EPSSetType (_eps, (char *) EPSPOWER);    LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSPOWER);    LIBMESH_CHKERR(ierr); return;
     case SUBSPACE:
-      ierr = EPSSetType (_eps, (char *) EPSSUBSPACE); LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSSUBSPACE); LIBMESH_CHKERR(ierr); return;
     case LAPACK:
-      ierr = EPSSetType (_eps, (char *) EPSLAPACK);   LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSLAPACK);   LIBMESH_CHKERR(ierr); return;
     case ARNOLDI:
-      ierr = EPSSetType (_eps, (char *) EPSARNOLDI);  LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSARNOLDI);  LIBMESH_CHKERR(ierr); return;
     case LANCZOS:
-      ierr = EPSSetType (_eps, (char *) EPSLANCZOS);  LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSLANCZOS);  LIBMESH_CHKERR(ierr); return;
     case KRYLOVSCHUR:
-      ierr = EPSSetType (_eps, (char *) EPSKRYLOVSCHUR);  LIBMESH_CHKERR(ierr); return;
+      ierr = EPSSetType (_eps, EPSKRYLOVSCHUR);  LIBMESH_CHKERR(ierr); return;
       // case ARPACK:
       // ierr = EPSSetType (_eps, (char *) EPSARPACK);   LIBMESH_CHKERR(ierr); return;
 

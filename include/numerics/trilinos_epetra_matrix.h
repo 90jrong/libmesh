@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -60,7 +60,7 @@ template <typename T> class DenseMatrix;
  * \date 2008
  */
 template <typename T>
-class EpetraMatrix libmesh_final : public SparseMatrix<T>
+class EpetraMatrix final : public SparseMatrix<T>
 {
 public:
   /**
@@ -87,9 +87,14 @@ public:
                 const Parallel::Communicator & comm);
 
   /**
-   * Destructor. Free all memory, but do not release the memory of the
-   * sparsity structure.
+   * This class manages the lifetime of an Epetra_FECrsMatrix
+   * manually, so we don't want to allow any automatic copy/move
+   * functions to be generated, and we can't default the destructor.
    */
+  EpetraMatrix (EpetraMatrix &&) = delete;
+  EpetraMatrix (const EpetraMatrix &) = delete;
+  EpetraMatrix & operator= (const EpetraMatrix &) = delete;
+  EpetraMatrix & operator= (EpetraMatrix &&) = delete;
   virtual ~EpetraMatrix ();
 
   /**
@@ -154,7 +159,7 @@ public:
    * \note \p X will be closed, if not already done, before performing
    * any work.
    */
-  virtual void add (const T a, SparseMatrix<T> & X) override;
+  virtual void add (const T a, const SparseMatrix<T> & X) override;
 
   virtual T operator () (const numeric_index_type i,
                          const numeric_index_type j) const override;

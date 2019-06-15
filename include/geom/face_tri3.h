@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -61,7 +61,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  Tri3 (Elem * p=libmesh_nullptr) :
+  Tri3 (Elem * p=nullptr) :
     Tri(Tri3::n_nodes(), p, _nodelinks_data) {}
 
   Tri3 (Tri3 &&) = delete;
@@ -102,6 +102,8 @@ public:
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
 
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
+
   /**
    * \returns \p true if the specified (local) node number is on the
    * specified edge (== is_node_on_side in 2D).
@@ -128,18 +130,31 @@ public:
   virtual Order default_order() const override;
 
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds an EDGE2 coincident with face i.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   virtual void connectivity(const unsigned int sf,
                             const IOPackage iop,
                             std::vector<dof_id_type> & conn) const override;
 
   /**
+   * Geometric constants for Tri3.
+   */
+  static const int num_nodes = 3;
+  static const int num_sides = 3;
+  static const int num_children = 4;
+  static const int nodes_per_side = 2;
+
+  /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int side_nodes_map[3][2];
-
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
 
   /**
    * An optimized method for computing the area of a 3-node triangle.
@@ -159,12 +174,17 @@ public:
    */
   virtual bool contains_point (const Point & p, Real tol) const override;
 
+  /**
+   * Builds a bounding box out of the nodal positions
+   */
+  virtual BoundingBox loose_bounding_box () const override;
+
 protected:
 
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[3];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -182,7 +202,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[4][3][3];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

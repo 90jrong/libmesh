@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -36,9 +36,15 @@ template <typename T> class ShellMatrix;
 
 
 /**
- * This class provides a specific system class.  It aims
- * at implicit systems, offering nothing more than just
- * the essentials needed to solve a system.
+ * \brief Manages consistently variables, degrees of freedom, coefficient
+ * vectors, matrices and linear solvers for implicit systems.
+ *
+ * An implicit system is a system that requires the solution of a
+ * system of equations. This class has the ability to create and use a
+ * linear solver to solve the system.
+ *
+ * The matrix LinearImplicitSystem::matrix and the vector
+ * LinearImplicitSystem::rhs should be filled during assembly.
  *
  * \note Additional vectors/matrices can be added via parent class
  * interfaces.
@@ -106,7 +112,7 @@ public:
   /**
    * After calling this method, any solve will be limited to the given
    * subset.  To disable this mode, call this method with \p subset
-   * being a \p NULL pointer.
+   * being a \p nullptr.
    */
   virtual void restrict_solve_to (const SystemSubset * subset,
                                   const SubsetSolveMode subset_solve_mode=SUBSET_ZERO) override;
@@ -168,19 +174,19 @@ public:
    * you register your shell matrix using this function, calling \p
    * solve() will no longer use the \p matrix member but the
    * registered shell matrix instead.  You can reset this behaviour to
-   * its original state by supplying a \p NULL pointer to this
+   * its original state by supplying a \p nullptr to this
    * function.
    */
   void attach_shell_matrix (ShellMatrix<Number> * shell_matrix);
 
   /**
-   * Detaches a shell matrix.  Same as \p attach_shell_matrix(libmesh_nullptr).
+   * Detaches a shell matrix.  Same as \p attach_shell_matrix(nullptr).
    */
-  void detach_shell_matrix () { attach_shell_matrix(libmesh_nullptr); }
+  void detach_shell_matrix () { attach_shell_matrix(nullptr); }
 
   /**
    * \returns A pointer to the currently attached shell matrix, if any,
-   * or \p NULL else.
+   * otherwise \p nullptr.
    */
   ShellMatrix<Number> * get_shell_matrix() { return _shell_matrix; }
 
@@ -198,12 +204,12 @@ protected:
   Real _final_linear_residual;
 
   /**
-   * User supplies shell matrix or \p NULL if no shell matrix is used.
+   * User supplies shell matrix or \p nullptr if no shell matrix is used.
    */
   ShellMatrix<Number> * _shell_matrix;
 
   /**
-   * The current subset on which to solve (or \p NULL if none).
+   * The current subset on which to solve (or \p nullptr if none).
    */
   const SystemSubset * _subset;
 

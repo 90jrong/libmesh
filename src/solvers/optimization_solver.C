@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -31,14 +31,14 @@ template <typename T>
 inline
 OptimizationSolver<T>::OptimizationSolver (sys_type & s) :
   ParallelObject(s),
-  objective_object(libmesh_nullptr),
-  gradient_object(libmesh_nullptr),
-  hessian_object(libmesh_nullptr),
-  equality_constraints_object(libmesh_nullptr),
-  equality_constraints_jacobian_object(libmesh_nullptr),
-  inequality_constraints_object(libmesh_nullptr),
-  inequality_constraints_jacobian_object(libmesh_nullptr),
-  lower_and_upper_bounds_object(libmesh_nullptr),
+  objective_object(nullptr),
+  gradient_object(nullptr),
+  hessian_object(nullptr),
+  equality_constraints_object(nullptr),
+  equality_constraints_jacobian_object(nullptr),
+  inequality_constraints_object(nullptr),
+  inequality_constraints_jacobian_object(nullptr),
+  lower_and_upper_bounds_object(nullptr),
   max_objective_function_evaluations(500),
   objective_function_relative_tolerance(1.e-4),
   verbose(false),

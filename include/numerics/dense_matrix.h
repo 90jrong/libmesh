@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,23 @@
 #include <vector>
 #include <algorithm>
 
+#ifdef LIBMESH_HAVE_METAPHYSICL
+namespace MetaPhysicL
+{
+template <typename, typename>
+class DualNumber;
+}
+namespace std
+{
+// These declarations must be visible to the DenseMatrix method declarations that use
+// a std::abs trailing return type in order to instantiate a DenseMatrix<DualNumber>
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> abs(const MetaPhysicL::DualNumber<T, D> & in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> abs(MetaPhysicL::DualNumber<T, D> && in);
+}
+#endif
+
 namespace libMesh
 {
 
@@ -62,12 +79,22 @@ public:
               const unsigned int new_n=0);
 
   /**
-   * Destructor.  Empty.
+   * The 5 special functions can be defaulted for this class, as it
+   * does not manage any memory itself.
    */
-  virtual ~DenseMatrix() {}
-
+  DenseMatrix (DenseMatrix &&) = default;
+  DenseMatrix (const DenseMatrix &) = default;
+  DenseMatrix & operator= (const DenseMatrix &) = default;
+  DenseMatrix & operator= (DenseMatrix &&) = default;
+  virtual ~DenseMatrix() = default;
 
   virtual void zero() override;
+
+  /**
+   * Get submatrix with the smallest row and column indices and the submatrix size.
+   */
+  DenseMatrix sub_matrix(unsigned int row_id, unsigned int row_size,
+                         unsigned int col_id, unsigned int col_size) const;
 
   /**
    * \returns The \p (i,j) element of the matrix.
@@ -176,11 +203,11 @@ public:
   /**
    * Computes the outer (dyadic) product of two vectors and stores in (*this).
    *
-   * The outer product of two real-valued vectors $\mathbf{a}$ and $\mathbf{b}$ is
+   * The outer product of two real-valued vectors \f$\mathbf{a}\f$ and \f$\mathbf{b}\f$ is
    * \f[
    *   (\mathbf{a}\mathbf{b}^T)_{i,j} = \mathbf{a}_i \mathbf{b}_j .
    * \f]
-   * The outer product of two complex-valued vectors $\mathbf{a}$ and $\mathbf{b}$ is
+   * The outer product of two complex-valued vectors \f$\mathbf{a}\f$ and \f$\mathbf{b}\f$ is
    * \f[
    *   (\mathbf{a}\mathbf{b}^H)_{i,j} = \mathbf{a}_i \mathbf{b}^*_j ,
    * \f]
@@ -191,13 +218,6 @@ public:
    * \param[in] b   Vector whose entries correspond to columns in the product matrix.
    */
   void outer_product(const DenseVector<T> & a, const DenseVector<T> & b);
-
-  /**
-   * Assignment operator.
-   *
-   * \returns A reference to *this.
-   */
-  DenseMatrix<T> & operator = (const DenseMatrix<T> & other_matrix);
 
   /**
    * Assignment-from-other-matrix-type operator.
@@ -278,13 +298,13 @@ public:
    * \returns The minimum entry in the matrix, or the minimum real
    * part in the case of complex numbers.
    */
-  Real min () const;
+  auto min () const -> decltype(libmesh_real(T(0)));
 
   /**
    * \returns The maximum entry in the matrix, or the maximum real
    * part in the case of complex numbers.
    */
-  Real max () const;
+  auto max () const -> decltype(libmesh_real(T(0)));
 
   /**
    * \returns The l1-norm of the matrix, that is, the max column sum:
@@ -294,7 +314,7 @@ public:
    * This is the natural matrix norm that is compatible to the l1-norm
    * for vectors, i.e. \f$ |Mv|_1 \leq |M|_1 |v|_1 \f$.
    */
-  Real l1_norm () const;
+  auto l1_norm () const -> decltype(std::abs(T(0)));
 
   /**
    * \returns The linfty-norm of the matrix, that is, the max row sum:
@@ -304,7 +324,7 @@ public:
    * This is the natural matrix norm that is compatible to the
    * linfty-norm of vectors, i.e. \f$ |Mv|_\infty \leq |M|_\infty |v|_\infty \f$.
    */
-  Real linfty_norm () const;
+  auto linfty_norm () const -> decltype(std::abs(T(0)));
 
   /**
    * Left multiplies by the transpose of the matrix \p A.
@@ -663,7 +683,7 @@ private:
 
   /**
    * Computes the eigenvalues of the matrix using the Lapack routine
-   * "DGEEV".  If VR and/or VL are non-NULL, then the matrix of right
+   * "DGEEV".  If VR and/or VL are not nullptr, then the matrix of right
    * and/or left eigenvectors is also computed and returned by this
    * function.
    *
@@ -671,8 +691,8 @@ private:
    */
   void _evd_lapack(DenseVector<T> & lambda_real,
                    DenseVector<T> & lambda_imag,
-                   DenseMatrix<T> * VL = libmesh_nullptr,
-                   DenseMatrix<T> * VR = libmesh_nullptr);
+                   DenseMatrix<T> * VL = nullptr,
+                   DenseMatrix<T> * VR = nullptr);
 
   /**
    * Array used to store pivot indices.  May be used by whatever
@@ -831,15 +851,31 @@ void DenseMatrix<T>::zero()
 
 template<typename T>
 inline
-DenseMatrix<T> & DenseMatrix<T>::operator = (const DenseMatrix<T> & other_matrix)
+DenseMatrix<T> DenseMatrix<T>::sub_matrix(unsigned int row_id, unsigned int row_size,
+                                          unsigned int col_id, unsigned int col_size) const
 {
-  this->_m = other_matrix._m;
-  this->_n = other_matrix._n;
+  libmesh_assert_less (row_id + row_size - 1, this->_m);
+  libmesh_assert_less (col_id + col_size - 1, this->_n);
 
-  _val                = other_matrix._val;
-  _decomposition_type = other_matrix._decomposition_type;
+  DenseMatrix<T> sub;
+  sub._m = row_size;
+  sub._n = col_size;
+  sub._val.resize(row_size * col_size);
 
-  return *this;
+  unsigned int end_col = this->_n - col_size - col_id;
+  unsigned int p = row_id * this->_n;
+  unsigned int q = 0;
+  for (unsigned int i=0; i<row_size; i++)
+  {
+    // skip the beginning columns
+    p += col_id;
+    for (unsigned int j=0; j<col_size; j++)
+      sub._val[q++] = _val[p++];
+    // skip the rest columns
+    p += end_col;
+  }
+
+  return sub;
 }
 
 
@@ -976,17 +1012,17 @@ DenseMatrix<T> & DenseMatrix<T>::operator -= (const DenseMatrix<T> & mat)
 
 template<typename T>
 inline
-Real DenseMatrix<T>::min () const
+auto DenseMatrix<T>::min () const -> decltype(libmesh_real(T(0)))
 {
   libmesh_assert (this->_m);
   libmesh_assert (this->_n);
-  Real my_min = libmesh_real((*this)(0,0));
+  auto my_min = libmesh_real((*this)(0,0));
 
   for (unsigned int i=0; i!=this->_m; i++)
     {
       for (unsigned int j=0; j!=this->_n; j++)
         {
-          Real current = libmesh_real((*this)(i,j));
+          auto current = libmesh_real((*this)(i,j));
           my_min = (my_min < current? my_min : current);
         }
     }
@@ -997,17 +1033,17 @@ Real DenseMatrix<T>::min () const
 
 template<typename T>
 inline
-Real DenseMatrix<T>::max () const
+auto DenseMatrix<T>::max () const -> decltype(libmesh_real(T(0)))
 {
   libmesh_assert (this->_m);
   libmesh_assert (this->_n);
-  Real my_max = libmesh_real((*this)(0,0));
+  auto my_max = libmesh_real((*this)(0,0));
 
   for (unsigned int i=0; i!=this->_m; i++)
     {
       for (unsigned int j=0; j!=this->_n; j++)
         {
-          Real current = libmesh_real((*this)(i,j));
+          auto current = libmesh_real((*this)(i,j));
           my_max = (my_max > current? my_max : current);
         }
     }
@@ -1018,17 +1054,17 @@ Real DenseMatrix<T>::max () const
 
 template<typename T>
 inline
-Real DenseMatrix<T>::l1_norm () const
+auto DenseMatrix<T>::l1_norm () const -> decltype(std::abs(T(0)))
 {
   libmesh_assert (this->_m);
   libmesh_assert (this->_n);
 
-  Real columnsum = 0.;
+  auto columnsum = std::abs(T(0));
   for (unsigned int i=0; i!=this->_m; i++)
     {
       columnsum += std::abs((*this)(i,0));
     }
-  Real my_max = columnsum;
+  auto my_max = columnsum;
   for (unsigned int j=1; j!=this->_n; j++)
     {
       columnsum = 0.;
@@ -1045,17 +1081,17 @@ Real DenseMatrix<T>::l1_norm () const
 
 template<typename T>
 inline
-Real DenseMatrix<T>::linfty_norm () const
+auto DenseMatrix<T>::linfty_norm () const -> decltype(std::abs(T(0)))
 {
   libmesh_assert (this->_m);
   libmesh_assert (this->_n);
 
-  Real rowsum = 0.;
+  auto rowsum = std::abs(T(0));
   for (unsigned int j=0; j!=this->_n; j++)
     {
       rowsum += std::abs((*this)(0,j));
     }
-  Real my_max = rowsum;
+  auto my_max = rowsum;
   for (unsigned int i=1; i!=this->_m; i++)
     {
       rowsum = 0.;

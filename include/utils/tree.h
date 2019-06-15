@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -83,7 +83,7 @@ public:
    * optionally using a non-zero relative tolerance for searches.
    */
   virtual const Elem * find_element(const Point & p,
-                                    const std::set<subdomain_id_type> * allowed_subdomains = libmesh_nullptr,
+                                    const std::set<subdomain_id_type> * allowed_subdomains = nullptr,
                                     Real relative_tol = TOLERANCE) const override;
 
   /**
@@ -92,7 +92,7 @@ public:
    * optionally using a non-zero relative tolerance for searches.
    */
   const Elem * operator() (const Point & p,
-                           const std::set<subdomain_id_type> * allowed_subdomains = libmesh_nullptr,
+                           const std::set<subdomain_id_type> * allowed_subdomains = nullptr,
                            Real relative_tol = TOLERANCE) const;
 
 private:

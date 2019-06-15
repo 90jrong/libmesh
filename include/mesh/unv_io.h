@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -97,7 +97,7 @@ public:
    * \returns A pointer the values associated with the node \p node,
    * as read in by the read_dataset() method.
    *
-   * If no values exist for the node in question, a libmesh_nullptr is
+   * If no values exist for the node in question, a nullptr is
    * returned instead.  It is up to the user to check the return value
    * before using it.
    */

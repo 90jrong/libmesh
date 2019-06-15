@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 #include <sstream>
 
 // Local Includes
+#include "libmesh/default_coupling.h" // For downconversion
 #include "libmesh/explicit_system.h"
 #include "libmesh/fe_interface.h"
 #include "libmesh/frequency_system.h"
@@ -53,12 +54,13 @@ namespace libMesh
 // EquationSystems class implementation
 EquationSystems::EquationSystems (MeshBase & m) :
   ParallelObject (m),
-  _mesh          (m)
+  _mesh          (m),
+  _refine_in_reinit(true),
+  _enable_default_ghosting(true)
 {
   // Set default parameters
   this->parameters.set<Real>        ("linear solver tolerance") = TOLERANCE * TOLERANCE;
   this->parameters.set<unsigned int>("linear solver maximum iterations") = 5000;
-  this->_refine_in_reinit = true; // default value
 }
 
 
@@ -83,7 +85,7 @@ void EquationSystems::clear ()
 
       System * sys = pos->second;
       delete sys;
-      sys = libmesh_nullptr;
+      sys = nullptr;
 
       _systems.erase (pos);
     }
@@ -181,7 +183,6 @@ bool EquationSystems::reinit_solutions ()
 
 #ifdef LIBMESH_ENABLE_AMR
 
-  bool dof_constraints_created = false;
   bool mesh_changed = false;
 
   // FIXME: For backwards compatibility, assume
@@ -209,7 +210,6 @@ bool EquationSystems::reinit_solutions ()
         sys.prolong_vectors();
       }
     mesh_changed = true;
-    dof_constraints_created = true;
   }
 
   if (this->_refine_in_reinit)
@@ -227,15 +227,11 @@ bool EquationSystems::reinit_solutions ()
           for (unsigned int i=0; i != this->n_systems(); ++i)
             {
               System & sys = this->get_system(i);
-              if (!dof_constraints_created)
-                {
-                  sys.get_dof_map().distribute_dofs(_mesh);
-                  sys.reinit_constraints();
-                }
+              sys.get_dof_map().distribute_dofs(_mesh);
+              sys.reinit_constraints();
               sys.restrict_vectors();
             }
           mesh_changed = true;
-          dof_constraints_created = true;
         }
 
       // Once vectors are all restricted, we can delete
@@ -250,15 +246,11 @@ bool EquationSystems::reinit_solutions ()
           for (unsigned int i=0; i != this->n_systems(); ++i)
             {
               System & sys = this->get_system(i);
-              if (!dof_constraints_created)
-                {
-                  sys.get_dof_map().distribute_dofs(_mesh);
-                  sys.reinit_constraints();
-                }
+              sys.get_dof_map().distribute_dofs(_mesh);
+              sys.reinit_constraints();
               sys.prolong_vectors();
             }
           mesh_changed = true;
-          // dof_constraints_created = true;
         }
     }
 
@@ -315,6 +307,27 @@ void EquationSystems::allgather ()
     }
 }
 
+
+
+void EquationSystems::enable_default_ghosting (bool enable)
+{
+  _enable_default_ghosting = enable;
+  MeshBase &mesh = this->get_mesh();
+
+  if (enable)
+    mesh.add_ghosting_functor(mesh.default_ghosting());
+  else
+    mesh.remove_ghosting_functor(mesh.default_ghosting());
+
+  for (unsigned int i=0; i != this->n_systems(); ++i)
+    {
+      DofMap & dof_map = this->get_system(i).get_dof_map();
+      if (enable)
+        dof_map.add_default_ghosting();
+      else
+        dof_map.remove_default_ghosting();
+    }
+}
 
 
 
@@ -479,10 +492,10 @@ void EquationSystems::build_variable_names (std::vector<std::string> & var_names
     for (; pos != end; ++pos)
       {
         // Check current system is listed in system_names, and skip pos if not
-        bool use_current_system = (system_names == libmesh_nullptr);
+        bool use_current_system = (system_names == nullptr);
         if (!use_current_system)
           use_current_system = system_names->count(pos->first);
-        if (!use_current_system)
+        if (!use_current_system || pos->second->hide_output())
           continue;
 
         for (unsigned int vn=0; vn<pos->second->n_vars(); vn++)
@@ -514,10 +527,10 @@ void EquationSystems::build_variable_names (std::vector<std::string> & var_names
   for (; pos != end; ++pos)
     {
       // Check current system is listed in system_names, and skip pos if not
-      bool use_current_system = (system_names == libmesh_nullptr);
+      bool use_current_system = (system_names == nullptr);
       if (!use_current_system)
         use_current_system = system_names->count(pos->first);
-      if (!use_current_system)
+      if (!use_current_system || pos->second->hide_output())
         continue;
 
       for (unsigned int vn=0; vn<pos->second->n_vars(); vn++)
@@ -528,7 +541,7 @@ void EquationSystems::build_variable_names (std::vector<std::string> & var_names
           unsigned int n_vec_dim = FEInterface::n_vec_dim( pos->second->get_mesh(), fe_type);
 
           // Filter on the type if requested
-          if (type == libmesh_nullptr || (type && *type == fe_type))
+          if (type == nullptr || (type && *type == fe_type))
             {
               if (FEInterface::field_type(fe_type) == TYPE_VECTOR)
                 {
@@ -607,10 +620,10 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
     for (; pos != end; ++pos)
       {
         // Check current system is listed in system_names, and skip pos if not
-        bool use_current_system = (system_names == libmesh_nullptr);
+        bool use_current_system = (system_names == nullptr);
         if (!use_current_system)
           use_current_system = system_names->count(pos->first);
-        if (!use_current_system)
+        if (!use_current_system || pos->second->hide_output())
           continue;
 
         for (unsigned int vn=0; vn<pos->second->n_vars(); vn++)
@@ -671,10 +684,10 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
   for (; pos != end; ++pos)
     {
       // Check current system is listed in system_names, and skip pos if not
-      bool use_current_system = (system_names == libmesh_nullptr);
+      bool use_current_system = (system_names == nullptr);
       if (!use_current_system)
         use_current_system = system_names->count(pos->first);
-      if (!use_current_system)
+      if (!use_current_system || pos->second->hide_output())
         continue;
 
       const System & system  = *(pos->second);
@@ -768,7 +781,7 @@ EquationSystems::build_parallel_solution_vector(const std::set<std::string> * sy
                   // Only do this if this variable has NO DoFs at this node... it might have some from an adjoining element...
                   if (!elem->node_ptr(n)->n_dofs(sys_num, var))
                     for (unsigned int d=0; d < n_vec_dim; d++)
-                      repeat_count.add(nv*(elem->node_id(n)) + (var+d + var_num), 1);
+                      repeat_count.add(nv*(elem->node_id(n)) + (var_inc+d + var_num), 1);
 
             } // end loop over elements
           var_inc += n_vec_dim;
@@ -860,6 +873,35 @@ void EquationSystems::get_vars_active_subdomains(const std::vector<std::string> 
 void EquationSystems::get_solution (std::vector<Number> & soln,
                                     std::vector<std::string> & names) const
 {
+  libmesh_deprecated();
+  this->build_elemental_solution_vector(soln, names);
+}
+
+
+
+void
+EquationSystems::build_elemental_solution_vector (std::vector<Number> & soln,
+                                                  std::vector<std::string> & names) const
+{
+  // Call the parallel version of this function
+  std::unique_ptr<NumericVector<Number>> parallel_soln =
+    this->build_parallel_elemental_solution_vector(names);
+
+  // Localize into 'soln', provided that parallel_soln is not empty.
+  // Note: parallel_soln will be empty in the event that none of the
+  // input names were CONSTANT, MONOMIAL variables or there were
+  // simply no CONSTANT, MONOMIAL variables in the EquationSystems
+  // object.
+  soln.clear();
+  if (parallel_soln)
+    parallel_soln->localize_to_one(soln);
+}
+
+
+
+std::unique_ptr<NumericVector<Number>>
+EquationSystems::build_parallel_elemental_solution_vector (std::vector<std::string> & names) const
+{
   // This function must be run on all processors at once
   parallel_object_only();
 
@@ -875,7 +917,6 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
   std::vector<std::string> filter_names = names;
   bool is_filter_names = !filter_names.empty();
 
-  soln.clear();
   names.clear();
 
   const FEType type(CONSTANT, MONOMIAL);
@@ -911,9 +952,9 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
 
   // If there are no variables to write out don't do anything...
   if (!nv)
-    return;
+    return std::unique_ptr<NumericVector<Number>>(nullptr);
 
-  // We can handle the case where there are NULLs in the Elem vector
+  // We can handle the case where there are nullptrs in the Elem vector
   // by just having extra zeros in the solution vector.
   numeric_index_type parallel_soln_global_size = ne*nv;
 
@@ -996,14 +1037,17 @@ void EquationSystems::get_solution (std::vector<Number> & soln,
     } // end loop over systems
 
   parallel_soln.close();
-
-  parallel_soln.localize_to_one(soln);
+  return std::unique_ptr<NumericVector<Number>>(parallel_soln_ptr.release());
 }
 
 
 
-void EquationSystems::build_discontinuous_solution_vector (std::vector<Number> & soln,
-                                                           const std::set<std::string> * system_names) const
+void
+EquationSystems::build_discontinuous_solution_vector
+(std::vector<Number> & soln,
+ const std::set<std::string> * system_names,
+ const std::vector<std::string> * var_names,
+ bool vertices_only) const
 {
   LOG_SCOPE("build_discontinuous_solution_vector()", "EquationSystems");
 
@@ -1015,29 +1059,38 @@ void EquationSystems::build_discontinuous_solution_vector (std::vector<Number> &
   // in each system listed in system_names
   unsigned int nv = 0;
 
-  {
-    const_system_iterator       pos = _systems.begin();
-    const const_system_iterator end = _systems.end();
+  for (const auto & pr : _systems)
+    {
+      // Check current system is listed in system_names, and skip pos if not
+      bool use_current_system = (system_names == nullptr);
+      if (!use_current_system)
+        use_current_system = system_names->count(pr.first);
+      if (!use_current_system || pr.second->hide_output())
+        continue;
 
-    for (; pos != end; ++pos)
-      {
-        // Check current system is listed in system_names, and skip pos if not
-        bool use_current_system = (system_names == libmesh_nullptr);
-        if (!use_current_system)
-          use_current_system = system_names->count(pos->first);
-        if (!use_current_system)
-          continue;
+      const System * system  = pr.second;
 
-        const System & system  = *(pos->second);
-        nv += system.n_vars();
-      }
-  }
+      // Loop over all variables in this System and check whether we
+      // are supposed to use each one.
+      for (unsigned int var_id=0; var_id<system->n_vars(); ++var_id)
+        {
+          bool use_current_var = (var_names == nullptr);
+          if (!use_current_var)
+            use_current_var = std::count(var_names->begin(),
+                                         var_names->end(),
+                                         system->variable_name(var_id));
 
-  unsigned int tw=0;
+          // Only increment the total number of vars if we are
+          // supposed to use this one.
+          if (use_current_var)
+            nv++;
+        }
+    }
 
   // get the total weight
+  unsigned int tw=0;
   for (const auto & elem : _mesh.active_element_ptr_range())
-    tw += elem->n_nodes();
+    tw += vertices_only ? elem->n_vertices() : elem->n_nodes();
 
   // Only if we are on processor zero, allocate the storage
   // to hold (number_of_nodes)*(number_of_variables) entries.
@@ -1046,79 +1099,115 @@ void EquationSystems::build_discontinuous_solution_vector (std::vector<Number> &
 
   std::vector<Number> sys_soln;
 
-
-  unsigned int var_num=0;
+  // Keep track of the variable "offset". This is used for indexing
+  // into the global solution vector.
+  unsigned int var_offset = 0;
 
   // For each system in this EquationSystems object,
   // update the global solution and if we are on processor 0,
   // loop over the elements and build the nodal solution
   // from the element solution.  Then insert this nodal solution
   // into the vector passed to build_solution_vector.
-  {
-    const_system_iterator       pos = _systems.begin();
-    const const_system_iterator end = _systems.end();
+  for (const auto & pr : _systems)
+    {
+      // Check current system is listed in system_names, and skip pos if not
+      bool use_current_system = (system_names == nullptr);
+      if (!use_current_system)
+        use_current_system = system_names->count(pr.first);
+      if (!use_current_system || pr.second->hide_output())
+        continue;
 
-    for (; pos != end; ++pos)
-      {
-        // Check current system is listed in system_names, and skip pos if not
-        bool use_current_system = (system_names == libmesh_nullptr);
-        if (!use_current_system)
-          use_current_system = system_names->count(pos->first);
-        if (!use_current_system)
-          continue;
+      const System * system  = pr.second;
+      const unsigned int nv_sys = system->n_vars();
 
-        const System & system  = *(pos->second);
-        const unsigned int nv_sys = system.n_vars();
+      system->update_global_solution (sys_soln, 0);
 
-        system.update_global_solution (sys_soln, 0);
+      // Keep track of the number of vars actually written.
+      unsigned int n_vars_written_current_system = 0;
 
-        if (_mesh.processor_id() == 0)
-          {
-            std::vector<Number>       elem_soln;   // The finite element solution
-            std::vector<Number>       nodal_soln;  // The FE solution interpolated to the nodes
-            std::vector<dof_id_type>  dof_indices; // The DOF indices for the finite element
+      if (_mesh.processor_id() == 0)
+        {
+          std::vector<Number>       soln_coeffs; // The finite element solution coeffs
+          std::vector<Number>       nodal_soln;  // The FE solution interpolated to the nodes
+          std::vector<dof_id_type>  dof_indices; // The DOF indices for the finite element
 
-            for (unsigned int var=0; var<nv_sys; var++)
-              {
-                const FEType & fe_type    = system.variable_type(var);
+          // For each variable, determine if we are supposed to
+          // write it, then loop over the active elements, compute
+          // the nodal_soln and store it to the "soln" vector. We
+          // store zeros for subdomain-restricted variables on
+          // elements where they are not active.
+          for (unsigned int var=0; var<nv_sys; var++)
+            {
+              bool use_current_var = (var_names == nullptr);
+              if (!use_current_var)
+                use_current_var = std::count(var_names->begin(),
+                                             var_names->end(),
+                                             system->variable_name(var));
 
-                unsigned int nn=0;
+              // If we aren't supposed to write this var, go to the
+              // next loop iteration.
+              if (!use_current_var)
+                continue;
 
-                for (auto & elem : _mesh.active_element_ptr_range())
-                  {
-                    system.get_dof_map().dof_indices (elem, dof_indices, var);
+              const FEType & fe_type = system->variable_type(var);
+              const Variable & var_description = system->variable(var);
 
-                    elem_soln.resize(dof_indices.size());
+              unsigned int nn=0;
 
-                    for (std::size_t i=0; i<dof_indices.size(); i++)
-                      elem_soln[i] = sys_soln[dof_indices[i]];
+              for (auto & elem : _mesh.active_element_ptr_range())
+                {
+                  if (var_description.active_on_subdomain(elem->subdomain_id()))
+                    {
+                      system->get_dof_map().dof_indices (elem, dof_indices, var);
 
-                    FEInterface::nodal_soln (dim,
-                                             fe_type,
-                                             elem,
-                                             elem_soln,
-                                             nodal_soln);
+                      soln_coeffs.resize(dof_indices.size());
+
+                      for (std::size_t i=0; i<dof_indices.size(); i++)
+                        soln_coeffs[i] = sys_soln[dof_indices[i]];
+
+                      // Compute the FE solution at all the nodes, but
+                      // only use the first n_vertices() entries if
+                      // vertices_only == true.
+                      FEInterface::nodal_soln (dim,
+                                               fe_type,
+                                               elem,
+                                               soln_coeffs,
+                                               nodal_soln);
 
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
-                    // infinite elements should be skipped...
-                    if (!elem->infinite())
+                      // infinite elements should be skipped...
+                      if (!elem->infinite())
 #endif
-                      {
-                        libmesh_assert_equal_to (nodal_soln.size(), elem->n_nodes());
+                        {
+                          libmesh_assert_equal_to (nodal_soln.size(), elem->n_nodes());
 
-                        for (unsigned int n=0; n<elem->n_nodes(); n++)
-                          {
-                            soln[nv*(nn++) + (var + var_num)] +=
-                              nodal_soln[n];
-                          }
-                      }
-                  }
-              }
-          }
+                          const unsigned int n_vals =
+                            vertices_only ? elem->n_vertices() : elem->n_nodes();
 
-        var_num += nv_sys;
-      }
-  }
+                          for (unsigned int n=0; n<n_vals; n++)
+                            {
+                              // Compute index into global solution vector.
+                              std::size_t index =
+                                nv * (nn++) + (n_vars_written_current_system + var_offset);
+
+                              soln[index] += nodal_soln[n];
+                            }
+                        }
+                    }
+                  else
+                    nn += vertices_only ? elem->n_vertices() : elem->n_nodes();
+                } // end loop over active elements
+
+              // If we made it here, we actually wrote a variable, so increment
+              // the number of variables actually written for the current system.
+              n_vars_written_current_system++;
+
+            } // end loop over vars
+        } // end if proc 0
+
+      // Update offset for next loop iteration.
+      var_offset += n_vars_written_current_system;
+    } // end loop over systems
 }
 
 
@@ -1291,6 +1380,11 @@ void EquationSystems::_add_system_to_nodes_and_elems()
   // All the elements
   for (auto & elem : _mesh.element_ptr_range())
     elem->add_system();
+}
+
+void EquationSystems::_remove_default_ghosting(unsigned int sys_num)
+{
+  this->get_system(sys_num).get_dof_map().remove_default_ghosting();
 }
 
 } // namespace libMesh

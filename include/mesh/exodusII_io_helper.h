@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -71,11 +71,13 @@ enum ElemType : int;
 #endif
 
 
+#include <libmesh/ignore_warnings.h>
 namespace exII {
 extern "C" {
 #include "exodusII.h" // defines MAX_LINE_LENGTH, MAX_STR_LENGTH used later
 }
 }
+#include <libmesh/restore_warnings.h>
 
 namespace libMesh
 {
@@ -237,6 +239,13 @@ public:
   void read_nodeset(int id);
 
   /**
+   * New API that reads all nodesets simultaneously. This may be slightly
+   * faster than reading them one at a time. Calls ex_get_concat_node_sets()
+   * under the hood.
+   */
+  void read_all_nodesets();
+
+  /**
    * Closes the \p ExodusII mesh file.
    */
   void close();
@@ -305,8 +314,8 @@ public:
   /**
    * Sets up the nodal variables
    */
-  void initialize_element_variables(std::vector<std::string> names,
-                                    const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
+  virtual void initialize_element_variables(std::vector<std::string> names,
+                                            const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
 
   /**
    * Sets up the nodal variables
@@ -325,11 +334,42 @@ public:
 
   /**
    * Writes the vector of values to the element variables.
+   *
+   * The 'values' vector is assumed to be in the order:
+   * {(u1, u2, u3, ..., uN), (v1, v2, v3, ..., vN), (w1, w2, w3, ..., wN)}
+   * where N is the number of elements.
+   *
+   * This ordering is produced by calls to ES::build_elemental_solution_vector().
+   * ES::build_discontinuous_solution_vector(), on the other hand, produces an
+   * element-major ordering. See the function below for that case.
    */
-  void write_element_values(const MeshBase & mesh,
-                            const std::vector<Real> & values,
-                            int timestep,
-                            const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
+  void write_element_values
+  (const MeshBase & mesh,
+   const std::vector<Real> & values,
+   int timestep,
+   const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
+
+  /**
+   * Same as the function above, but assume the input 'values' vector is
+   * in element-major order, i.e.
+   * {(u1,v1,w1), (u2,v2,w2), ... (uN,vN,wN)}
+   * This function is called by
+   * ExodusII_IO::write_element_data_from_discontinuous_nodal_data()
+   * because ES::build_discontinuous_solution_vector() builds the solution
+   * vector in this order.
+   *
+   * \note If some variables are subdomain-restricted, then the tuples will
+   * be of different lengths for each element, i.e.
+   * {(u1,v1,w1), (u2,v2), ... (uN,vN,wN)}
+   * if variable w is not active on element 2.
+   */
+  void write_element_values_element_major
+  (const MeshBase & mesh,
+   const std::vector<Real> & values,
+   int timestep,
+   const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains,
+   const std::vector<std::string> & derived_var_names,
+   const std::map<subdomain_id_type, std::vector<std::string>> & subdomain_to_var_names);
 
   /**
    * Writes the vector of values to a nodal variable.
@@ -492,6 +532,22 @@ public:
   // Number of distribution factors per set
   std::vector<int> num_node_df_per_set;
 
+  // Starting indices for each nodeset in the node_sets_node_list vector.
+  // Used in the calls to ex_{put,get}_concat_node_sets().
+  std::vector<int> node_sets_node_index;
+
+  // Starting indices for each nodeset in the node_sets_dist_fact vector.
+  // Used in the calls to ex_{put,get}_concat_node_sets().
+  std::vector<int> node_sets_dist_index;
+
+  // Node ids for all nodes in nodesets, concatenated together.
+  // Used in the calls to ex_{put,get}_concat_node_sets().
+  std::vector<int> node_sets_node_list;
+
+  // Distribution factors for all nodes in all nodesets, concatenated together.
+  // Used in the calls to ex_{put,get}_concat_node_sets().
+  std::vector<Real> node_sets_dist_fact;
+
   // List of element numbers in all sidesets
   std::vector<int> elem_list;
 
@@ -600,6 +656,19 @@ public:
   void read_var_names(ExodusVarType type);
 
 protected:
+  /**
+   * When appending: during initialization, check that variable names
+   * in the file match those you attempt to initialize with.
+   */
+  void check_existing_vars(ExodusVarType type, std::vector<std::string> & names, std::vector<std::string> & names_from_file);
+
+  /**
+   * Wraps calls to exII::ex_put_var_names() and exII::ex_put_var_param().
+   * The enumeration controls whether nodal, elemental, or global
+   * variable names are read and which class members are filled in.
+   */
+  void write_var_names(ExodusVarType type, std::vector<std::string> & names);
+
   // If true, whenever there is an I/O operation, only perform if if we are on processor 0.
   bool _run_only_on_proc0;
 
@@ -628,19 +697,6 @@ protected:
   bool _single_precision;
 
 private:
-
-  /**
-   * Wraps calls to exII::ex_put_var_names() and exII::ex_put_var_param().
-   * The enumeration controls whether nodal, elemental, or global
-   * variable names are read and which class members are filled in.
-   */
-  void write_var_names(ExodusVarType type, std::vector<std::string> & names);
-
-  /**
-   * When appending: during initialization, check that variable names
-   * in the file match those you attempt to initialize with.
-   */
-  void check_existing_vars(ExodusVarType type, std::vector<std::string> & names, std::vector<std::string> & names_from_file);
 
   /**
    * read_var_names() dispatches to this function.
@@ -690,9 +746,9 @@ public:
       side_map_size(sm_size),
       inverse_side_map(ism),
       inverse_side_map_size(ism_size),
-      shellface_map(libmesh_nullptr),
+      shellface_map(nullptr),
       shellface_map_size(0),
-      inverse_shellface_map(libmesh_nullptr),
+      inverse_shellface_map(nullptr),
       inverse_shellface_map_size(0),
       shellface_index_offset(0),
       canonical_type(ct),
@@ -733,7 +789,15 @@ public:
       shellface_index_offset(sfi_offset),
       canonical_type(ct),
       exodus_type(ex_type)
-  {}
+  {
+    // libmesh_ignore variables that are only used in asserts to avoid
+    // compiler warnings.
+    libmesh_ignore(node_map_size,
+                   inverse_node_map_size,
+                   inverse_side_map_size,
+                   shellface_map_size,
+                   inverse_shellface_map_size);
+  }
 
   /**
    * \returns The ith component of the node map for this element.
@@ -785,6 +849,16 @@ public:
 
   /**
    * \returns The ith component of the shellface map for this element.
+   * \note Nothing is currently using this.
+   */
+  int get_shellface_map(int i) const
+  {
+    libmesh_assert_less (static_cast<size_t>(i), shellface_map_size);
+    return shellface_map[i];
+  }
+
+  /**
+   * \returns The ith component of the inverse shellface map for this element.
    */
   int get_inverse_shellface_map(int i) const
   {
@@ -808,7 +882,7 @@ public:
   /**
    * \returns The shellface index offset.
    */
-  int get_shellface_index_offset() const { return shellface_index_offset; }
+  std::size_t get_shellface_index_offset() const { return shellface_index_offset; }
 
   /**
    * An invalid_id that can be returned to signal failure in case
@@ -823,7 +897,8 @@ private:
   const int * node_map;
 
   /**
-   * The size of the node map array, this helps with bounds checking...
+   * The size of the node map array, this helps with bounds checking
+   * and is only used in asserts.
    */
   size_t node_map_size;
 
@@ -835,7 +910,8 @@ private:
   const int * inverse_node_map;
 
   /**
-   * The size of the inverse node map array, this helps with bounds checking...
+   * The size of the inverse node map array, this helps with bounds
+   * checking and is only used in asserts.
    */
   size_t inverse_node_map_size;
 
@@ -855,17 +931,21 @@ private:
   const int * inverse_side_map;
 
   /**
-   * The size of the inverse side map array, this helps with bounds checking...
+   * The size of the inverse side map array, this helps with bounds
+   * checking and is only used in asserts.
    */
   size_t inverse_side_map_size;
 
   /**
-   * Pointer to the shellface map for this element.
+   * Pointer to the shellface map for this element. Only the inverse
+   * is actually used currently, this one is provided for completeness
+   * and libmesh_ingore()d to avoid warnings.
    */
   const int * shellface_map;
 
   /**
-   * The size of the shellface map array, this helps with bounds checking...
+   * The size of the shellface map array, this helps with bounds
+   * checking and is only used in asserts.
    */
   size_t shellface_map_size;
 
@@ -875,7 +955,8 @@ private:
   const int * inverse_shellface_map;
 
   /**
-   * The size of the inverse shellface map array, this helps with bounds checking...
+   * The size of the inverse shellface map array, this helps with
+   * bounds checking and is only used in asserts.
    */
   size_t inverse_shellface_map_size;
 
@@ -1221,7 +1302,7 @@ public:
   /**
    * Constructor.  Allocates enough storage to hold n_strings of
    * length string_length.  (Actually allocates string_length+1 characters
-   * per string to account for the trailing NULL character.)
+   * per string to account for the trailing '\0' character.)
    */
   explicit
   NamesData(size_t n_strings, size_t string_length);

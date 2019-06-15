@@ -49,6 +49,8 @@ for method in ${METHODS}; do
      dnl blank line
      AS_ECHO([])
 done
+AS_ECHO(["Any warnings-to-errors flags....... : $ANY_WERROR_FLAG"])
+AS_ECHO(["Any extra paranoid warning flags... : $ANY_PARANOID_FLAGS"])
 AS_ECHO(["Install dir........................ : $prefix"])
 AS_ECHO(["Build user......................... : $USER"])
 AS_ECHO(["Build host......................... : $BUILD_HOST"])
@@ -119,6 +121,7 @@ AS_IF([test "x$enableoptional" = "xyes"],
         AS_ECHO(["  hdf5............................. : $enablehdf5"])
         AS_ECHO(["  laspack.......................... : $enablelaspack"])
         AS_ECHO(["  libhilbert....................... : $enablelibhilbert"])
+        AS_ECHO(["  metaphysicl...................... : $enablemetaphysicl"])
         AS_ECHO(["  metis............................ : $enablemetis"])
         AS_ECHO(["  mpi.............................. : $enablempi"])
         AS_ECHO(["  nanoflann........................ : $enablenanoflann"])

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@ namespace libMesh
  * not exist on the local processor, the ghost element's neighbors
  * are set to point to the singleton RemoteElement instead.
  * Library code can then distinguish between such elements and
- * boundary elements (with NULL neighbors).
+ * boundary elements (with nullptr neighbors).
  *
  * \author Roy H. Stogner
  * \date 2007
@@ -57,9 +57,9 @@ public:
 private:
   RemoteElem () : Elem(0,
                        0,
-                       libmesh_nullptr,
+                       nullptr,
                        _elemlinks_data,
-                       libmesh_nullptr)
+                       nullptr)
   { this->set_id(remote_elem_id); }
 
 public:
@@ -109,7 +109,7 @@ public:
   virtual ElemType type () const override
   { return REMOTEELEM; }
 
-  virtual unsigned int dim () const override
+  virtual unsigned short dim () const override
   { libmesh_not_implemented(); return 0; }
 
   virtual unsigned int n_nodes () const override
@@ -143,6 +143,12 @@ public:
                                const unsigned int) const override
   { libmesh_not_implemented(); return false; }
 
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int) const override
+  {
+    libmesh_not_implemented();
+    return {0};
+  }
+
   virtual bool is_child_on_side(const unsigned int,
                                 const unsigned int) const override
   { libmesh_not_implemented(); return false; }
@@ -161,9 +167,17 @@ public:
   virtual std::unique_ptr<Elem> side_ptr (const unsigned int) override
   { libmesh_not_implemented(); return std::unique_ptr<Elem>(); }
 
+  virtual void side_ptr (std::unique_ptr<Elem> &,
+                         const unsigned int) override
+  { libmesh_not_implemented(); }
+
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int,
                                                 bool) override
   { libmesh_not_implemented(); return std::unique_ptr<Elem>(); }
+
+  virtual void build_side_ptr (std::unique_ptr<Elem> &,
+                               const unsigned int) override
+  { libmesh_not_implemented(); }
 
   virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int) override
   { libmesh_not_implemented(); return std::unique_ptr<Elem>(); }
@@ -197,7 +211,7 @@ public:
 protected:
 
   /**
-   * Data for link to (NULL!) parent.
+   * Data for link to (nullptr!) parent.
    */
   Elem * _elemlinks_data[1];
 };

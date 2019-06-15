@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -104,9 +104,6 @@ int main (int argc, char ** argv)
 #ifndef LIBMESH_HAVE_EXODUS_API
   libmesh_example_requires(false, "--enable-exodus");
 #endif
-
-  // The sparsity augmentation code requires PETSc
-  libmesh_example_requires(libMesh::default_solver_package() == PETSC_SOLVERS, "--enable-petsc");
 
   // Skip this 3D example if libMesh was compiled as 1D or 2D-only.
   libmesh_example_requires(3 <= LIBMESH_DIM, "3D support");
@@ -269,7 +266,7 @@ void assemble_poisson(EquationSystems & es,
       // Boundary flux provides forcing in this example
       {
         for (auto side : elem->side_index_range())
-          if (elem->neighbor_ptr(side) == libmesh_nullptr)
+          if (elem->neighbor_ptr(side) == nullptr)
             {
               if (mesh.get_boundary_info().has_boundary_id (elem, side, MIN_Z_BOUNDARY))
                 {
@@ -286,7 +283,7 @@ void assemble_poisson(EquationSystems & es,
       // Add boundary terms on the crack
       {
         for (auto side : elem->side_index_range())
-          if (elem->neighbor_ptr(side) == libmesh_nullptr)
+          if (elem->neighbor_ptr(side) == nullptr)
             {
               // Found the lower side of the crack. Assemble terms due to lower and upper in here.
               if (mesh.get_boundary_info().has_boundary_id (elem, side, CRACK_BOUNDARY_LOWER))

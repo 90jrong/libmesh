@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -65,7 +65,7 @@ namespace libMesh
  * \date 2002
  * \brief A 3D hexahedral element with 20 nodes.
  */
-class Hex20 libmesh_final : public Hex
+class Hex20 final : public Hex
 {
 public:
 
@@ -73,7 +73,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  Hex20 (Elem * p=libmesh_nullptr) :
+  Hex20 (Elem * p=nullptr) :
     Hex(Hex20::n_nodes(), p, _nodelinks_data)
   {}
 
@@ -91,7 +91,7 @@ public:
   /**
    * \returns 20.
    */
-  virtual unsigned int n_nodes() const override { return 20; }
+  virtual unsigned int n_nodes() const override { return num_nodes; }
 
   /**
    * \returns 1.
@@ -119,6 +119,8 @@ public:
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
+
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the
@@ -149,7 +151,13 @@ public:
    * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds a \p QUAD8 built coincident with face i.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   /**
    * Builds a \p EDGE3 built coincident with edge i.
@@ -185,16 +193,26 @@ public:
   second_order_child_vertex (const unsigned int n) const override;
 
   /**
+   * Geometric constants for Hex20.
+   */
+  static const int num_nodes = 20;
+  static const int num_sides = 6;
+  static const int num_edges = 12;
+  static const int num_children = 8;
+  static const int nodes_per_side = 8;
+  static const int nodes_per_edge = 3;
+
+  /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int side_nodes_map[6][8];
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ edge to
    * element node numbers.
    */
-  static const unsigned int edge_nodes_map[12][3];
+  static const unsigned int edge_nodes_map[num_edges][nodes_per_edge];
 
   /**
    * A specialization for computing the volume of a Hex20.
@@ -206,7 +224,7 @@ protected:
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[20];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -224,7 +242,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[8][20][20];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

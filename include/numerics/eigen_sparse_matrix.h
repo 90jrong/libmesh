@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -51,7 +51,7 @@ template <typename T> class EigenSparseLinearSolver;
  * \date 2013
  */
 template <typename T>
-class EigenSparseMatrix libmesh_final : public SparseMatrix<T>
+class EigenSparseMatrix final : public SparseMatrix<T>
 {
 
 public:
@@ -68,10 +68,14 @@ public:
   EigenSparseMatrix (const Parallel::Communicator & comm);
 
   /**
-   * Destructor. Free all memory, but do not release the memory of the
-   * sparsity structure.
+   * The 5 special functions can be defaulted for this class, as it
+   * does not manage any memory itself.
    */
-  ~EigenSparseMatrix ();
+  EigenSparseMatrix (EigenSparseMatrix &&) = default;
+  EigenSparseMatrix (const EigenSparseMatrix &) = default;
+  EigenSparseMatrix & operator= (const EigenSparseMatrix &) = default;
+  EigenSparseMatrix & operator= (EigenSparseMatrix &&) = default;
+  virtual ~EigenSparseMatrix () = default;
 
   /**
    * Convenient typedefs
@@ -118,7 +122,7 @@ public:
   virtual void add_matrix (const DenseMatrix<T> & dm,
                            const std::vector<numeric_index_type> & dof_indices) override;
 
-  virtual void add (const T a, SparseMatrix<T> & X) override;
+  virtual void add (const T a, const SparseMatrix<T> & X) override;
 
   virtual T operator () (const numeric_index_type i,
                          const numeric_index_type j) const override;

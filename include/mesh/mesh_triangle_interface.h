@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -181,7 +181,7 @@ private:
   UnstructuredMesh & _mesh;
 
   /**
-   * A pointer to a vector of Hole*s.  If this is NULL, there
+   * A pointer to a vector of Hole*s.  If this is nullptr, there
    * are no holes!
    */
   const std::vector<Hole*> * _holes;

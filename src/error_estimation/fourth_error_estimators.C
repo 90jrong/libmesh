@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -69,7 +69,7 @@ LaplacianErrorEstimator::init_context(FEMContext & c)
       if (error_norm.weight(v) == 0.0) continue;
 
       // FIXME: Need to generalize this to vector-valued elements. [PB]
-      FEBase * side_fe = libmesh_nullptr;
+      FEBase * side_fe = nullptr;
 
       const std::set<unsigned char> & elem_dims =
         c.elem_dimensions();
@@ -95,12 +95,12 @@ LaplacianErrorEstimator::internal_side_integration ()
   const DenseVector<Number> & Ucoarse = coarse_context->get_elem_solution();
   const DenseVector<Number> & Ufine   = fine_context->get_elem_solution();
 
-  unsigned int dim = fine_elem.dim();
+  unsigned short dim = fine_elem.dim();
 
-  FEBase * fe_fine = libmesh_nullptr;
+  FEBase * fe_fine = nullptr;
   fine_context->get_side_fe( var, fe_fine, dim );
 
-  FEBase * fe_coarse = libmesh_nullptr;
+  FEBase * fe_coarse = nullptr;
   coarse_context->get_side_fe( var, fe_coarse, dim );
 
   Real error = 1.e-30;

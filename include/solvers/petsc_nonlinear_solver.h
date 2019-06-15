@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -118,7 +118,7 @@ public:
    * Initialize data structures if not done so already.
    * May assign a name to the solver in some implementations
    */
-  virtual void init (const char * name = libmesh_nullptr) override;
+  virtual void init (const char * name = nullptr) override;
 
   /**
    * \returns The raw PETSc snes context pointer.
@@ -180,6 +180,11 @@ public:
   void use_default_monitor(bool state) { _default_monitor = state; }
 
   /**
+   * Set to true to let PETSc reuse the base vector
+   */
+  void set_snesmf_reuse_base(bool state) { _snesmf_reuse_base = state; }
+
+  /**
    * Abstract base class to be used to implement a custom line-search algorithm
    */
   class ComputeLineSearchObject
@@ -238,6 +243,13 @@ protected:
    * true if we want the default monitor to be set, false for no monitor (i.e. user code can use their own)
    */
   bool _default_monitor;
+
+  /**
+   * True, If we want the base vector to be used for differencing even if the function provided to SNESSetFunction()
+   * is not the same as that provided to MatMFFDSetFunction().
+   * https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/MatSNESMFSetReuseBase.html
+   */
+  bool _snesmf_reuse_base;
 
 #if !PETSC_VERSION_LESS_THAN(3,3,0)
   void build_mat_null_space(NonlinearImplicitSystem::ComputeVectorSubspace * computeSubspaceObject,

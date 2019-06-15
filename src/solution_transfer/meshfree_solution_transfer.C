@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,19 @@ public:
     _mfi(mfi),
     _mutex(mutex)
   {}
+
+  /**
+   * The move/copy ctor and destructor are defaulted for this class.
+   */
+  MeshlessInterpolationFunction (MeshlessInterpolationFunction &&) = default;
+  MeshlessInterpolationFunction (const MeshlessInterpolationFunction &) = default;
+  virtual ~MeshlessInterpolationFunction () = default;
+
+  /**
+   * This class contains const references so it can't be assigned.
+   */
+  MeshlessInterpolationFunction & operator= (const MeshlessInterpolationFunction &) = delete;
+  MeshlessInterpolationFunction & operator= (MeshlessInterpolationFunction &&) = delete;
 
   void init () {}
   void clear () {}

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -33,8 +33,12 @@ namespace libMesh
 {
 
 /**
- * Function which is a function of another function.  All overridden
- * virtual functions are documented in function_base.h.
+ * \brief A function that returns a vector whose components are defined by
+ * multiple functions.
+ *
+ * A function which is defined by composing the result of different functions
+ * into a single vector.  All overridden virtual functions are documented in
+ * function_base.h.
  *
  * \author Roy Stogner
  * \date 2012
@@ -45,26 +49,43 @@ class CompositeFunction : public FunctionBase<Output>
 {
 public:
   explicit
-  CompositeFunction () {}
+  CompositeFunction () = default;
 
-  ~CompositeFunction ()
-  {
-    for (auto & f : subfunctions)
-      delete f;
-  }
+  /**
+   * This class can be default move constructed and assigned.
+   */
+  CompositeFunction (CompositeFunction &&) = default;
+  CompositeFunction & operator= (CompositeFunction &&) = default;
+
+  /**
+   * This class contains unique_ptr members so it can't be default
+   * copied or assigned.
+   */
+  CompositeFunction (const CompositeFunction &) = delete;
+  CompositeFunction & operator= (const CompositeFunction &) = delete;
+
+  /**
+   * The subfunctions vector is automatically cleaned up.
+   */
+  virtual ~CompositeFunction () = default;
 
   /**
    * Attach a new subfunction, along with a map from the indices of
-   * that subfunction to the indices of the global function.
-   * (*this)(index_map[i]) will return f(i).
+   * the attached subfunction to the indices of the composed function.
+   *
+   * The composed function will return a vector whose value at index
+   * \p index_map[i] is the value of the attached function at index i,
+   * i.e.,
+   * (*this)(x, t)(index_map[i]) will return f(x, t)(i).
    */
   void attach_subfunction (const FunctionBase<Output> & f,
                            const std::vector<unsigned int> & index_map)
   {
-    const unsigned int subfunction_index = subfunctions.size();
+    const unsigned int subfunction_index =
+      cast_int<unsigned int>(subfunctions.size());
     libmesh_assert_equal_to(subfunctions.size(), index_maps.size());
 
-    subfunctions.push_back(f.clone().release());
+    subfunctions.push_back(f.clone());
     index_maps.push_back(index_map);
 
     unsigned int max_index =
@@ -121,9 +142,9 @@ public:
     DenseVector<Output> temp;
     for (std::size_t i=0; i != subfunctions.size(); ++i)
       {
-        temp.resize(index_maps[i].size());
+        temp.resize(cast_int<unsigned int>(index_maps[i].size()));
         (*subfunctions[i])(p, time, temp);
-        for (std::size_t j=0; j != temp.size(); ++j)
+        for (unsigned int j=0; j != temp.size(); ++j)
           output(index_maps[i][j]) = temp(j);
       }
   }
@@ -164,7 +185,7 @@ public:
 
 private:
   // list of functions which fill in our values
-  std::vector<FunctionBase<Output> *> subfunctions;
+  std::vector<std::unique_ptr<FunctionBase<Output>>> subfunctions;
 
   // for each function, list of which global indices it fills in
   std::vector<std::vector<unsigned int>> index_maps;

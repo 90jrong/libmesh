@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -213,7 +213,9 @@ void VTKIO::read (const std::string & name)
 
       // then reshuffle the nodes according to the connectivity, this
       // two-time-assign would evade the definition of the vtk_mapping
-      for (std::size_t j=0; j<conn.size(); ++j)
+      for (unsigned int j=0,
+           n_conn = cast_int<unsigned int>(conn.size());
+           j != n_conn; ++j)
         elem->set_node(j) = mesh.node_ptr(conn[j]);
 
       elem->set_id(i);
@@ -244,8 +246,6 @@ void VTKIO::write_nodal_data (const std::string & fname,
                               const std::vector<Number> & soln,
                               const std::vector<std::string> & names)
 {
-  const MeshBase & mesh = MeshOutput<MeshBase>::mesh();
-
   // Warn that the .pvtu file extension should be used.  Paraview
   // recognizes this, and it works in both serial and parallel.  Only
   // warn about this once.
@@ -274,34 +274,33 @@ void VTKIO::write_nodal_data (const std::string & fname,
   if (names.size() > 0)
     {
       std::size_t num_vars = names.size();
-      dof_id_type num_nodes = mesh.n_nodes();
+      std::vector<Number> local_values;
+
+#ifdef LIBMESH_USE_COMPLEX_NUMBERS
+      std::vector<Real> local_real_values;
+#endif
 
       for (std::size_t variable=0; variable<num_vars; ++variable)
         {
-          vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-          data->SetName(names[variable].c_str());
-
-          // number of local and ghost nodes
-          data->SetNumberOfValues(_local_node_map.size());
-
-          // loop over all nodes and get the solution for the current
-          // variable, if the node is in the current partition
-          for (dof_id_type k=0; k<num_nodes; ++k)
-            {
-              std::map<dof_id_type, dof_id_type>::iterator local_node_it = _local_node_map.find(k);
-              if (local_node_it == _local_node_map.end())
-                continue; // not a local node
+          get_local_node_values(local_values, variable, soln, names);
 
 #ifdef LIBMESH_USE_COMPLEX_NUMBERS
-              libmesh_do_once (libMesh::err << "Only writing the real part for complex numbers!\n"
-                               << "if you need this support contact " << LIBMESH_PACKAGE_BUGREPORT
-                               << std::endl);
-              data->SetValue(local_node_it->second, soln[k*num_vars + variable].real());
+          // write real part
+          local_real_values.resize(local_values.size());
+          std::transform(local_values.begin(), local_values.end(),
+                         local_real_values.begin(),
+                         [](Number x) { return x.real(); });
+          node_values_to_vtk(names[variable] + "_real", local_real_values);
+
+          // write imaginary part
+          local_real_values.resize(local_values.size());
+          std::transform(local_values.begin(), local_values.end(),
+                         local_real_values.begin(),
+                         [](Number x) { return x.imag(); });
+          node_values_to_vtk(names[variable] + "_imag", local_real_values);
 #else
-              data->SetValue(local_node_it->second, soln[k*num_vars + variable]);
+          node_values_to_vtk(names[variable], local_values);
 #endif
-            }
-          _vtk_grid->GetPointData()->AddArray(data);
         }
     }
 
@@ -432,7 +431,9 @@ void VTKIO::cells_to_vtk()
       std::vector<dof_id_type> conn;
       elem->connectivity(0, VTK, conn);
 
-      for (std::size_t i=0; i<conn.size(); ++i)
+      for (unsigned int i=0,
+           n_conn = cast_int<unsigned int>(conn.size());
+           i != n_conn; ++i)
         {
           // If the node ID is not found in the _local_node_map, we'll
           // add it to the _vtk_grid.  NOTE[JWP]: none of the examples
@@ -470,10 +471,53 @@ void VTKIO::cells_to_vtk()
       ++active_element_counter;
     } // end loop over active elements
 
-  _vtk_grid->SetCells(&types[0], cells);
+  _vtk_grid->SetCells(types.data(), cells);
   _vtk_grid->GetCellData()->AddArray(elem_id);
   _vtk_grid->GetCellData()->AddArray(subdomain_id);
   _vtk_grid->GetCellData()->AddArray(elem_proc_id);
+}
+
+void VTKIO::node_values_to_vtk(const std::string & name,
+                               const std::vector<Real> & local_values)
+{
+  vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
+  data->SetName(name.c_str());
+
+  libmesh_assert_equal_to(_local_node_map.size(), local_values.size());
+
+  // number of local and ghost nodes
+  data->SetNumberOfValues(_local_node_map.size());
+
+  // copy values into vtk
+  for (size_t i=0; i<local_values.size(); ++i) {
+    data->SetValue(i, local_values[i]);
+  }
+
+  _vtk_grid->GetPointData()->AddArray(data);
+}
+
+void VTKIO::get_local_node_values(std::vector<Number> & local_values,
+                                  std::size_t variable,
+                                  const std::vector<Number> & soln,
+                                  const std::vector<std::string> & names)
+{
+  const MeshBase & mesh = MeshOutput<MeshBase>::mesh();
+  std::size_t num_vars = names.size();
+  dof_id_type num_nodes = mesh.n_nodes();
+
+  local_values.clear();
+  local_values.resize(_local_node_map.size(), 0.0);
+
+  // loop over all nodes and get the solution for the current
+  // variable, if the node is in the current partition
+  for (dof_id_type k=0; k<num_nodes; ++k)
+    {
+      std::map<dof_id_type, dof_id_type>::iterator local_node_it = _local_node_map.find(k);
+      if (local_node_it == _local_node_map.end())
+        continue; // not a local node
+
+      local_values[local_node_it->second] = soln[k*num_vars + variable];
+    }
 }
 
 
@@ -517,7 +561,7 @@ void VTKIO::cells_to_vtk()
 //           libmesh_assert_equal_to (it->second.size(), es.get_mesh().n_nodes());
 //           data->SetNumberOfValues(it->second.size());
 //
-//           for (std::size_t i=0; i<it->second.size(); ++i)
+//           for (auto i : index_range(it->second))
 //             {
 // #ifdef LIBMESH_USE_COMPLEX_NUMBERS
 //               libmesh_do_once (libMesh::err << "Only writing the real part for complex numbers!\n"

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -16,14 +16,45 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-// C++ includes
-
 // Local includes
 #include "libmesh/elem.h"
 #include "libmesh/quadrature.h"
+#include "libmesh/int_range.h"
 
 namespace libMesh
 {
+
+QBase::QBase(unsigned int d,
+             Order o) :
+  allow_rules_with_negative_weights(true),
+  _dim(d),
+  _order(o),
+  _type(INVALID_ELEM),
+  _p_level(0)
+{}
+
+
+void QBase::print_info(std::ostream & os) const
+{
+  libmesh_assert(!_points.empty());
+  libmesh_assert(!_weights.empty());
+
+  Real summed_weights=0;
+  os << "N_Q_Points=" << this->n_points() << std::endl << std::endl;
+  for (unsigned int qpoint=0; qpoint<this->n_points(); qpoint++)
+    {
+      os << " Point " << qpoint << ":\n"
+         << "  "
+         << _points[qpoint]
+         << "\n Weight:\n "
+         << "  w=" << _weights[qpoint] << "\n" << std::endl;
+
+      summed_weights += _weights[qpoint];
+    }
+  os << "Summed Weights: " << summed_weights << std::endl;
+}
+
+
 
 void QBase::init(const ElemType t,
                  unsigned int p)
@@ -43,22 +74,22 @@ void QBase::init(const ElemType t,
   switch(_dim)
     {
     case 0:
-      this->init_0D(_type,_p_level);
+      this->init_0D();
 
       return;
 
     case 1:
-      this->init_1D(_type,_p_level);
+      this->init_1D();
 
       return;
 
     case 2:
-      this->init_2D(_type,_p_level);
+      this->init_2D();
 
       return;
 
     case 3:
-      this->init_3D(_type,_p_level);
+      this->init_3D();
 
       return;
 
@@ -79,13 +110,26 @@ void QBase::init (const Elem & elem,
 
 
 
-void QBase::init_0D(const ElemType,
-                    unsigned int)
+void QBase::init_0D(const ElemType, unsigned int)
 {
   _points.resize(1);
   _weights.resize(1);
   _points[0] = Point(0.);
   _weights[0] = 1.0;
+}
+
+
+
+void QBase::init_2D (const ElemType, unsigned int)
+{
+  libmesh_not_implemented();
+}
+
+
+
+void QBase::init_3D (const ElemType, unsigned int)
+{
+  libmesh_not_implemented();
 }
 
 
@@ -111,7 +155,7 @@ void QBase::scale(std::pair<Real, Real> old_range,
   Real scfact = h_new/h_old;
 
   // We're mapping from old_range -> new_range
-  for (std::size_t i=0; i<_points.size(); i++)
+  for (auto i : index_range(_points))
     {
       _points[i](0) = new_range.first +
         (_points[i](0) - old_range.first) * scfact;

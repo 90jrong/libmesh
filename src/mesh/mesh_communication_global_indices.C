@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -212,15 +212,9 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
       //           {
       //             CFixBitVec icoords[3], jcoords[3];
       //             get_hilbert_coords(**nodej, bbox, jcoords);
-      //             libMesh::err <<
-      //               "node " << (*nodej)->id() << ", " <<
-      //               *(Point *)(*nodej) << " has HilbertIndices " <<
-      //               node_keys[j] << std::endl;
+      //             libMesh::err << "node " << (*nodej)->id() << ", " << static_cast<Point &>(**nodej) << " has HilbertIndices " << node_keys[j] << std::endl;
       //             get_hilbert_coords(**nodei, bbox, icoords);
-      //             libMesh::err <<
-      //               "node " << (*nodei)->id() << ", " <<
-      //               *(Point *)(*nodei) << " has HilbertIndices " <<
-      //               node_keys[i] << std::endl;
+      //             libMesh::err << "node " << (*nodei)->id() << ", " << static_cast<Point &>(**nodei) << " has HilbertIndices " << node_keys[i] << std::endl;
       //             libmesh_error_msg("Error: nodes with duplicate Hilbert keys!");
       //           }
       //       }
@@ -246,24 +240,22 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
       //         if ((elem_keys[i] == elem_keys[j]) &&
       //             ((*elemi)->level() == (*elemj)->level()))
       //           {
-      //             libMesh::err <<
-      //               "level " << (*elemj)->level() << " elem\n" <<
-      //               (**elemj) << " centroid " <<
-      //               (*elemj)->centroid() << " has HilbertIndices " <<
-      //               elem_keys[j] << " or " <<
-      //               get_dofobject_key((*elemj), bbox) <<
-      //               std::endl;
-      //             libMesh::err <<
-      //               "level " << (*elemi)->level() << " elem\n" <<
-      //               (**elemi) << " centroid " <<
-      //               (*elemi)->centroid() << " has HilbertIndices " <<
-      //               elem_keys[i] << " or " <<
-      //               get_dofobject_key((*elemi), bbox) <<
-      //               std::endl;
+      //             libMesh::err << "level " << (*elemj)->level()
+      //                          << " elem\n" << (**elemj)
+      //                          << " centroid " << (*elemj)->centroid()
+      //                          << " has HilbertIndices " << elem_keys[j]
+      //                          << " or " << get_dofobject_key((*elemj), bbox)
+      //                          << std::endl;
+      //             libMesh::err << "level " << (*elemi)->level()
+      //                          << " elem\n" << (**elemi)
+      //                          << " centroid " << (*elemi)->centroid()
+      //                          << " has HilbertIndices " << elem_keys[i]
+      //                          << " or " << get_dofobject_key((*elemi), bbox)
+      //                          << std::endl;
       //             libmesh_error_msg("Error: level " << (*elemi)->level() << " elements with duplicate Hilbert keys!");
       //           }
       //       }
-      //   }
+      //  }
     }
   } // done computing Hilbert keys
 
@@ -334,7 +326,7 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
     // Nodes first -- all nodes, not just local ones
     {
       // Request sets to send to each processor
-      std::map<dof_id_type, std::vector<Parallel::DofObjectKey>>
+      std::map<processor_id_type, std::vector<Parallel::DofObjectKey>>
         requested_ids;
       // Results to gather from each processor - kept in a map so we
       // do only one loop over nodes after all receives are done.
@@ -411,7 +403,7 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
         };
 
       // Trade requests with other processors
-      const dof_id_type * ex = libmesh_nullptr;
+      const dof_id_type * ex = nullptr;
       Parallel::pull_parallel_vector_data
         (communicator, requested_ids, gather_functor, action_functor, ex);
 
@@ -451,7 +443,7 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
     // elements next -- all elements, not just local ones
     {
       // Request sets to send to each processor
-      std::map<dof_id_type, std::vector<Parallel::DofObjectKey>>
+      std::map<processor_id_type, std::vector<Parallel::DofObjectKey>>
         requested_ids;
       // Results to gather from each processor - kept in a map so we
       // do only one loop over elements after all receives are done.
@@ -527,7 +519,7 @@ void MeshCommunication::assign_global_indices (MeshBase & mesh) const
         };
 
       // Trade requests with other processors
-      const dof_id_type * ex = libmesh_nullptr;
+      const dof_id_type * ex = nullptr;
       Parallel::pull_parallel_vector_data
         (communicator, requested_ids, gather_functor, action_functor, ex);
 
@@ -841,8 +833,11 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
     (processor_id_type, const std::vector<Parallel::DofObjectKey> & keys,
      std::vector<dof_id_type> & global_ids)
     {
-      const std::size_t keys_size = keys.size();
+      // Ignore unused lambda capture warnings in devel mode
+      libmesh_ignore(bbox);
+
       // Fill the requests
+      const std::size_t keys_size = keys.size();
       global_ids.clear();
       global_ids.reserve(keys_size);
       for (std::size_t idx=0; idx != keys_size; idx++)
@@ -875,7 +870,7 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
               std::vector<CBigBitVec> output(3);
 
               // Call the indexToCoords function
-              Hilbert::indexToCoords(&output[0], 8*sizeof(Hilbert::inttype), 3, input);
+              Hilbert::indexToCoords(output.data(), 8*sizeof(Hilbert::inttype), 3, input);
 
               // The entries in the output racks are integers in the
               // range [0, Hilbert::inttype::max] which can be
@@ -926,7 +921,7 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
       filled_request[pid] = global_ids;
     };
 
-  const dof_id_type * ex = libmesh_nullptr;
+  const dof_id_type * ex = nullptr;
   Parallel::pull_parallel_vector_data
     (communicator, requested_ids, gather_functor, action_functor, ex);
 
@@ -935,7 +930,7 @@ void MeshCommunication::find_global_indices (const Parallel::Communicator & comm
     {
       std::vector<std::vector<dof_id_type>::const_iterator>
         next_obj_on_proc; next_obj_on_proc.reserve(communicator.size());
-      for (unsigned int pid=0; pid<communicator.size(); pid++)
+      for (processor_id_type pid=0; pid<communicator.size(); pid++)
         next_obj_on_proc.push_back(filled_request[pid].begin());
 
       unsigned int cnt=0;

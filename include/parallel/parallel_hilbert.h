@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -50,18 +50,17 @@ class StandardType<Hilbert::HilbertIndices> : public DataType
 {
 public:
   explicit
-  StandardType(const Hilbert::HilbertIndices * =libmesh_nullptr) {
-    // _static_type never gets freed, but it only gets committed once
-    // so it's not a *huge* memory leak...
-    static DataType _static_type;
-    static bool _is_initialized = false;
-    if (!_is_initialized)
-      {
-        _static_type = DataType(Parallel::StandardType<Hilbert::inttype>(), 3);
-        _is_initialized = true;
-      }
-    _datatype = _static_type;
+  StandardType(const Hilbert::HilbertIndices * =nullptr) {
+    _datatype = DataType(Parallel::StandardType<Hilbert::inttype>(), 3);
   }
+
+  StandardType(const StandardType<Hilbert::HilbertIndices> & t)
+    : DataType()
+  {
+    libmesh_call_mpi (MPI_Type_dup (t._datatype, &_datatype));
+  }
+
+  ~StandardType() { this->free(); }
 };
 
 #endif // LIBMESH_HAVE_MPI
@@ -124,6 +123,6 @@ void dofobjectkey_min_op (libMesh::Parallel::DofObjectKey * in,
       *inout = *in;
 }
 
-#endif // LIBMESH_HAVE_LIBHILBERT && LIBMESH_HAVE_MPI
+#endif // LIBMESH_HAVE_LIBHILBERT
 
 #endif // LIBMESH_PARALLEL_HILBERT_H

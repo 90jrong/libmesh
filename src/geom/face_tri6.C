@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,12 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // Tri6 class static member initializations
-const unsigned int Tri6::side_nodes_map[3][3] =
+const int Tri6::num_nodes;
+const int Tri6::num_sides;
+const int Tri6::num_children;
+const int Tri6::nodes_per_side;
+
+const unsigned int Tri6::side_nodes_map[Tri6::num_sides][Tri6::nodes_per_side] =
   {
     {0, 1, 3}, // Side 0
     {1, 2, 4}, // Side 1
@@ -40,7 +45,7 @@ const unsigned int Tri6::side_nodes_map[3][3] =
 
 #ifdef LIBMESH_ENABLE_AMR
 
-const float Tri6::_embedding_matrix[4][6][6] =
+const float Tri6::_embedding_matrix[Tri6::num_children][Tri6::num_nodes][Tri6::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -117,13 +122,17 @@ bool Tri6::is_node_on_side(const unsigned int n,
                            const unsigned int s) const
 {
   libmesh_assert_less (s, n_sides());
-  for (unsigned int i = 0; i != 3; ++i)
-    if (side_nodes_map[s][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(side_nodes_map[s]),
+                   std::end(side_nodes_map[s]),
+                   n) != std::end(side_nodes_map[s]);
 }
 
-
+std::vector<unsigned>
+Tri6::nodes_on_side(const unsigned int s) const
+{
+  libmesh_assert_less(s, n_sides());
+  return {std::begin(side_nodes_map[s]), std::end(side_nodes_map[s])};
+}
 
 bool Tri6::has_affine_map() const
 {
@@ -182,7 +191,7 @@ unsigned int Tri6::which_node_am_i(unsigned int side,
                                    unsigned int side_node) const
 {
   libmesh_assert_less (side, this->n_sides());
-  libmesh_assert_less (side_node, 3);
+  libmesh_assert_less (side_node, Tri6::nodes_per_side);
 
   return Tri6::side_nodes_map[side][side_node];
 }
@@ -209,6 +218,15 @@ std::unique_ptr<Elem> Tri6::build_side_ptr (const unsigned int i,
       return edge;
     }
 }
+
+
+
+void Tri6::build_side_ptr (std::unique_ptr<Elem> & side,
+                           const unsigned int i)
+{
+  this->simple_build_side_ptr<Tri6>(side, i, EDGE3);
+}
+
 
 
 void Tri6::connectivity(const unsigned int sf,
@@ -389,10 +407,10 @@ Real Tri6::volume () const
 
   // Parameters of the quadrature rule
   const static Real
-    w1 = Real(31)/480 + std::sqrt(15.0L)/2400,
-    w2 = Real(31)/480 - std::sqrt(15.0L)/2400,
-    q1 = Real(2)/7 + std::sqrt(15.0L)/21,
-    q2 = Real(2)/7 - std::sqrt(15.0L)/21;
+    w1 = Real(31)/480 + Real(std::sqrt(15.0L)/2400),
+    w2 = Real(31)/480 - Real(std::sqrt(15.0L)/2400),
+    q1 = Real(2)/7 + Real(std::sqrt(15.0L)/21),
+    q2 = Real(2)/7 - Real(std::sqrt(15.0L)/21);
 
   const static Real xi[N]  = {Real(1)/3,  q1, q1,     1-2*q1, q2, q2,     1-2*q2};
   const static Real eta[N] = {Real(1)/3,  q1, 1-2*q1, q1,     q2, 1-2*q2, q2};
@@ -420,7 +438,7 @@ unsigned short int Tri6::second_order_adjacent_vertex (const unsigned int n,
 
 
 
-const unsigned short int Tri6::_second_order_adjacent_vertices[3][2] =
+const unsigned short int Tri6::_second_order_adjacent_vertices[Tri6::num_sides][2] =
   {
     {0, 1}, // vertices adjacent to node 3
     {1, 2}, // vertices adjacent to node 4
@@ -441,7 +459,7 @@ Tri6::second_order_child_vertex (const unsigned int n) const
 
 
 
-const unsigned short int Tri6::_second_order_vertex_child_number[6] =
+const unsigned short int Tri6::_second_order_vertex_child_number[Tri6::num_nodes] =
   {
     99,99,99, // Vertices
     0,1,0     // Edges
@@ -449,7 +467,7 @@ const unsigned short int Tri6::_second_order_vertex_child_number[6] =
 
 
 
-const unsigned short int Tri6::_second_order_vertex_child_index[6] =
+const unsigned short int Tri6::_second_order_vertex_child_index[Tri6::num_nodes] =
   {
     99,99,99, // Vertices
     1,2,2     // Edges

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ namespace libMesh
 // Constructor
 TriangleInterface::TriangleInterface(UnstructuredMesh & mesh)
   : _mesh(mesh),
-    _holes(libmesh_nullptr),
+    _holes(nullptr),
     _elem_type(TRI3),
     _desired_area(0.1),
     _minimum_angle(20.0),
@@ -60,7 +60,7 @@ TriangleInterface::TriangleInterface(UnstructuredMesh & mesh)
 void TriangleInterface::triangulate()
 {
   // Will the triangulation have holes?
-  const bool have_holes = ((_holes != libmesh_nullptr) && (!_holes->empty()));
+  const bool have_holes = ((_holes != nullptr) && (!_holes->empty()));
 
   // If the initial PSLG is really simple, e.g. an L-shaped domain or
   // a square/rectangle, the resulting triangulation may be very
@@ -102,16 +102,14 @@ void TriangleInterface::triangulate()
   // Regardless of whether we added additional points, the set of points to
   // triangulate is now sitting in the mesh.
 
-  // If the holes vector is non-NULL (and non-empty) we need to determine
+  // If the holes vector is non-nullptr (and non-empty) we need to determine
   // the number of additional points which the holes will add to the
   // triangulation.
   unsigned int n_hole_points = 0;
 
   if (have_holes)
-    {
-      for (std::size_t i=0; i<_holes->size(); ++i)
-        n_hole_points += (*_holes)[i]->n_points();
-    }
+    for (const auto & hole : *_holes)
+      n_hole_points += hole->n_points();
 
   // Triangle data structure for the mesh
   TriangleWrapper::triangulateio initial;
@@ -155,11 +153,11 @@ void TriangleInterface::triangulate()
   unsigned int hole_offset=0;
 
   if (have_holes)
-    for (std::size_t i=0; i<_holes->size(); ++i)
+    for (const auto & hole : *_holes)
       {
-        for (unsigned int ctr=0, h=0; h<(*_holes)[i]->n_points(); ctr+=2, ++h)
+        for (unsigned int ctr=0, h=0; h<hole->n_points(); ctr+=2, ++h)
           {
-            Point p = (*_holes)[i]->point(h);
+            Point p = hole->point(h);
 
             const unsigned int index0 = 2*hole_offset+ctr;
             const unsigned int index1 = 2*hole_offset+ctr+1;
@@ -170,11 +168,11 @@ void TriangleInterface::triangulate()
 
             // Set the points which define the segments
             initial.segmentlist[index0] = hole_offset+h;
-            initial.segmentlist[index1] = (h==(*_holes)[i]->n_points()-1) ? hole_offset : hole_offset+h+1; // wrap around
+            initial.segmentlist[index1] = (h == hole->n_points() - 1) ? hole_offset : hole_offset + h + 1; // wrap around
           }
 
         // Update the hole_offset for the next hole
-        hole_offset += (*_holes)[i]->n_points();
+        hole_offset += hole->n_points();
       }
 
 
@@ -239,7 +237,7 @@ void TriangleInterface::triangulate()
   // p ~ Triangulates a Planar Straight Line Graph
   //     If the `p' switch is used, `segmentlist' must point to a list of
   //     segments, `numberofsegments' must be properly set, and
-  //     `segmentmarkerlist' must either be set to NULL (in which case all
+  //     `segmentmarkerlist' must either be set to nullptr (in which case all
   //     markers default to zero), or must point to a list of markers.
   // D ~ Conforming Delaunay: use this switch if you want all triangles
   //     in the mesh to be Delaunay, and not just constrained Delaunay
@@ -318,7 +316,7 @@ void TriangleInterface::triangulate()
   TriangleWrapper::triangulate(const_cast<char *>(flags.str().c_str()),
                                &initial,
                                &final,
-                               libmesh_nullptr); // voronoi ouput -- not used
+                               nullptr); // voronoi ouput -- not used
 
 
   // Send the information computed by Triangle to the Mesh.

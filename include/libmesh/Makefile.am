@@ -123,6 +123,7 @@ BUILT_SOURCES = \
         elem.h \
         elem_cutter.h \
         elem_hash.h \
+        elem_internal.h \
         elem_quality.h \
         elem_range.h \
         face.h \
@@ -212,6 +213,7 @@ BUILT_SOURCES = \
         coupling_matrix.h \
         dense_matrix.h \
         dense_matrix_base.h \
+        dense_matrix_base_impl.h \
         dense_matrix_impl.h \
         dense_submatrix.h \
         dense_subvector.h \
@@ -249,6 +251,7 @@ BUILT_SOURCES = \
         trilinos_epetra_matrix.h \
         trilinos_epetra_vector.h \
         trilinos_preconditioner.h \
+        tuple_of.h \
         type_n_tensor.h \
         type_tensor.h \
         type_vector.h \
@@ -279,6 +282,8 @@ BUILT_SOURCES = \
         parallel_sync.h \
         post_wait_copy_buffer.h \
         post_wait_delete_buffer.h \
+        post_wait_dereference_shared_ptr.h \
+        post_wait_dereference_tag.h \
         post_wait_free_buffer.h \
         post_wait_unpack_buffer.h \
         post_wait_work.h \
@@ -315,6 +320,7 @@ BUILT_SOURCES = \
         quadrature_grid.h \
         quadrature_jacobi.h \
         quadrature_monomial.h \
+        quadrature_nodal.h \
         quadrature_simpson.h \
         quadrature_trap.h \
         rb_assembly_expansion.h \
@@ -369,6 +375,7 @@ BUILT_SOURCES = \
         optimization_solver.h \
         petsc_auto_fieldsplit.h \
         petsc_diff_solver.h \
+        petsc_dm_wrapper.h \
         petsc_linear_solver.h \
         petsc_nonlinear_solver.h \
         petscdmlibmesh.h \
@@ -498,16 +505,6 @@ exodusII.h: $(top_srcdir)/contrib/exodusii/v5.22/exodus/cbind/include/exodusII.h
 
   BUILT_SOURCES  += exodusII.h
   DISTCLEANFILES += exodusII.h
-
-endif
-
-if LIBMESH_ENABLE_NETCDF_V3
-
-netcdf.h: $(top_srcdir)/contrib/netcdf/v3/netcdf.h
-	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
-
-  BUILT_SOURCES  += netcdf.h
-  DISTCLEANFILES += netcdf.h
 
 endif
 
@@ -893,6 +890,9 @@ elem_cutter.h: $(top_srcdir)/include/geom/elem_cutter.h
 elem_hash.h: $(top_srcdir)/include/geom/elem_hash.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+elem_internal.h: $(top_srcdir)/include/geom/elem_internal.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 elem_quality.h: $(top_srcdir)/include/geom/elem_quality.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1160,6 +1160,9 @@ dense_matrix.h: $(top_srcdir)/include/numerics/dense_matrix.h
 dense_matrix_base.h: $(top_srcdir)/include/numerics/dense_matrix_base.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+dense_matrix_base_impl.h: $(top_srcdir)/include/numerics/dense_matrix_base_impl.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 dense_matrix_impl.h: $(top_srcdir)/include/numerics/dense_matrix_impl.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1271,6 +1274,9 @@ trilinos_epetra_vector.h: $(top_srcdir)/include/numerics/trilinos_epetra_vector.
 trilinos_preconditioner.h: $(top_srcdir)/include/numerics/trilinos_preconditioner.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
+tuple_of.h: $(top_srcdir)/include/numerics/tuple_of.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
 type_n_tensor.h: $(top_srcdir)/include/numerics/type_n_tensor.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
@@ -1359,6 +1365,12 @@ post_wait_copy_buffer.h: $(top_srcdir)/include/parallel/post_wait_copy_buffer.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 post_wait_delete_buffer.h: $(top_srcdir)/include/parallel/post_wait_delete_buffer.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
+post_wait_dereference_shared_ptr.h: $(top_srcdir)/include/parallel/post_wait_dereference_shared_ptr.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
+post_wait_dereference_tag.h: $(top_srcdir)/include/parallel/post_wait_dereference_tag.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 post_wait_free_buffer.h: $(top_srcdir)/include/parallel/post_wait_free_buffer.h
@@ -1467,6 +1479,9 @@ quadrature_jacobi.h: $(top_srcdir)/include/quadrature/quadrature_jacobi.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 quadrature_monomial.h: $(top_srcdir)/include/quadrature/quadrature_monomial.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
+quadrature_nodal.h: $(top_srcdir)/include/quadrature/quadrature_nodal.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 quadrature_simpson.h: $(top_srcdir)/include/quadrature/quadrature_simpson.h
@@ -1629,6 +1644,9 @@ petsc_auto_fieldsplit.h: $(top_srcdir)/include/solvers/petsc_auto_fieldsplit.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 petsc_diff_solver.h: $(top_srcdir)/include/solvers/petsc_diff_solver.h
+	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
+
+petsc_dm_wrapper.h: $(top_srcdir)/include/solvers/petsc_dm_wrapper.h
 	$(AM_V_GEN)rm -f $@ && $(LN_S) -f $< $@
 
 petsc_linear_solver.h: $(top_srcdir)/include/solvers/petsc_linear_solver.h

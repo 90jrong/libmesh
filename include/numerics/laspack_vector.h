@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,7 @@ template <typename T> class SparseMatrix;
  * \date 2002
  */
 template <typename T>
-class LaspackVector libmesh_final : public NumericVector<T>
+class LaspackVector final : public NumericVector<T>
 {
 public:
 
@@ -93,10 +93,21 @@ public:
                  const ParallelType = AUTOMATIC);
 
   /**
-   * Destructor, deallocates memory. Made virtual to allow
-   * for derived classes to behave properly.
+   * Copy assignment operator.
+   * Calls Asgn_VV() to assign the contents of one vector to another.
+   * \returns A reference to *this as the derived type.
    */
-  ~LaspackVector ();
+  LaspackVector<T> & operator= (const LaspackVector<T> & v);
+
+  /**
+   * This class manages a C-style struct (QVector) manually, so we
+   * don't want to allow any automatic copy/move functions to be
+   * generated, and we can't default the destructor.
+   */
+  LaspackVector (LaspackVector &&) = delete;
+  LaspackVector (const LaspackVector &) = delete;
+  LaspackVector & operator= (LaspackVector &&) = delete;
+  virtual ~LaspackVector ();
 
   virtual void close () override;
 
@@ -130,13 +141,6 @@ public:
 
   virtual NumericVector<T> & operator= (const NumericVector<T> & v) override;
 
-  /**
-   * Sets (*this)(i) = v(i) for each entry of the vector.
-   *
-   * \returns A reference to *this as the derived type.
-   */
-  LaspackVector<T> & operator= (const LaspackVector<T> & v);
-
   virtual NumericVector<T> & operator= (const std::vector<T> & v) override;
 
   virtual Real min () const override;
@@ -165,7 +169,7 @@ public:
 
   virtual NumericVector<T> & operator -= (const NumericVector<T> & v) override;
 
-  virtual NumericVector<T> & operator /= (NumericVector<T> & v) override;
+  virtual NumericVector<T> & operator /= (const NumericVector<T> & v) override;
 
   virtual void reciprocal() override;
 

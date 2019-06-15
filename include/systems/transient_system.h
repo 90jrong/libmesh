@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -36,9 +36,15 @@ class EigenSystem;
 #endif
 
 /**
- * This class provides a specific system class.  It aims
- * at transient systems, offering nothing more than just
- * the essentials needed to solve a system.
+ * \brief Manages storage and variables for transient systems.
+ *
+ * This class is a specialized system for solving transient systems,
+ * e.g., systems with a time dependency. It provides appropriate storage,
+ * manages variables and ensures consistency for these systems.
+ *
+ * This template class adds the functionality to manage, in addition to the
+ * solution vector, an old solution and an older solution vector. These
+ * vectors are useful to simulate transient systems.
  *
  * \note Additional vectors/matrices can be added via parent class
  * interfaces.

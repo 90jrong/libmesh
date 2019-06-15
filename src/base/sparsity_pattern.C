@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -257,49 +257,45 @@ void Build::operator()(const ConstElemRange & range)
           this->sorted_connected_dofs(elem, element_dofs_i[vi], vi);
 
         for (unsigned int vi=0; vi<n_var; vi++)
-          {
-            GhostingFunctor::map_type::iterator        etg_it = elements_to_couple.begin();
-            const GhostingFunctor::map_type::iterator etg_end = elements_to_couple.end();
-            for (; etg_it != etg_end; ++etg_it)
-              {
-                const Elem * const partner = etg_it->first;
-                const CouplingMatrix * ghost_coupling = etg_it->second;
+          for (const auto & pr : elements_to_couple)
+            {
+              const Elem * const partner = pr.first;
+              const CouplingMatrix * ghost_coupling = pr.second;
 
-                // Loop over coupling matrix row variables if we have a
-                // coupling matrix, or all variables if not.
-                if (ghost_coupling)
-                  {
-                    libmesh_assert_equal_to (ghost_coupling->size(), n_var);
-                    ConstCouplingRow ccr(vi, *ghost_coupling);
+              // Loop over coupling matrix row variables if we have a
+              // coupling matrix, or all variables if not.
+              if (ghost_coupling)
+                {
+                  libmesh_assert_equal_to (ghost_coupling->size(), n_var);
+                  ConstCouplingRow ccr(vi, *ghost_coupling);
 
-                    for (const auto & idx : ccr)
-                      {
-                        if (partner == elem)
-                          this->handle_vi_vj(element_dofs_i[vi], element_dofs_i[idx]);
-                        else
-                          {
-                            std::vector<dof_id_type> partner_dofs;
-                            this->sorted_connected_dofs(partner, partner_dofs, idx);
-                            this->handle_vi_vj(element_dofs_i[vi], partner_dofs);
-                          }
-                      }
-                  }
-                else
-                  {
-                    for (unsigned int vj = 0; vj != n_var; ++vj)
-                      {
-                        if (partner == elem)
-                          this->handle_vi_vj(element_dofs_i[vi], element_dofs_i[vj]);
-                        else
-                          {
-                            std::vector<dof_id_type> partner_dofs;
-                            this->sorted_connected_dofs(partner, partner_dofs, vj);
-                            this->handle_vi_vj(element_dofs_i[vi], partner_dofs);
-                          }
-                      }
-                  }
-              } // End ghosted element loop
-          } // End vi loop
+                  for (const auto & idx : ccr)
+                    {
+                      if (partner == elem)
+                        this->handle_vi_vj(element_dofs_i[vi], element_dofs_i[idx]);
+                      else
+                        {
+                          std::vector<dof_id_type> partner_dofs;
+                          this->sorted_connected_dofs(partner, partner_dofs, idx);
+                          this->handle_vi_vj(element_dofs_i[vi], partner_dofs);
+                        }
+                    }
+                }
+              else
+                {
+                  for (unsigned int vj = 0; vj != n_var; ++vj)
+                    {
+                      if (partner == elem)
+                        this->handle_vi_vj(element_dofs_i[vi], element_dofs_i[vj]);
+                      else
+                        {
+                          std::vector<dof_id_type> partner_dofs;
+                          this->sorted_connected_dofs(partner, partner_dofs, vj);
+                          this->handle_vi_vj(element_dofs_i[vi], partner_dofs);
+                        }
+                    }
+                }
+            } // End ghosted element loop
 
         for (auto & mat : temporary_coupling_matrices)
           delete mat;
@@ -327,8 +323,8 @@ void Build::operator()(const ConstElemRange & range)
       // Get the row of the sparsity pattern
       SparsityPattern::Row & row = sparsity_pattern[i];
 
-      for (std::size_t j=0; j<row.size(); j++)
-        if ((row[j] < first_dof_on_proc) || (row[j] >= end_dof_on_proc))
+      for (const auto & df : row)
+        if ((df < first_dof_on_proc) || (df >= end_dof_on_proc))
           n_oz[i]++;
         else
           n_nz[i]++;
@@ -385,8 +381,8 @@ void Build::join (const SparsityPattern::Build & other)
           // fix the number of on and off-processor nonzeros in this row
           n_nz[r] = n_oz[r] = 0;
 
-          for (std::size_t j=0; j<my_row.size(); j++)
-            if ((my_row[j] < first_dof_on_proc) || (my_row[j] >= end_dof_on_proc))
+          for (const auto & df : my_row)
+            if ((df < first_dof_on_proc) || (df >= end_dof_on_proc))
               n_oz[r]++;
             else
               n_nz[r]++;
@@ -402,11 +398,10 @@ void Build::join (const SparsityPattern::Build & other)
 
   // Move nonlocal row information to ourselves; the other thread
   // won't need it in the map after that.
-  NonlocalGraph::const_iterator it = other.nonlocal_pattern.begin();
-  for (; it != other.nonlocal_pattern.end(); ++it)
+  for (const auto & p : other.nonlocal_pattern)
     {
 #ifndef NDEBUG
-      const dof_id_type dof_id = it->first;
+      const dof_id_type dof_id = p.first;
 
       processor_id_type dbg_proc_id = 0;
       while (dof_id >= dof_map.end_dof(dbg_proc_id))
@@ -414,16 +409,16 @@ void Build::join (const SparsityPattern::Build & other)
       libmesh_assert (dbg_proc_id != this->processor_id());
 #endif
 
-      const SparsityPattern::Row & their_row = it->second;
+      const SparsityPattern::Row & their_row = p.second;
 
       // We should have no empty values in a map
       libmesh_assert (!their_row.empty());
 
-      NonlocalGraph::iterator my_it = nonlocal_pattern.find(it->first);
+      NonlocalGraph::iterator my_it = nonlocal_pattern.find(p.first);
       if (my_it == nonlocal_pattern.end())
         {
           //          nonlocal_pattern[it->first].swap(their_row);
-          nonlocal_pattern[it->first] = their_row;
+          nonlocal_pattern[p.first] = their_row;
         }
       else
         {
@@ -454,8 +449,8 @@ void Build::parallel_sync ()
   auto pid = comm.rank();
   auto num_procs = comm.size();
 
-  auto dof_tag = comm.get_unique_tag(998);
-  auto row_tag = comm.get_unique_tag(9998);
+  auto dof_tag = comm.get_unique_tag();
+  auto row_tag = comm.get_unique_tag();
 
   const auto n_global_dofs   = dof_map.n_dofs();
   const auto n_dofs_on_proc  = dof_map.n_dofs_on_processor(pid);
@@ -496,7 +491,7 @@ void Build::parallel_sync ()
     proc_data.second.emplace_back(std::move(row));
 
     // Might as well remove it since it's invalidated anyway
-    nonlocal_pattern.erase(it++);
+    it = nonlocal_pattern.erase(it);
   }
 
   // Tell everyone about where everyone will send to
@@ -549,8 +544,8 @@ void Build::parallel_sync ()
     comm.receive(proc_id, in_dofs, dof_tag);
     comm.receive(proc_id, in_rows, row_tag);
 
-    const auto n_rows = in_dofs.size();
-    for (auto i = decltype(n_rows)(0); i != n_rows; ++i)
+    const std::size_t n_rows = in_dofs.size();
+    for (std::size_t i = 0; i != n_rows; ++i)
     {
       const auto r = in_dofs[i];
       const auto my_r = r - local_first_dof;
@@ -587,16 +582,16 @@ void Build::parallel_sync ()
         // fix the number of on and off-processor nonzeros in this row
         n_nz[my_r] = n_oz[my_r] = 0;
 
-        for (std::size_t j=0; j<my_row.size(); j++)
-          if ((my_row[j] < local_first_dof) || (my_row[j] >= local_end_dof))
+        for (const auto & df : my_row)
+          if ((df < local_first_dof) || (df >= local_end_dof))
             n_oz[my_r]++;
           else
             n_nz[my_r]++;
       }
       else
       {
-        for (std::size_t j=0; j<their_row.size(); j++)
-          if ((their_row[j] < local_first_dof) || (their_row[j] >= local_end_dof))
+        for (const auto & df : their_row)
+          if ((df < local_first_dof) || (df >= local_end_dof))
             n_oz[my_r]++;
           else
             n_nz[my_r]++;

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -372,28 +372,21 @@ void assemble_poisson(EquationSystems & es,
   // the element degrees of freedom get mapped.
   std::vector<dof_id_type> dof_indices, dof_indices2;
 
-  // Now we will loop over all the elements in the mesh.
-  // We will compute the element matrix and right-hand-side
-  // contribution.  See example 3 for a discussion of the
-  // element iterators.  Here we use the const_local_elem_iterator
-  // to indicate we only want to loop over elements that are assigned
-  // to the local processor.  This allows each processor to compute
-  // its components of the global matrix.
+  // Now we will loop over all the "local" elements in the mesh.  We
+  // will compute the element matrix and right-hand-side contribution.
+  // See example 3 for a discussion of the element iterators.  Here we
+  // only want to loop over elements that are owned by the local
+  // processor.  This allows each processor to compute its components
+  // of the global matrix.
   //
   // "PARALLEL CHANGE"
-  MeshBase::const_element_iterator       el     = mesh.local_elements_begin();
-  const MeshBase::const_element_iterator end_el = mesh.local_elements_end();
-
-  for ( ; el != end_el; ++el)
+  for (const auto & elem : as_range(mesh.local_elements_begin(),
+                                    mesh.local_elements_end()))
     {
       // Start logging the shape function initialization.
       // This is done through a simple function call with
       // the name of the event to log.
       perf_log.push("elem init");
-
-      // Store a pointer to the element we are currently
-      // working on.  This allows for nicer syntax later.
-      const Elem * elem = *el;
 
       // Get the degree of freedom indices for the
       // current element.  These define where in the global
@@ -526,15 +519,15 @@ void assemble_poisson(EquationSystems & es,
       // via the penalty method. This is discussed at length in
       // example 3.
       {
-
-        // Start logging the boundary condition computation
-        perf_log.push ("BCs");
+        // Start logging the boundary condition computation.  We use a
+        // macro to log everything in this scope.
+        LOG_SCOPE_WITH("BCs", "", perf_log);
 
         // The following loops over the sides of the element.
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
         for (auto side : elem->side_index_range())
-          if ((elem->neighbor_ptr(side) == libmesh_nullptr) ||
+          if ((elem->neighbor_ptr(side) == nullptr) ||
               (elem->neighbor_ptr(side)->subdomain_id() != elem->subdomain_id()))
             {
 
@@ -591,10 +584,6 @@ void assemble_poisson(EquationSystems & es,
                     Fe(i) += JxW_face[qp]*penalty*value*phi_face[i][qp];
                 }
             }
-
-
-        // Stop logging the boundary condition computation
-        perf_log.pop ("BCs");
       }
 
 
@@ -604,7 +593,7 @@ void assemble_poisson(EquationSystems & es,
       // and PetscVector::add_vector() members do this for us.
       // Start logging the insertion of the local (element)
       // matrix and vector into the global matrix and vector
-      perf_log.push ("matrix insertion");
+      LOG_SCOPE_WITH("matrix insertion", "", perf_log);
 
       if (dof_indices.size())
         {
@@ -617,10 +606,6 @@ void assemble_poisson(EquationSystems & es,
           system.matrix->add_matrix (Ke, dof_indices2);
           system.rhs->add_vector    (Fe, dof_indices2);
         }
-
-      // Start logging the insertion of the local (element)
-      // matrix and vector into the global matrix and vector
-      perf_log.pop ("matrix insertion");
     }
 
   // That's it.  We don't need to do anything else to the

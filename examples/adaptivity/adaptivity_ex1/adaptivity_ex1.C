@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -185,8 +185,7 @@ void assemble_1D(EquationSystems & es,
                  const std::string & system_name)
 {
   // Ignore unused parameter warnings when !LIBMESH_ENABLE_AMR.
-  libmesh_ignore(es);
-  libmesh_ignore(system_name);
+  libmesh_ignore(es, system_name);
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -260,7 +259,9 @@ void assemble_1D(EquationSystems & es,
       fe->reinit(elem);
 
       // Store the number of local degrees of freedom contained in this element
-      const int n_dofs = dof_indices.size();
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+      libmesh_assert_equal_to (n_dofs, phi.size());
 
       // We resize and zero out Ke and Fe (resize() also clears the matrix and
       // vector). In this example, all elements in the mesh are EDGE3's, so
@@ -275,11 +276,11 @@ void assemble_1D(EquationSystems & es,
         {
           // Now build the element matrix and right-hand-side using loops to
           // integrate the test functions (i) against the trial functions (j).
-          for (std::size_t i=0; i<phi.size(); i++)
+          for (unsigned int i=0; i != n_dofs; i++)
             {
               Fe(i) += JxW[qp]*phi[i][qp];
 
-              for (std::size_t j=0; j<phi.size(); j++)
+              for (unsigned int j=0; j != n_dofs; j++)
                 {
                   Ke(i,j) += JxW[qp]*(1.e-3*dphi[i][qp]*dphi[j][qp] +
                                       phi[i][qp]*phi[j][qp]);
@@ -300,10 +301,10 @@ void assemble_1D(EquationSystems & es,
       // have 2 sides.
       for (auto s : elem->side_index_range())
         {
-          // If this element has a NULL neighbor, then it is on the edge of the
+          // If this element has a nullptr neighbor, then it is on the edge of the
           // mesh and we need to enforce a boundary condition using the penalty
           // method.
-          if (elem->neighbor_ptr(s) == libmesh_nullptr)
+          if (elem->neighbor_ptr(s) == nullptr)
             {
               Ke(s,s) += penalty;
               Fe(s)   += 0*penalty;

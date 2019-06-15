@@ -24,7 +24,7 @@
 
 using namespace libMesh;
 
-// This class is used by testCyclicConstraintDetection
+// This class is used by testConstraintLoopDetection
 class MyConstraint : public System::Constraint
 {
 private:
@@ -60,12 +60,16 @@ public:
   CPPUNIT_TEST_SUITE( DofMapTest );
 
   CPPUNIT_TEST( testDofOwnerOnEdge3 );
+#if LIBMESH_DIM > 1
   CPPUNIT_TEST( testDofOwnerOnQuad9 );
   CPPUNIT_TEST( testDofOwnerOnTri6 );
+#endif
+#if LIBMESH_DIM > 2
   CPPUNIT_TEST( testDofOwnerOnHex27 );
+#endif
 
-#if defined(LIBMESH_ENABLE_CONSTRAINTS) && defined(LIBMESH_ENABLE_EXCEPTIONS)
-  CPPUNIT_TEST( testCyclicConstraintDetection );
+#if defined(LIBMESH_ENABLE_CONSTRAINTS) && defined(LIBMESH_ENABLE_EXCEPTIONS) && LIBMESH_DIM > 1
+  CPPUNIT_TEST( testConstraintLoopDetection );
 #endif
 
   CPPUNIT_TEST_SUITE_END();
@@ -87,10 +91,10 @@ public:
     System &sys = es.add_system<System> ("SimpleSystem");
     sys.add_variable("u", THIRD, HIERARCHIC);
 
-    const unsigned n_elem_per_side = 3;
+    const unsigned int n_elem_per_side = 3;
     const std::unique_ptr<Elem> test_elem = Elem::build(elem_type);
-    const Real ymax = test_elem->dim() > 1;
-    const Real zmax = test_elem->dim() > 2;
+    const unsigned int ymax = test_elem->dim() > 1;
+    const unsigned int zmax = test_elem->dim() > 2;
     const unsigned int ny = ymax * n_elem_per_side;
     const unsigned int nz = zmax * n_elem_per_side;
 
@@ -122,7 +126,7 @@ public:
   void testDofOwnerOnHex27() { testDofOwner(HEX27); }
 
 #if defined(LIBMESH_ENABLE_CONSTRAINTS) && defined(LIBMESH_ENABLE_EXCEPTIONS)
-  void testCyclicConstraintDetection()
+  void testConstraintLoopDetection()
   {
     Mesh mesh(*TestCommWorld);
 
@@ -135,11 +139,11 @@ public:
 
     MeshTools::Generation::build_square (mesh,4,4,-1., 1.,-1., 1., QUAD4);
 
-    // Tell the dof_map to check for cyclic constraints
+    // Tell the dof_map to check for constraint loops
     DofMap & dof_map = sys.get_dof_map();
-    dof_map.set_error_on_cyclic_constraint(true);
+    dof_map.set_error_on_constraint_loop(true);
 
-    CPPUNIT_ASSERT_THROW_MESSAGE("Cyclic constraint not detected", es.init(), libMesh::LogicError);
+    CPPUNIT_ASSERT_THROW_MESSAGE("Constraint loop not detected", es.init(), libMesh::LogicError);
   }
 #endif
 

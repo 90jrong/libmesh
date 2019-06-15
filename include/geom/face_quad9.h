@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  Quad9 (Elem * p=libmesh_nullptr) :
+  Quad9 (Elem * p=nullptr) :
     Quad(Quad9::n_nodes(), p, _nodelinks_data) {}
 
   Quad9 (Quad9 &&) = delete;
@@ -101,6 +101,8 @@ public:
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
+
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the
@@ -152,7 +154,13 @@ public:
                                        unsigned int side_node) const override;
 
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds an EDGE3 coincident with face i.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   virtual void connectivity(const unsigned int sf,
                             const IOPackage iop,
@@ -181,10 +189,18 @@ public:
   second_order_child_vertex (const unsigned int n) const override;
 
   /**
+   * Geometric constants for Quad9.
+   */
+  static const int num_nodes = 9;
+  static const int num_sides = 4;
+  static const int num_children = 4;
+  static const int nodes_per_side = 3;
+
+  /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int side_nodes_map[4][3];
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
 
   /**
    * An optimized method for approximating the area of a
@@ -203,7 +219,7 @@ protected:
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[9];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -221,7 +237,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[4][9][9];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

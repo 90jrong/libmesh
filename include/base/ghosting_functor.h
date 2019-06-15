@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -100,7 +100,7 @@ class Elem;
  * We return variable-stuff-sets as pointers to CouplingMatrix.  That
  * way, in the common case where the user cares about all variables and
  * couple to all variables, all the functor needs to return for
- * variable-number-sets and variable-number-pair-sets is a NULL (which
+ * variable-number-sets and variable-number-pair-sets is nullptr (which
  * as in other libMesh APIs will be interpreted and documented to mean
  * the full set). In the common case where the user wants coupling
  * between elements to match coupling within elements, the functor can
@@ -115,6 +115,37 @@ class Elem;
  * imposed had that matrix been used for a C'.  In other words, if the
  * returned CouplingMatrix CM has CM(i,j)==true for any i, then
  * variable j will be evaluable on the algebraically ghosted element.
+ *
+ * After a GhostingFunctor has been created, a reference to it can be
+ * passed to MeshBase::add_ghosting_functor to expand geometric
+ * ghosting, or to DofMap::add_algebraic_ghosting_functor to expand
+ * both algebraic and geometric ghosting, or to
+ * DofMap::add_coupling_functor to expand coupling along with both
+ * types of ghosting.
+ *
+ * Note that when an element is specified in algebraic ghosting or
+ * coupling queries, only degrees of freedom for the variables
+ * supported on that element are thereby ghosted and/or coupled.
+ * Any unsupported variable dofs associated with the element's nodes
+ * (e.g. subdomain-restricted variables on a neighboring subdomain)
+ * will be unaffected.
+ *
+ * Typical usage of the GhostingFunctor would be to add a geometric ghosting
+ * functor before the mesh preparation is completed; progmatically, this would
+ * be before MeshBase::prepare_for_use() is called, but many different libMesh
+ * idioms internally call this function. The algebraic and coupling ghosting
+ * functors normally are added before EquationSystems::init() is called.
+ * However, in some circumstances, solution evaluation may be needed within the
+ * GhostingFunctor in order to determine the ghosting, in which case the appropriate
+ * functor would need to be added after EquationSystems::init(). In this case,
+ * the user will need to reinitialize certain parts of the DofMap for
+ * algebraic and coupling functors. For algebraic ghosting functors, the
+ * user will need to call DofMap::reinit_send_list() and then reinitialize
+ * any NumericVectors that are GHOSTED, e.g. the System::current_local_solution.
+ * For coupling ghosting, the user will also need to recompute the sparsity
+ * pattern via DofMap::clear_sparsity() and then DofMap::compute_sparsity() and
+ * then reinitialize any SparseMatrix objects attached to the System, e.g.
+ * the system.get_matrix("System Matrix").
  *
  * \author Roy H. Stogner
  * \date 2016

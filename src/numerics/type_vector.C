@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -33,33 +33,6 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // TypeVector<T> class member functions
-template <typename T>
-TypeVector<T> TypeVector<T>::unit() const
-{
-
-  const Real length = norm();
-
-  libmesh_assert_not_equal_to (length, static_cast<Real>(0.));
-
-#if LIBMESH_DIM == 1
-  return TypeVector<T>(_coords[0]/length);
-#endif
-
-#if LIBMESH_DIM == 2
-  return TypeVector<T>(_coords[0]/length,
-                       _coords[1]/length);
-#endif
-
-#if LIBMESH_DIM == 3
-  return TypeVector<T>(_coords[0]/length,
-                       _coords[1]/length,
-                       _coords[2]/length);
-#endif
-
-}
-
-
-
 template <typename T>
 void TypeVector<T>::print(std::ostream & os) const
 {

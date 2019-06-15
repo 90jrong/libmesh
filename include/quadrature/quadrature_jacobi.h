@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -46,7 +46,7 @@ namespace libMesh
  * \date 2003
  * \brief Implements 1D Gauss-Jacobi quadrature rules of various orders.
  */
-class QJacobi libmesh_final : public QBase
+class QJacobi final : public QBase
 {
 public:
 
@@ -85,8 +85,7 @@ private:
   const unsigned int _alpha;
   const unsigned int _beta;
 
-  virtual void init_1D (const ElemType _type=INVALID_ELEM,
-                        unsigned int p_level=0) override;
+  virtual void init_1D (const ElemType, unsigned int) override;
 };
 
 } // namespace libMesh

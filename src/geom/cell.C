@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -29,10 +29,14 @@ BoundingBox Cell::loose_bounding_box () const
   // through 4-D space, so the full bounding box is just the merger of
   // the sides' bounding boxes.
 
-  BoundingBox bbox = this->build_side_ptr(0)->loose_bounding_box();
+  std::unique_ptr<const Elem> side_ptr { this->build_side_ptr(0, false) };
+  BoundingBox bbox = side_ptr->loose_bounding_box();
   unsigned int my_n_sides = this->n_sides();
   for (unsigned s=1; s < my_n_sides; ++s)
-    bbox.union_with(this->build_side_ptr(s)->loose_bounding_box());
+    {
+      this->build_side_ptr(side_ptr, s);
+      bbox.union_with(side_ptr->loose_bounding_box());
+    }
 
   return bbox;
 }

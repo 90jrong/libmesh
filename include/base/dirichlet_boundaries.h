@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -97,7 +97,7 @@ public:
   DirichletBoundary(const std::set<boundary_id_type> & b_in,
                     const std::vector<unsigned int> & variables_in,
                     const FunctionBase<Number> * f_in,
-                    const FunctionBase<Gradient> * g_in = libmesh_nullptr);
+                    const FunctionBase<Gradient> * g_in = nullptr);
 
   /**
    * Constructor for a boundary from reference-to-functor.
@@ -131,7 +131,7 @@ public:
                     const std::vector<unsigned int> & variables_in,
                     const System & f_sys_in,
                     const FEMFunctionBase<Number> * f_in,
-                    const FEMFunctionBase<Gradient> * g_in = libmesh_nullptr);
+                    const FEMFunctionBase<Gradient> * g_in = nullptr);
 
   /**
    * Constructor for a system-variable-order boundary from

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,7 @@
 #include "libmesh/string_to_enum.h"
 #include "libmesh/mesh_communication.h"
 #include "libmesh/parallel_mesh.h"
+#include "libmesh/dof_map.h"
 
 namespace libMesh
 {
@@ -93,9 +94,8 @@ void ExodusII_IO::write_discontinuous_exodusII(const std::string & name,
   std::vector<std::string> solution_names;
   std::vector<Number>      v;
 
-  es.build_variable_names  (solution_names, libmesh_nullptr, system_names);
+  es.build_variable_names  (solution_names, nullptr, system_names);
   es.build_discontinuous_solution_vector (v, system_names);
-
   this->write_nodal_data_discontinuous(name, v, solution_names);
 }
 
@@ -318,7 +318,7 @@ void ExodusII_IO::read (const std::string & fname)
             = sideset_name;
       }
 
-    for (std::size_t e=0; e<exio_helper->elem_list.size(); e++)
+    for (auto e : index_range(exio_helper->elem_list))
       {
         // The numbers in the Exodus file sidesets should be thought
         // of as (1-based) indices into the elem_num_map array.  So,
@@ -337,7 +337,7 @@ void ExodusII_IO::read (const std::string & fname)
 
         // Map the zero-based Exodus side numbering to the libmesh side numbering
         unsigned int raw_side_index = exio_helper->side_list[e]-1;
-        unsigned int side_index_offset = conv.get_shellface_index_offset();
+        std::size_t side_index_offset = conv.get_shellface_index_offset();
 
         if (raw_side_index < side_index_offset)
           {
@@ -378,7 +378,15 @@ void ExodusII_IO::read (const std::string & fname)
 
   // Read nodeset info
   {
-    exio_helper->read_nodeset_info();
+    // This fills in the following fields of the helper for later use:
+    // nodeset_ids
+    // num_nodes_per_set
+    // num_node_df_per_set
+    // node_sets_node_index
+    // node_sets_dist_index
+    // node_sets_node_list
+    // node_sets_dist_fact
+    exio_helper->read_all_nodesets();
 
     for (int nodeset=0; nodeset<exio_helper->num_node_sets; nodeset++)
       {
@@ -389,14 +397,17 @@ void ExodusII_IO::read (const std::string & fname)
         if (!nodeset_name.empty())
           mesh.get_boundary_info().nodeset_name(nodeset_id) = nodeset_name;
 
-        exio_helper->read_nodeset(nodeset);
+        // Get starting index of node ids for current nodeset.
+        unsigned int offset = exio_helper->node_sets_node_index[nodeset];
 
-        for (std::size_t node=0; node<exio_helper->node_list.size(); node++)
+        for (int i=0; i<exio_helper->num_nodes_per_set[nodeset]; ++i)
           {
+            int exodus_id = exio_helper->node_sets_node_list[i + offset];
+
             // As before, the entries in 'node_list' are 1-based
             // indices into the node_num_map array, so we have to map
             // them.  See comment above.
-            int libmesh_node_id = exio_helper->node_num_map[exio_helper->node_list[node] - 1] - 1;
+            int libmesh_node_id = exio_helper->node_num_map[exodus_id - 1] - 1;
             mesh.get_boundary_info().add_node(cast_int<dof_id_type>(libmesh_node_id),
                                               nodeset_id);
           }
@@ -488,7 +499,9 @@ void ExodusII_IO::copy_nodal_solution(System & system,
 
   const unsigned int var_num = system.variable_number(system_var_name);
 
-  for (std::size_t i=0; i<exio_helper->nodal_var_values.size(); ++i)
+  for (dof_id_type i=0,
+       n_nodal = cast_int<dof_id_type>(exio_helper->nodal_var_values.size());
+       i != n_nodal; ++i)
     {
       const Node * node = MeshInput<MeshBase>::mesh().query_node_ptr(i);
 
@@ -550,6 +563,50 @@ void ExodusII_IO::copy_elemental_solution(System & system,
   system.update();
 }
 
+void ExodusII_IO::copy_scalar_solution(System & system,
+                                       std::vector<std::string> system_var_names,
+                                       std::vector<std::string> exodus_var_names,
+                                       unsigned int timestep)
+{
+  if (!exio_helper->opened_for_reading)
+    libmesh_error_msg("ERROR, ExodusII file must be opened for reading before copying a scalar solution!");
+
+  if (system_var_names.size() != exodus_var_names.size())
+    libmesh_error_msg("ERROR, the number of system_var_names must match exodus_var_names.");
+
+  std::vector<Real> values_from_exodus;
+  read_global_variable(exodus_var_names, timestep, values_from_exodus);
+
+#ifdef LIBMESH_HAVE_MPI
+  if (this->n_processors() > 1)
+  {
+    const Parallel::MessageTag tag(1);
+    if (this->processor_id() == this->n_processors()-1)
+      this->comm().receive(0, values_from_exodus, tag);
+    if (this->processor_id() == 0)
+      this->comm().send(this->n_processors()-1, values_from_exodus, tag);
+  }
+#endif
+
+  if (system.processor_id() == (system.n_processors()-1))
+  {
+    const DofMap & dof_map = system.get_dof_map();
+
+    for (std::size_t i = 0; i < system_var_names.size(); i++)
+    {
+      const unsigned int var_num = system.variable_scalar_number(system_var_names[i], 0);
+
+      std::vector<dof_id_type> SCALAR_dofs;
+      dof_map.SCALAR_dof_indices(SCALAR_dofs, var_num);
+
+      system.solution->set (SCALAR_dofs[0], values_from_exodus[i]);
+    }
+  }
+
+  system.solution->close();
+  system.update();
+}
+
 void ExodusII_IO::read_elemental_variable(std::string elemental_var_name,
                                           unsigned int timestep,
                                           std::map<unsigned int, Real> & unique_id_to_value_map)
@@ -569,7 +626,7 @@ void ExodusII_IO::read_global_variable(std::vector<std::string> global_var_names
                                        unsigned int timestep,
                                        std::vector<Real> & global_values)
 {
-  unsigned int size = global_var_names.size();
+  std::size_t size = global_var_names.size();
   if (size == 0)
     libmesh_error_msg("ERROR, empty list of global variables to read from the Exodus file.");
 
@@ -579,8 +636,11 @@ void ExodusII_IO::read_global_variable(std::vector<std::string> global_var_names
   exio_helper->read_global_values(values_from_exodus, timestep);
   std::vector<std::string> global_var_names_exodus = exio_helper->global_var_names;
 
+  if (values_from_exodus.size() == 0)
+    return;   // This will happen in parallel on procs that are not 0
+
   global_values.clear();
-  for (unsigned int i = 0; i < size; ++i)
+  for (std::size_t i = 0; i != size; ++i)
     {
       // for each global variable in global_var_names, look the corresponding one in global_var_names_from_exodus
       // and fill global_values accordingly
@@ -626,15 +686,15 @@ void ExodusII_IO::write_element_data (const EquationSystems & es)
 
       // Filter that list against the _output_variables list.  Note: if names is still empty after
       // all this filtering, all the monomial variables will be gathered
-      std::vector<std::string>::iterator it = monomials.begin();
-      for (; it!=monomials.end(); ++it)
-        if (std::find(_output_variables.begin(), _output_variables.end(), *it) != _output_variables.end())
-          names.push_back(*it);
+      for (const auto & var : monomials)
+        if (std::find(_output_variables.begin(), _output_variables.end(), var) != _output_variables.end())
+          names.push_back(var);
     }
 
-  // If we pass in a list of names to "get_solution" it'll filter the variables coming back
+  // If we pass in a list of names to "build_elemental_solution_vector()"
+  // it'll filter the variables coming back.
   std::vector<Number> soln;
-  es.get_solution(soln, names);
+  es.build_elemental_solution_vector(soln, names);
 
   // Also, store the list of subdomains on which each variable is active
   std::vector<std::set<subdomain_id_type>> vars_active_subdomains;
@@ -691,6 +751,343 @@ void ExodusII_IO::write_element_data (const EquationSystems & es)
 #else
   exio_helper->initialize_element_variables(names, vars_active_subdomains);
   exio_helper->write_element_values(mesh, soln, _timestep, vars_active_subdomains);
+#endif
+}
+
+
+
+void
+ExodusII_IO::write_element_data_from_discontinuous_nodal_data
+(const EquationSystems & es,
+ const std::set<std::string> * system_names,
+ const std::string & var_suffix)
+{
+  // Be sure that some other function has already opened the file and prepared it
+  // for writing. This is the same behavior as the write_element_data() function
+  // which we are trying to mimic.
+  if (MeshOutput<MeshBase>::mesh().processor_id() == 0 && !exio_helper->opened_for_writing)
+    libmesh_error_msg("ERROR, ExodusII file must be initialized before outputting element variables.");
+
+  // This function currently only works on serialized meshes.  The
+  // "true" flag specifies that we only need the mesh serialized to
+  // processor 0
+  MeshSerializer serialize(MeshInput<MeshBase>::mesh(),
+                           !MeshOutput<MeshBase>::_is_parallel_format,
+                           true);
+
+  // Note: in general we want to respect the contents of
+  // _output_variables, only building a solution vector with values
+  // from the requested variables. First build a list of all variable
+  // names, then throw out ones that aren't in _output_variables, if
+  // any.
+  std::vector<std::string> var_names;
+  es.build_variable_names (var_names, /*fetype=*/nullptr, system_names);
+
+  // Get a subset of all variable names that are CONSTANT,
+  // MONOMIALs. We treat those slightly differently since they can
+  // truly only have a single value per Elem.
+  std::vector<std::string> monomial_var_names;
+  const FEType fe_type(CONSTANT, MONOMIAL);
+  es.build_variable_names(monomial_var_names, &fe_type);
+
+  // Remove all names from var_names that are not in _output_variables.
+  // Note: This approach avoids errors when the user provides invalid
+  // variable names in _output_variables, as the code will not try to
+  // write a variable that doesn't exist.
+  if (!_output_variables.empty())
+    {
+      var_names.erase
+        (std::remove_if
+         (var_names.begin(),
+          var_names.end(),
+          [this](const std::string & name)
+          {return !std::count(_output_variables.begin(),
+                              _output_variables.end(),
+                              name);}),
+         var_names.end());
+
+      // Also filter the monomial variable names.
+      monomial_var_names.erase
+        (std::remove_if
+         (monomial_var_names.begin(),
+          monomial_var_names.end(),
+          [this](const std::string & name)
+          {return !std::count(_output_variables.begin(),
+                              _output_variables.end(),
+                              name);}),
+         monomial_var_names.end());
+    }
+
+  // Build a solution vector, limiting the results to the variables in
+  // var_names and the Systems in system_names, and only computing values
+  // at the vertices.
+  std::vector<Number> v;
+  es.build_discontinuous_solution_vector
+    (v, system_names, &var_names, /*vertices_only=*/true);
+
+  // Get active subdomains for each variable in var_names.
+  std::vector<std::set<subdomain_id_type>> vars_active_subdomains;
+  es.get_vars_active_subdomains(var_names, vars_active_subdomains);
+
+  // Determine names of variables to write based on the number of
+  // nodes/vertices the elements in different subdomains have.
+  const MeshBase & mesh = MeshOutput<MeshBase>::mesh();
+  std::map<subdomain_id_type, unsigned int> subdomain_id_to_vertices_per_elem;
+  for (const auto & elem : mesh.active_element_ptr_range())
+    {
+      // Try to insert key/value pair into the map. If this returns
+      // false, check the returned iterator's value to make sure it
+      // matches. It shouldn't actually be possible for this to fail
+      // (since if the Mesh was like this it would have already
+      // failed) but it doesn't hurt to be on the safe side.
+      auto pr2 = subdomain_id_to_vertices_per_elem.insert
+        (std::make_pair(elem->subdomain_id(), elem->n_vertices()));
+      if (!pr2.second && pr2.first->second != elem->n_vertices())
+        libmesh_error_msg("Elem with different number of vertices found.");
+    }
+
+  // Determine "derived" variable names. These names are created by
+  // starting with the base variable name and appending the user's
+  // variable_suffix (default: "_elem_node_") followed by a node id.
+  //
+  // Not every derived variable will be active on every subdomain,
+  // even if the original variable _is_ active.  Subdomains can have
+  // different geometric element types (with differing numbers of
+  // nodes), so some of the derived variable names will be inactive on
+  // those subdomains.
+  //
+  // Since we would otherwise generate the same name once per
+  // subdomain, we keep the list of names unique as we are creating
+  // it. We can't use a std::set for this because we don't want the
+  // variables names to be in a different order from the order
+  // they were written in the call to: build_discontinuous_solution_vector()
+  //
+  // The list of derived variable names includes one for each vertex,
+  // for higher-order elements we currently only write out vertex
+  // values, but this could be changed in the future without too much
+  // trouble.
+  std::vector<std::string> derived_var_names;
+
+  // Keep track of mapping from derived_name to (orig_name, node_id)
+  // pair. We will use this later to determine whether a given
+  // variable is active on a given subdomain.
+  std::map<std::string, std::pair<std::string, unsigned int>>
+    derived_name_to_orig_name_and_node_id;
+
+  for (const auto & pr : subdomain_id_to_vertices_per_elem)
+    {
+      const subdomain_id_type sbd_id = pr.first;
+      const unsigned int vertices_per_elem =
+        subdomain_id_to_vertices_per_elem[sbd_id];
+
+      std::ostringstream oss;
+      for (unsigned int n=0; n<vertices_per_elem; ++n)
+        for (const auto & orig_var_name : var_names)
+          {
+            oss.str("");
+            oss.clear();
+            oss << orig_var_name << var_suffix << n;
+            std::string derived_name = oss.str();
+
+            // Only add this var name if it's not already in the list.
+            if (!std::count(derived_var_names.begin(), derived_var_names.end(), derived_name))
+              {
+                derived_var_names.push_back(derived_name);
+                // Add entry for derived_name -> (orig_name, node_id) mapping.
+                derived_name_to_orig_name_and_node_id[derived_name] =
+                  std::make_pair(orig_var_name, n);
+              }
+          }
+    }
+
+  // For each derived variable name, determine whether it is active
+  // based on how many nodes/vertices the elements in a given subdomain have,
+  // and whether they were active on the subdomain to begin with.
+  std::vector<std::set<subdomain_id_type>>
+    derived_vars_active_subdomains(derived_var_names.size());
+
+  // A new data structure for keeping track of a list of variable names
+  // that are in the discontinous solution vector on each subdomain. Used
+  // for indexing. Note: if a variable was inactive at the System level,
+  // an entry for it will still be in the discontinuous solution vector,
+  // but it will just have a value of zero. On the other hand, when we
+  // create the derived variable names some of them are "inactive" on
+  // different subdomains in the sense that they don't exist at all, i.e.
+  // there is no zero padding for them. We need to be able to distinguish
+  // between these two types in order to do the indexing into this vector
+  // correctly.
+  std::map<subdomain_id_type, std::vector<std::string>>
+    subdomain_to_var_names;
+
+  for (auto derived_var_id : index_range(derived_var_names))
+    {
+      const auto & derived_name = derived_var_names[derived_var_id];
+      auto it = derived_name_to_orig_name_and_node_id.find(derived_name);
+      if (it == derived_name_to_orig_name_and_node_id.end())
+        libmesh_error_msg("Unmapped derived variable name: " << derived_name);
+
+      // Convenience variables for the map entry's contents.
+      const std::string & orig_name = it->second.first;
+      const unsigned int node_id = it->second.second;
+
+      // For each subdomain, determine whether the current variable
+      // should be active on that subdomain.
+      for (const auto & pr : subdomain_id_to_vertices_per_elem)
+        {
+          // Convenience variables for the current subdomain and the
+          // number of nodes elements in this subdomain have.
+          subdomain_id_type sbd_id = pr.first;
+          unsigned int vertices_per_elem_this_sbd =
+            subdomain_id_to_vertices_per_elem[sbd_id];
+
+          // Check whether variable orig_name was active on this
+          // subdomain to begin with by looking in the
+          // vars_active_subdomains container. We assume that the
+          // location of orig_name in the var_names vector matches its
+          // index in the vars_active_subdomains container.
+          auto var_loc = std::find(var_names.begin(), var_names.end(), orig_name);
+          if (var_loc == var_names.end())
+            libmesh_error_msg("Variable " << orig_name << " somehow not found in var_names array.");
+          auto var_id = std::distance(var_names.begin(), var_loc);
+
+          // The derived_var will only be active if this subdomain has
+          // enough vertices for that to be the case.
+          if (node_id < vertices_per_elem_this_sbd)
+            {
+              // Regardless of whether the original variable was not active on this subdomain,
+              // the discontinuous solution vector will have zero padding for it, and
+              // we will need to account for it. Therefore it should still be added to
+              // the subdomain_to_var_names data structure!
+              subdomain_to_var_names[sbd_id].push_back(derived_name);
+
+              // If the original variable was not active on the
+              // current subdomain, it should not be added to the
+              // derived_vars_active_subdomains data structure, since
+              // it will not be written to the Exodus file.
+
+              // Determine if the original variable was active on the
+              // current subdomain.
+              bool orig_var_active =
+                (vars_active_subdomains[var_id].empty() ||
+                 vars_active_subdomains[var_id].count(sbd_id));
+
+              // And only if it was, add it to the
+              // derived_vars_active_subdomains data structure.
+              if (orig_var_active)
+                derived_vars_active_subdomains[derived_var_id].insert(sbd_id);
+            }
+        } // end loop over subdomain_id_to_vertices_per_elem
+    } // end loop over derived_var_names
+
+  // At this point we've built the "true" list of derived names, but
+  // if there are any CONSTANT MONOMIALS in this list, we now want to
+  // remove all but one copy of them from the derived_var_names list,
+  // and rename them in (but not remove them from) the
+  // subdomain_to_var_names list, and then update the
+  // derived_vars_active_subdomains containers before finally calling
+  // the Exodus helper functions.
+  for (auto & derived_var_name : derived_var_names)
+    {
+      // Get the original name associated with this derived name.
+      auto it = derived_name_to_orig_name_and_node_id.find(derived_var_name);
+      if (it == derived_name_to_orig_name_and_node_id.end())
+        libmesh_error_msg("Unmapped derived variable name: " << derived_var_name);
+
+      // Convenience variables for the map entry's contents.
+      const std::string & orig_name = it->second.first;
+
+      // Was the original name a constant monomial?
+      if (std::count(monomial_var_names.begin(),
+                     monomial_var_names.end(),
+                     orig_name))
+        {
+          // Rename this variable in the subdomain_to_var_names vectors.
+          for (auto & pr : subdomain_to_var_names)
+            {
+              // Reference to ordered list of variable names on this subdomain.
+              auto & name_vec = pr.second;
+
+              auto name_vec_it =
+                std::find(name_vec.begin(),
+                          name_vec.end(),
+                          derived_var_name);
+
+              if (name_vec_it != name_vec.end())
+                {
+                  // Actually rename it back to the orig_name, dropping
+                  // the "_elem_corner_" stuff.
+                  *name_vec_it = orig_name;
+                }
+            }
+
+          // Finally, rename the variable in the derived_var_names vector itself.
+          derived_var_name = orig_name;
+        } // if (monomial)
+    } // end loop over derived names
+
+  // Now remove duplicate entries from derived_var_names after the first.
+  // Also update the derived_vars_active_subdomains container in a consistent way.
+  {
+    std::vector<std::string> derived_var_names_edited;
+    std::vector<std::set<subdomain_id_type>> derived_vars_active_subdomains_edited;
+    std::vector<unsigned int> found_first(monomial_var_names.size());
+
+    for (auto i : index_range(derived_var_names))
+      {
+        const auto & derived_var_name = derived_var_names[i];
+        const auto & active_set = derived_vars_active_subdomains[i];
+
+        // Determine whether we will keep this derived variable name in
+        // the final container.
+        bool keep = true;
+        for (auto j : index_range(monomial_var_names))
+          if (derived_var_name == monomial_var_names[j])
+            {
+              if (!found_first[j])
+                found_first[j] = 1;
+
+              else
+                keep = false;
+            }
+
+        // We also don't keep variables that are not active on any subdomains.
+        // Contrary to other uses of the var_active_subdomains container where
+        // the empty set means "all" subdomains, here it really means "none".
+        if (active_set.empty())
+          keep = false;
+
+        if (keep)
+          {
+            derived_var_names_edited.push_back(derived_var_name);
+            derived_vars_active_subdomains_edited.push_back(active_set);
+          }
+      }
+
+    // We built the filtered ranges, now swap them with the originals.
+    derived_var_names.swap(derived_var_names_edited);
+    derived_vars_active_subdomains.swap(derived_vars_active_subdomains_edited);
+  }
+
+  // Call function which writes the derived variable names to the
+  // Exodus file.
+  exio_helper->initialize_element_variables(derived_var_names, derived_vars_active_subdomains);
+
+  // ES::build_discontinuous_solution_vector() creates a vector with
+  // an element-major ordering, so call Helper::write_element_values()
+  // passing false for the last argument.
+#ifdef LIBMESH_USE_COMPLEX_NUMBERS
+  // TODO: Make this work when complex variables are enabled by
+  // writing the real and complex parts separately. See
+  // ExodusII_IO::write_element_data() for details.
+  libmesh_not_implemented_msg
+    ("write_element_data_from_discontinuous_nodal_data() is not "
+     "yet supported when complex variables are enabled.");
+#else
+  exio_helper->write_element_values_element_major
+    (mesh, v, _timestep,
+     derived_vars_active_subdomains,
+     derived_var_names,
+     subdomain_to_var_names);
 #endif
 }
 
@@ -891,9 +1288,8 @@ void ExodusII_IO::write (const std::string & fname)
   // data, while "appending" is really intended to add data to an
   // existing file.  If we're verbose, print a message to this effect.
   if (_append && _verbose)
-    libMesh::out << "Warning: Appending in ExodusII_IO::write() does not make sense.\n"
-                 << "Creating a new file instead!"
-                 << std::endl;
+    libmesh_warning("Warning: Appending in ExodusII_IO::write() does not make sense.\n"
+                    "Creating a new file instead!");
 
   exio_helper->create(fname);
   exio_helper->initialize(fname,mesh);
@@ -903,11 +1299,8 @@ void ExodusII_IO::write (const std::string & fname)
   exio_helper->write_nodesets(mesh);
 
   if ((mesh.get_boundary_info().n_edge_conds() > 0) && _verbose)
-    {
-      libMesh::out << "Warning: Mesh contains edge boundary IDs, but these "
-                   << "are not supported by the ExodusII format."
-                   << std::endl;
-    }
+    libmesh_warning("Warning: Mesh contains edge boundary IDs, but these "
+                    "are not supported by the ExodusII format.");
 }
 
 
@@ -1007,11 +1400,8 @@ void ExodusII_IO::write_nodal_data_common(std::string fname,
           exio_helper->write_nodesets(mesh);
 
           if ((mesh.get_boundary_info().n_edge_conds() > 0) && _verbose)
-            {
-              libMesh::out << "Warning: Mesh contains edge boundary IDs, but these "
-                           << "are not supported by the ExodusII format."
-                           << std::endl;
-            }
+            libmesh_warning("Warning: Mesh contains edge boundary IDs, but these "
+                            "are not supported by the ExodusII format.");
 
           exio_helper->initialize_nodal_variables(names);
         }
@@ -1039,6 +1429,12 @@ const std::vector<std::string> & ExodusII_IO::get_elem_var_names()
 {
   exio_helper->read_var_names(ExodusII_IO_Helper::ELEMENTAL);
   return exio_helper->elem_var_names;
+}
+
+const std::vector<std::string> & ExodusII_IO::get_global_var_names()
+{
+  exio_helper->read_var_names(ExodusII_IO_Helper::GLOBAL);
+  return exio_helper->global_var_names;
 }
 
 ExodusII_IO_Helper & ExodusII_IO::get_exio_helper()
@@ -1138,7 +1534,28 @@ void ExodusII_IO::copy_elemental_solution(System &,
 
 
 
+void ExodusII_IO::copy_scalar_solution(System &,
+                                       std::vector<std::string>,
+                                       std::vector<std::string>,
+                                       unsigned int)
+{
+  libmesh_error_msg("ERROR, ExodusII API is not defined.");
+}
+
+
+
 void ExodusII_IO::write_element_data (const EquationSystems &)
+{
+  libmesh_error_msg("ERROR, ExodusII API is not defined.");
+}
+
+
+
+void
+ExodusII_IO::write_element_data_from_discontinuous_nodal_data
+(const EquationSystems &,
+ const std::set<std::string> *,
+ const std::string & )
 {
   libmesh_error_msg("ERROR, ExodusII API is not defined.");
 }
@@ -1210,6 +1627,11 @@ const std::vector<std::string> & ExodusII_IO::get_elem_var_names()
 }
 
 const std::vector<std::string> & ExodusII_IO::get_nodal_var_names()
+{
+  libmesh_error_msg("ERROR, ExodusII API is not defined.");
+}
+
+const std::vector<std::string> & ExodusII_IO::get_global_var_names()
 {
   libmesh_error_msg("ERROR, ExodusII API is not defined.");
 }

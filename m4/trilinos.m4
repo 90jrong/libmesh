@@ -365,7 +365,7 @@ AC_DEFUN([CONFIGURE_TRILINOS_9],
                 [DTK_MAKEFILE_EXPORT=$withdtkdir/packages/dtk/Makefile.export.Makefile.export.DataTransferKit],
                 [enabledtk=no])
 
-          AS_IF([test "$enabledtk" != "xno"],
+          AS_IF([test "x$enabledtk" != "xno"],
                 [
                   enabledtk=yes
                   AC_DEFINE(TRILINOS_HAVE_DTK, 1, [Flag indicating whether the library shall be compiled to use the DataTransferKit])
@@ -387,6 +387,7 @@ AC_DEFUN([CONFIGURE_TRILINOS_9],
   dnl anyone ever wants to go back and write a configure test with
   dnl an older Trilinos, that would be great!
   enableepetraext=no
+  enableepetra=no
 
 
   AC_SUBST(AZTECOO_MAKEFILE_EXPORT)
@@ -488,6 +489,15 @@ AC_DEFUN([CONFIGURE_TRILINOS],
                                  [no],  [enabletrilinos=no],
                                  [AC_MSG_ERROR(bad value ${enableval} for --enable-trilinos)])],
                                [enabletrilinos=$enableoptional])
+
+  dnl Our Trilinos interfaces currently only support 32-bit dof/numeric
+  dnl indices, so effectively --disable-trilinos when libmesh is configured
+  dnl with 64-bit indices.
+  AS_IF([test "$enabletrilinos" = yes && test "$dof_bytes" != "4"],
+        [
+          enabletrilinos=no
+          AC_MSG_RESULT([<<< Trilinos disabled, requires --with-dof-id-bytes=4 >>>])
+        ])
 
   AS_IF([test "x$enabletrilinos" = xyes],
         [

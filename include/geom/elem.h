@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -69,6 +69,7 @@ class Elem;
 class PeriodicBoundaries;
 class PointLocatorBase;
 #endif
+
 
 /**
  * This is the base class from which all geometric element types are
@@ -158,15 +159,6 @@ public:
   dof_id_type node_id (const unsigned int i) const;
 
   /**
-   * \returns The global id number of local \p Node \p i.
-   *
-   * \deprecated Use the less ambiguously named node_id() instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  dof_id_type node (const unsigned int i) const;
-#endif
-
-  /**
    * \returns The local id number of global \p Node id \p i,
    * or \p invalid_uint if Node id \p i is not local.
    */
@@ -202,15 +194,6 @@ public:
    * \returns A writable reference to local \p Node \p i.
    */
   Node & node_ref (const unsigned int i);
-
-  /**
-   * \returns The pointer to local \p Node \p i.
-   *
-   * \deprecated Use the less ambiguously named node_ptr() instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  Node * get_node (const unsigned int i) const;
-#endif
 
   /**
    * \returns The pointer to local \p Node \p i as a writable reference.
@@ -296,11 +279,11 @@ public:
 
   /**
    * \returns A const pointer to the \f$ i^{th} \f$ neighbor of this
-   * element, or \p NULL if \p MeshBase::find_neighbors() has not been
+   * element, or \p nullptr if \p MeshBase::find_neighbors() has not been
    * called.
    *
    * \note If \p MeshBase::find_neighbors() has been called and this
-   * function still returns \p NULL, then the side is on a boundary of
+   * function still returns \p nullptr, then the side is on a boundary of
    * the domain.
    */
   const Elem * neighbor_ptr (unsigned int i) const;
@@ -309,13 +292,6 @@ public:
    * \returns A non-const pointer to the \f$ i^{th} \f$ neighbor of this element.
    */
   Elem * neighbor_ptr (unsigned int i);
-
-  /**
-   * \deprecated Use the const-correct neighbor_ptr() function instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  Elem * neighbor (const unsigned int i) const;
-#endif
 
   /**
    * Nested "classes" for use iterating over all neighbors of an element.
@@ -381,19 +357,19 @@ public:
 
   /**
    * \returns If \p elem is a neighbor of a child of this element, a
-   * pointer to that child, otherwise \p NULL.
+   * pointer to that child, otherwise \p nullptr.
    */
   Elem * child_neighbor (Elem * elem);
 
   /**
    * \returns If \p elem is a neighbor of a child of this element, a
-   * pointer to that child, otherwise \p NULL.
+   * pointer to that child, otherwise \p nullptr.
    */
   const Elem * child_neighbor (const Elem * elem) const;
 
   /**
    * \returns \p true if this element has a side coincident
-   * with a boundary (indicated by a \p NULL neighbor), \p false
+   * with a boundary (indicated by a \p nullptr neighbor), \p false
    * otherwise.
    */
   bool on_boundary () const;
@@ -490,6 +466,12 @@ public:
                             const Elem * start_elem) const;
 
   /**
+   * Non-const version of function above. Fills a set of non-const Elem pointers.
+   */
+  void find_point_neighbors(std::set<Elem *> & neighbor_set,
+                            Elem * start_elem);
+
+  /**
    * This function finds all active elements in the same manifold as
    * this element which touch the current active element along the
    * whole edge defined by the two points \p p1 and \p p2.
@@ -514,6 +496,12 @@ public:
    * with this element has non-zero measure.
    */
   void find_interior_neighbors(std::set<const Elem *> & neighbor_set) const;
+
+  /**
+   * Non-const version of function above that fills up a vector of
+   * non-const Elem pointers instead.
+   */
+  void find_interior_neighbors(std::set<Elem *> & neighbor_set);
 
   /**
    * Resets this element's neighbors' appropriate neighbor pointers
@@ -549,7 +537,7 @@ public:
    * processor.  Local elements are required to have valid neighbors,
    * and these ghost elements may have remote neighbors for data
    * structure consistency.  The use of remote elements helps ensure
-   * that any element we may access has a \p NULL neighbor only if it
+   * that any element we may access has a \p nullptr neighbor only if it
    * lies on the physical boundary of the domain.
    */
   virtual bool is_remote () const
@@ -580,7 +568,7 @@ public:
   /**
    * \returns The dimensionality of the object.
    */
-  virtual unsigned int dim () const = 0;
+  virtual unsigned short dim () const = 0;
 
   /**
    * This array maps the integer representation of the \p ElemType enum
@@ -592,6 +580,12 @@ public:
    * \returns The number of nodes this element contains.
    */
   virtual unsigned int n_nodes () const = 0;
+
+  /**
+   * The maximum number of nodes *any* element can contain.
+   * This is useful for replacing heap vectors with stack arrays.
+   */
+  static const unsigned int max_n_nodes = 27;
 
   /**
    * \returns An integer range from 0 up to (but not including)
@@ -714,6 +708,11 @@ public:
                                const unsigned int s) const = 0;
 
   /**
+   * \returns the (local) node numbers on the specified side
+   */
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int /*s*/) const = 0;
+
+  /**
    * \returns \p true if the specified (local) node number is on the
    * specified edge.
    */
@@ -765,16 +764,22 @@ public:
   std::unique_ptr<const Elem> side_ptr (unsigned int i) const;
 
   /**
-   * \returns A proxy element coincident with side \p i.
+   * Resets the loose element \p side, which may currently point to a
+   * different side than \p i or even a different element than \p
+   * this, to point to side \p i on \p this.  If \p side is currently
+   * an element of the wrong type, it will be freed and a new element
+   * allocated; otherwise no memory allocation will occur.
    *
-   * \deprecated This method will eventually be removed since it
-   * hands back a non-const pointer to a side that could be used to
-   * indirectly modify this.  Please use the the const-correct
-   * side_ptr() function instead.
+   * This should not be called with proxy Side elements.  This will
+   * cause \p side to be a minimum-ordered element, even if it is
+   * handed a higher-ordered element that must be replaced.
+   *
+   * The const version of this function is non-virtual; it simply
+   * calls the virtual non-const version and const_casts the return
+   * type.
    */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  std::unique_ptr<Elem> side (const unsigned int i) const;
-#endif
+  virtual void side_ptr (std::unique_ptr<Elem> & side, const unsigned int i) = 0;
+  void side_ptr (std::unique_ptr<const Elem> & side, const unsigned int i) const;
 
   /**
    * \returns An element coincident with side \p i wrapped in a smart pointer.
@@ -801,16 +806,22 @@ public:
   std::unique_ptr<const Elem> build_side_ptr (const unsigned int i, bool proxy=true) const;
 
   /**
-   * \returns A proxy element coincident with side \p i.
+   * Resets the loose element \p side, which may currently point to a
+   * different side than \p i or even a different element than \p
+   * this, to point to side \p i on \p this.  If \p side is currently
+   * an element of the wrong type, it will be freed and a new element
+   * allocated; otherwise no memory allocation will occur.
    *
-   * \deprecated This method will eventually be removed since it
-   * hands back a non-const pointer to a side that could be used to
-   * indirectly modify this.  Please use the the const-correct
-   * build_side_ptr() function instead.
+   * This should not be called with proxy Side elements.  This will
+   * cause \p side to be a full-ordered element, even if it is handed
+   * a lower-ordered element that must be replaced.
+   *
+   * The const version of this function is non-virtual; it simply
+   * calls the virtual non-const version and const_casts the return
+   * type.
    */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  std::unique_ptr<Elem> build_side (const unsigned int i, bool proxy=true) const;
-#endif
+  virtual void build_side_ptr (std::unique_ptr<Elem> & side, const unsigned int i) = 0;
+  void build_side_ptr (std::unique_ptr<const Elem> & side, const unsigned int i) const;
 
   /**
    * \returns An element coincident with edge \p i wrapped in a smart pointer.
@@ -827,18 +838,6 @@ public:
    */
   virtual std::unique_ptr<Elem> build_edge_ptr (const unsigned int i) = 0;
   std::unique_ptr<const Elem> build_edge_ptr (const unsigned int i) const;
-
-  /**
-   * Creates an element coincident with edge \p i.
-   *
-   * \deprecated This method will eventually be removed since it
-   * hands back a non-const pointer to an edge that could be used to
-   * indirectly modify this Elem.  Please use the the const-correct
-   * build_edge_ptr() function instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  std::unique_ptr<Elem> build_edge (const unsigned int i) const;
-#endif
 
   /**
    * \returns The default approximation order for this element type.
@@ -996,13 +995,13 @@ public:
   bool is_ancestor_of(const Elem * descendant) const;
 
   /**
-   * \returns A const pointer to the element's parent, or \p NULL if
+   * \returns A const pointer to the element's parent, or \p nullptr if
    * the element was not created via refinement.
    */
   const Elem * parent () const;
 
   /**
-   * \returns A pointer to the element's parent, or \p NULL if
+   * \returns A pointer to the element's parent, or \p nullptr if
    * the element was not created via refinement.
    */
   Elem * parent ();
@@ -1123,7 +1122,7 @@ public:
   /**
    * \returns The refinement level of the current element.
    *
-   * If the element's parent is \p NULL then by convention it is at
+   * If the element's parent is \p nullptr then by convention it is at
    * level 0, otherwise it is simply at one level greater than its
    * parent.
    */
@@ -1173,16 +1172,6 @@ public:
    * Do not call if this element has no children, i.e. is active.
    */
   Elem * child_ptr (unsigned int i);
-
-  /**
-   * \returns A non-constant pointer to the \f$ i^{th} \f$ child for this element.
-   *
-   * \deprecated Use the more accurately-named and const correct
-   * child_ptr() function instead.
-   */
-#ifdef LIBMESH_ENABLE_DEPRECATED
-  Elem * child (const unsigned int i) const;
-#endif
 
   /**
    * Nested classes for use iterating over all children of a parent
@@ -1257,14 +1246,26 @@ public:
    * include subactive elements as well, use total_family_tree().
    */
   void family_tree (std::vector<const Elem *> & family,
-                    const bool reset=true) const;
+                    bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void family_tree (std::vector<Elem *> & family,
+                    bool reset = true);
 
   /**
    * Same as the \p family_tree() member, but also adds any subactive
    * descendants.
    */
-  void total_family_tree (std::vector<const Elem *> & active_family,
-                          const bool reset=true) const;
+  void total_family_tree (std::vector<const Elem *> & family,
+                          bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void total_family_tree (std::vector<Elem *> & family,
+                          bool reset = true);
 
   /**
    * Same as the \p family_tree() member, but only adds the active
@@ -1273,23 +1274,43 @@ public:
    * implemented more efficiently.
    */
   void active_family_tree (std::vector<const Elem *> & active_family,
-                           const bool reset=true) const;
+                           bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void active_family_tree (std::vector<Elem *> & active_family,
+                           bool reset = true);
 
   /**
    * Same as the \p family_tree() member, but only adds elements
    * which are next to \p side.
    */
   void family_tree_by_side (std::vector<const Elem *> & family,
-                            const unsigned int side,
-                            const bool reset=true) const;
+                            unsigned int side,
+                            bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void family_tree_by_side (std::vector<Elem *> & family,
+                            unsigned int side,
+                            bool reset = true);
 
   /**
    * Same as the \p active_family_tree() member, but only adds elements
    * which are next to \p side.
    */
   void active_family_tree_by_side (std::vector<const Elem *> & family,
-                                   const unsigned int side,
-                                   const bool reset=true) const;
+                                   unsigned int side,
+                                   bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void active_family_tree_by_side (std::vector<Elem *> & family,
+                                   unsigned int side,
+                                   bool reset = true);
 
   /**
    * Same as the \p family_tree() member, but only adds elements
@@ -1297,7 +1318,14 @@ public:
    */
   void family_tree_by_neighbor (std::vector<const Elem *> & family,
                                 const Elem * neighbor,
-                                const bool reset=true) const;
+                                bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void family_tree_by_neighbor (std::vector<Elem *> & family,
+                                Elem * neighbor,
+                                bool reset = true);
 
   /**
    * Same as the \p family_tree_by_neighbor() member, but also adds
@@ -1305,7 +1333,14 @@ public:
    */
   void total_family_tree_by_neighbor (std::vector<const Elem *> & family,
                                       const Elem * neighbor,
-                                      const bool reset=true) const;
+                                      bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void total_family_tree_by_neighbor (std::vector<Elem *> & family,
+                                      Elem * neighbor,
+                                      bool reset = true);
 
   /**
    * Same as the \p family_tree() member, but only adds elements
@@ -1316,7 +1351,15 @@ public:
   void family_tree_by_subneighbor (std::vector<const Elem *> & family,
                                    const Elem * neighbor,
                                    const Elem * subneighbor,
-                                   const bool reset=true) const;
+                                   bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void family_tree_by_subneighbor (std::vector<Elem *> & family,
+                                   Elem * neighbor,
+                                   Elem * subneighbor,
+                                   bool reset = true);
 
   /**
    * Same as the \p family_tree_by_subneighbor() member, but also adds
@@ -1325,7 +1368,15 @@ public:
   void total_family_tree_by_subneighbor (std::vector<const Elem *> & family,
                                          const Elem * neighbor,
                                          const Elem * subneighbor,
-                                         const bool reset=true) const;
+                                         bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void total_family_tree_by_subneighbor (std::vector<Elem *> & family,
+                                         Elem * neighbor,
+                                         Elem * subneighbor,
+                                         bool reset = true);
 
   /**
    * Same as the \p active_family_tree() member, but only adds elements
@@ -1333,7 +1384,14 @@ public:
    */
   void active_family_tree_by_neighbor (std::vector<const Elem *> & family,
                                        const Elem * neighbor,
-                                       const bool reset=true) const;
+                                       bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void active_family_tree_by_neighbor (std::vector<Elem *> & family,
+                                       Elem * neighbor,
+                                       bool reset = true);
 
   /**
    * Same as the \p active_family_tree_by_neighbor() member, but the
@@ -1345,7 +1403,17 @@ public:
                                                    const MeshBase & mesh,
                                                    const PointLocatorBase & point_locator,
                                                    const PeriodicBoundaries * pb,
-                                                   const bool reset=true) const;
+                                                   bool reset = true) const;
+
+  /**
+   * Non-const version of function above; fills a vector of non-const pointers.
+   */
+  void active_family_tree_by_topological_neighbor (std::vector<Elem *> & family,
+                                                   Elem * neighbor,
+                                                   const MeshBase & mesh,
+                                                   const PointLocatorBase & point_locator,
+                                                   const PeriodicBoundaries * pb,
+                                                   bool reset = true);
 
   /**
    * \returns The value of the refinement flag for the element.
@@ -1513,7 +1581,7 @@ public:
    * \returns An Elem of type \p type wrapped in a smart pointer.
    */
   static std::unique_ptr<Elem> build (const ElemType type,
-                                      Elem * p=libmesh_nullptr);
+                                      Elem * p=nullptr);
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -1591,6 +1659,21 @@ protected:
                                   dof_id_type n2,
                                   dof_id_type n3);
 
+  /**
+   * An implementation for simple (all sides equal) elements
+   */
+  template <typename Subclass>
+  void simple_build_side_ptr(std::unique_ptr<Elem> & side,
+                             const unsigned int i,
+                             ElemType sidetype);
+
+  /**
+   * An implementation for simple (all sides equal) elements
+   */
+  template <typename Subclass, typename Mapclass>
+  void simple_side_ptr(std::unique_ptr<Elem> & side,
+                       const unsigned int i,
+                       ElemType sidetype);
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -1627,7 +1710,7 @@ protected:
 public:
 
   /**
-   * Replaces this element with \p NULL for all of its neighbors.
+   * Replaces this element with \p nullptr for all of its neighbors.
    * This is useful when deleting an element.
    */
   void nullify_neighbors ();
@@ -1761,7 +1844,7 @@ Elem::Elem(const unsigned int nn,
   _nodes(nodelinkdata),
   _elemlinks(elemlinkdata),
 #ifdef LIBMESH_ENABLE_AMR
-  _children(libmesh_nullptr),
+  _children(nullptr),
 #endif
   _sbd_id(0)
 #ifdef LIBMESH_ENABLE_AMR
@@ -1773,11 +1856,14 @@ Elem::Elem(const unsigned int nn,
 {
   this->processor_id() = DofObject::invalid_processor_id;
 
+  // If this ever legitimately fails we need to increase max_n_nodes
+  libmesh_assert_less_equal(nn, max_n_nodes);
+
   // Initialize the nodes data structure
   if (_nodes)
     {
       for (unsigned int n=0; n<nn; n++)
-        _nodes[n] = libmesh_nullptr;
+        _nodes[n] = nullptr;
     }
 
   // Initialize the neighbors/parent data structure
@@ -1788,11 +1874,11 @@ Elem::Elem(const unsigned int nn,
       _elemlinks[0] = p;
 
       for (unsigned int n=1; n<ns+1; n++)
-        _elemlinks[n] = libmesh_nullptr;
+        _elemlinks[n] = nullptr;
     }
 
   // Optionally initialize data from the parent
-  if (this->parent() != libmesh_nullptr)
+  if (this->parent() != nullptr)
     {
       this->subdomain_id() = this->parent()->subdomain_id();
       this->processor_id() = this->parent()->processor_id();
@@ -1812,18 +1898,18 @@ Elem::~Elem()
   // Deleting my parent/neighbor/nodes storage isn't necessary since it's
   // handled by the subclass
 
-  // if (_nodes != libmesh_nullptr)
+  // if (_nodes != nullptr)
   //   delete [] _nodes;
-  // _nodes = libmesh_nullptr;
+  // _nodes = nullptr;
 
   // delete [] _elemlinks;
 
 #ifdef LIBMESH_ENABLE_AMR
 
   // Delete my children's storage
-  if (_children != libmesh_nullptr)
+  if (_children != nullptr)
     delete [] _children;
-  _children = libmesh_nullptr;
+  _children = nullptr;
 
 #endif
 }
@@ -1861,17 +1947,6 @@ dof_id_type Elem::node_id (const unsigned int i) const
 
   return _nodes[i]->id();
 }
-
-
-
-#ifdef LIBMESH_ENABLE_DEPRECATED
-inline
-dof_id_type Elem::node (const unsigned int i) const
-{
-  libmesh_deprecated();
-  return this->node_id(i);
-}
-#endif
 
 
 
@@ -1933,23 +2008,6 @@ Node & Elem::node_ref (const unsigned int i)
 
 
 
-#ifdef LIBMESH_ENABLE_DEPRECATED
-inline
-Node * Elem::get_node (const unsigned int i) const
-{
-  // This const function has incorrectly returned a non-const pointer
-  // for years.  Now that it is reimplemented in terms of the new
-  // interface which does return a const pointer, we need to use a
-  // const_cast to mimic the old (incorrect) behavior.  This function
-  // is now deprecated and eventually will be removed entirely,
-  // obviating the need for this ugly cast.
-  libmesh_deprecated();
-  return const_cast<Node *>(this->node_ptr(i));
-}
-#endif
-
-
-
 inline
 unsigned int Elem::get_node_index (const Node * node_ptr) const
 {
@@ -2008,19 +2066,6 @@ Elem * Elem::neighbor_ptr (unsigned int i)
 
 
 
-#ifdef LIBMESH_ENABLE_DEPRECATED
-inline
-Elem * Elem::neighbor (const unsigned int i) const
-{
-  // Support the deprecated interface by calling the new,
-  // const-correct interface and casting the result to an Elem *.
-  libmesh_deprecated();
-  return const_cast<Elem *>(this->neighbor_ptr(i));
-}
-#endif
-
-
-
 inline
 void Elem::set_neighbor (const unsigned int i, Elem * n)
 {
@@ -2050,7 +2095,7 @@ Elem * Elem::child_neighbor (Elem * elem)
     if (n && n->parent() == this)
       return n;
 
-  return libmesh_nullptr;
+  return nullptr;
 }
 
 
@@ -2062,7 +2107,7 @@ const Elem * Elem::child_neighbor (const Elem * elem) const
     if (n && n->parent() == this)
       return n;
 
-  return libmesh_nullptr;
+  return nullptr;
 }
 
 
@@ -2125,16 +2170,17 @@ std::unique_ptr<const Elem> Elem::side_ptr (unsigned int i) const
 
 
 
-#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
-std::unique_ptr<Elem> Elem::side (const unsigned int i) const
+void
+Elem::side_ptr (std::unique_ptr<const Elem> & elem,
+                const unsigned int i) const
 {
-  // Call the const version of side_ptr(), and const_cast the result.
-  libmesh_deprecated();
-  Elem * s = const_cast<Elem *>(this->side_ptr(i).release());
-  return std::unique_ptr<Elem>(s);
+  // Hand off to the non-const version of this function
+  Elem * me = const_cast<Elem *>(this);
+  std::unique_ptr<Elem> e {const_cast<Elem *>(elem.release())};
+  me->side_ptr(e, i);
+  elem.reset(e.release());
 }
-#endif
 
 
 
@@ -2151,17 +2197,67 @@ Elem::build_side_ptr (const unsigned int i, bool proxy) const
 
 
 
-#ifdef LIBMESH_ENABLE_DEPRECATED
 inline
-std::unique_ptr<Elem>
-Elem::build_side (const unsigned int i, bool proxy) const
+void
+Elem::build_side_ptr (std::unique_ptr<const Elem> & elem,
+                      const unsigned int i) const
 {
-  // Call the const version of build_side_ptr(), and const_cast the result.
-  libmesh_deprecated();
-  Elem * s = const_cast<Elem *>(this->build_side_ptr(i, proxy).release());
-  return std::unique_ptr<Elem>(s);
+  // Hand off to the non-const version of this function
+  Elem * me = const_cast<Elem *>(this);
+  std::unique_ptr<Elem> e {const_cast<Elem *>(elem.release())};
+  me->build_side_ptr(e, i);
+  elem.reset(e.release());
 }
-#endif
+
+
+
+template <typename Subclass>
+inline
+void
+Elem::simple_build_side_ptr (std::unique_ptr<Elem> & side,
+                             const unsigned int i,
+                             ElemType sidetype)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  if (!side.get() || side->type() != sidetype)
+    {
+      Subclass & real_me = cast_ref<Subclass&>(*this);
+      side = real_me.Subclass::build_side_ptr(i, false);
+    }
+  else
+    {
+      side->subdomain_id() = this->subdomain_id();
+
+      for (auto n : side->node_index_range())
+        side->set_node(n) = this->node_ptr(Subclass::side_nodes_map[i][n]);
+    }
+}
+
+
+
+template <typename Subclass, typename Mapclass>
+inline
+void
+Elem::simple_side_ptr (std::unique_ptr<Elem> & side,
+                       const unsigned int i,
+                       ElemType sidetype)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  if (!side.get() || side->type() != sidetype)
+    {
+      Subclass & real_me = cast_ref<Subclass&>(*this);
+      side = real_me.Subclass::side_ptr(i);
+    }
+  else
+    {
+      side->subdomain_id() = this->subdomain_id();
+
+      for (auto n : side->node_index_range())
+        side->set_node(n) = this->node_ptr(Mapclass::side_nodes_map[i][n]);
+    }
+}
 
 
 
@@ -2178,26 +2274,12 @@ Elem::build_edge_ptr (const unsigned int i) const
 
 
 
-#ifdef LIBMESH_ENABLE_DEPRECATED
-inline
-std::unique_ptr<Elem>
-Elem::build_edge (const unsigned int i) const
-{
-  // Call the const version of build_edge_ptr(), and const_cast the result.
-  libmesh_deprecated();
-  Elem * e = const_cast<Elem *>(this->build_edge_ptr(i).release());
-  return std::unique_ptr<Elem>(e);
-}
-#endif
-
-
-
 inline
 bool Elem::on_boundary () const
 {
   // By convention, the element is on the boundary
-  // if it has a NULL neighbor.
-  return this->has_neighbor(libmesh_nullptr);
+  // if it has a nullptr neighbor.
+  return this->has_neighbor(nullptr);
 }
 
 
@@ -2305,7 +2387,7 @@ bool Elem::subactive() const
   if (!this->has_children())
     return true;
   for (const Elem * my_ancestor = this->parent();
-       my_ancestor != libmesh_nullptr;
+       my_ancestor != nullptr;
        my_ancestor = my_ancestor->parent())
     if (my_ancestor->active())
       return true;
@@ -2320,7 +2402,7 @@ inline
 bool Elem::has_children() const
 {
 #ifdef LIBMESH_ENABLE_AMR
-  if (_children == libmesh_nullptr)
+  if (_children == nullptr)
     return false;
   else
     return true;
@@ -2334,7 +2416,7 @@ inline
 bool Elem::has_ancestor_children() const
 {
 #ifdef LIBMESH_ENABLE_AMR
-  if (_children == libmesh_nullptr)
+  if (_children == nullptr)
     return false;
   else
     for (auto & c : child_ref_range())
@@ -2398,7 +2480,7 @@ const Elem * Elem::top_parent () const
 
   // Keep getting the element's parent
   // until that parent is at level-0
-  while (tp->parent() != libmesh_nullptr)
+  while (tp->parent() != nullptr)
     tp = tp->parent();
 
   libmesh_assert(tp);
@@ -2418,7 +2500,7 @@ unsigned int Elem::level() const
   // created directly from file
   // or by the user, so I am a
   // level-0 element
-  if (this->parent() == libmesh_nullptr)
+  if (this->parent() == nullptr)
     return 0;
 
   // if the parent and this element are of different
@@ -2461,7 +2543,7 @@ inline
 const Elem * Elem::raw_child_ptr (unsigned int i) const
 {
   if (!_children)
-    return libmesh_nullptr;
+    return nullptr;
 
   return _children[i];
 }
@@ -2483,19 +2565,6 @@ Elem * Elem::child_ptr (unsigned int i)
 
   return _children[i];
 }
-
-
-#ifdef LIBMESH_ENABLE_DEPRECATED
-inline
-Elem * Elem::child (const unsigned int i) const
-{
-  // Support the deprecated interface by calling the new,
-  // const-correct interface and casting the result to an Elem *.
-  libmesh_deprecated();
-  return const_cast<Elem *>(this->child_ptr(i));
-}
-#endif
-
 
 
 inline
@@ -2584,7 +2653,7 @@ inline
 void Elem::set_p_level(unsigned int p)
 {
   // Maintain the parent's p level as the minimum of it's children
-  if (this->parent() != libmesh_nullptr)
+  if (this->parent() != nullptr)
     {
       unsigned int parent_p_level = this->parent()->p_level();
 
@@ -2736,7 +2805,7 @@ public:
   SideIter(const unsigned int side_number,
            Elem * parent)
     : _side(),
-      _side_ptr(libmesh_nullptr),
+      _side_ptr(nullptr),
       _parent(parent),
       _side_number(side_number)
   {}
@@ -2745,8 +2814,8 @@ public:
   // Empty constructor.
   SideIter()
     : _side(),
-      _side_ptr(libmesh_nullptr),
-      _parent(libmesh_nullptr),
+      _side_ptr(nullptr),
+      _parent(nullptr),
       _side_number(libMesh::invalid_uint)
   {}
 
@@ -2754,7 +2823,7 @@ public:
   // Copy constructor
   SideIter(const SideIter & other)
     : _side(),
-      _side_ptr(libmesh_nullptr),
+      _side_ptr(nullptr),
       _parent(other._parent),
       _side_number(other._side_number)
   {}
@@ -2796,11 +2865,11 @@ public:
 
   // Consults the parent Elem to determine if the side
   // is a boundary side.  Note: currently side N is a
-  // boundary side if neighbor N is NULL.  Be careful,
+  // boundary side if neighbor N is nullptr.  Be careful,
   // this could possibly change in the future?
   bool side_on_boundary() const
   {
-    return this->_parent->neighbor_ptr(_side_number) == libmesh_nullptr;
+    return this->_parent->neighbor_ptr(_side_number) == nullptr;
   }
 
 private:
@@ -2889,7 +2958,6 @@ SimpleRange<Elem::ConstNeighborPtrIter> Elem::neighbor_ptr_range() const
   return {_elemlinks+1, _elemlinks + 1 + this->n_neighbors()};
 }
 
-
 } // namespace libMesh
 
 
@@ -2911,6 +2979,10 @@ SimpleRange<Elem::ConstNeighborPtrIter> Elem::neighbor_ptr_range() const
     static std::vector<std::vector<std::vector<signed char>>> c;        \
     return c;                                                           \
   }
+
+
+
+
 
 
 #endif // LIBMESH_ELEM_H

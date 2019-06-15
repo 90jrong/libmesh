@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -60,7 +60,7 @@ public:
   ~PeriodicBoundaries();
 
   // The periodic neighbor of \p e in direction \p side, if it
-  // exists.  NULL otherwise
+  // exists, nullptr otherwise.
   const Elem * neighbor(boundary_id_type boundary_id,
                         const PointLocatorBase & point_locator,
                         const Elem * e,

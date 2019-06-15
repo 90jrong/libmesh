@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -84,6 +84,15 @@ std::unique_ptr<Elem> Tet::side_ptr (const unsigned int i)
 
   return face;
 }
+
+
+
+void Tet::side_ptr (std::unique_ptr<Elem> & side,
+                    const unsigned int i)
+{
+  this->simple_side_ptr<Tet,Tet4>(side, i, TRI3);
+}
+
 
 
 void Tet::select_diagonal (const Diagonal diag) const

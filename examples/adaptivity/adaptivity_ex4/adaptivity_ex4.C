@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -657,8 +657,7 @@ void assemble_biharmonic(EquationSystems & es,
                          const std::string & system_name)
 {
   // Ignore unused parameter warnings when libmesh is configured without certain options.
-  libmesh_ignore(es);
-  libmesh_ignore(system_name);
+  libmesh_ignore(es, system_name);
 
 #ifdef LIBMESH_ENABLE_AMR
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
@@ -777,15 +776,18 @@ void assemble_biharmonic(EquationSystems & es,
       // (phi, dphi) for the current element.
       fe->reinit (elem);
 
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+      libmesh_assert_equal_to (n_dofs, phi.size());
+
       // Zero the element matrix and right-hand side before
       // summing them.
-      Ke.resize (dof_indices.size(),
-                 dof_indices.size());
+      Ke.resize (n_dofs, n_dofs);
 
-      Fe.resize (dof_indices.size());
+      Fe.resize (n_dofs);
 
       // Make sure there is enough room in this cache
-      shape_laplacian.resize(dof_indices.size());
+      shape_laplacian.resize(n_dofs);
 
       // Stop logging the shape function initialization.
       // If you forget to stop logging an event the PerfLog
@@ -805,7 +807,7 @@ void assemble_biharmonic(EquationSystems & es,
 
       for (unsigned int qp=0; qp<qrule->n_points(); qp++)
         {
-          for (std::size_t i=0; i<phi.size(); i++)
+          for (unsigned int i=0; i != n_dofs; i++)
             {
               shape_laplacian[i] = d2phi[i][qp](0,0);
               if (dim > 1)
@@ -813,8 +815,8 @@ void assemble_biharmonic(EquationSystems & es,
               if (dim == 3)
                 shape_laplacian[i] += d2phi[i][qp](2,2);
             }
-          for (std::size_t i=0; i<phi.size(); i++)
-            for (std::size_t j=0; j<phi.size(); j++)
+          for (unsigned int i=0; i != n_dofs; i++)
+            for (unsigned int j=0; j != n_dofs; j++)
               Ke(i,j) += JxW[qp]*
                 shape_laplacian[i]*shape_laplacian[j];
         }
@@ -831,8 +833,9 @@ void assemble_biharmonic(EquationSystems & es,
       // problem: Dirichlet boundary conditions include *both*
       // boundary values and boundary normal fluxes.
       {
-        // Start logging the boundary condition computation
-        perf_log.push ("BCs");
+        // Start logging the boundary condition computation.  We use a
+        // macro to log everything in this scope.
+        LOG_SCOPE_WITH("BCs", "", perf_log);
 
         // The penalty values, for solution boundary trace and flux.
         const Real penalty = 1e10;
@@ -842,7 +845,7 @@ void assemble_biharmonic(EquationSystems & es,
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
         for (auto s : elem->side_index_range())
-          if (elem->neighbor_ptr(s) == libmesh_nullptr)
+          if (elem->neighbor_ptr(s) == nullptr)
             {
               // The value of the shape functions at the quadrature
               // points.
@@ -868,6 +871,8 @@ void assemble_biharmonic(EquationSystems & es,
               // face.
               fe_face->reinit(elem, s);
 
+              libmesh_assert_equal_to (n_dofs, phi_face.size());
+
               // Loop over the face quadrature points for integration.
               for (unsigned int qp=0; qp<qface->n_points(); qp++)
                 {
@@ -884,8 +889,8 @@ void assemble_biharmonic(EquationSystems & es,
                   // integrated against test function values while
                   // basis fluxes are integrated against test function
                   // fluxes.
-                  for (std::size_t i=0; i<phi_face.size(); i++)
-                    for (std::size_t j=0; j<phi_face.size(); j++)
+                  for (unsigned int i=0; i != n_dofs; i++)
+                    for (unsigned int j=0; j != n_dofs; j++)
                       Ke(i,j) += JxW_face[qp] *
                         (penalty * phi_face[i][qp] *
                          phi_face[j][qp] + penalty2
@@ -896,7 +901,7 @@ void assemble_biharmonic(EquationSystems & es,
 
                   // Right-hand-side contribution of the L2
                   // projection.
-                  for (std::size_t i=0; i<phi_face.size(); i++)
+                  for (unsigned int i=0; i != n_dofs; i++)
                     Fe(i) += JxW_face[qp] *
                       (penalty * value * phi_face[i][qp]
                        + penalty2 *
@@ -906,13 +911,10 @@ void assemble_biharmonic(EquationSystems & es,
 
                 }
             }
-
-        // Stop logging the boundary condition computation
-        perf_log.pop ("BCs");
       }
 
       for (unsigned int qp=0; qp<qrule->n_points(); qp++)
-        for (std::size_t i=0; i<phi.size(); i++)
+        for (unsigned int i=0; i != n_dofs; i++)
           Fe(i) += JxW[qp]*phi[i][qp]*forcing_function(q_point[qp]);
 
       // The element matrix and right-hand-side are now built
@@ -921,15 +923,11 @@ void assemble_biharmonic(EquationSystems & es,
       // and NumericVector::add_vector() members do this for us.
       // Start logging the insertion of the local (element)
       // matrix and vector into the global matrix and vector
-      perf_log.push ("matrix insertion");
+      LOG_SCOPE_WITH("matrix insertion", "", perf_log);
 
       dof_map.constrain_element_matrix_and_vector(Ke, Fe, dof_indices);
       system.matrix->add_matrix (Ke, dof_indices);
       system.rhs->add_vector    (Fe, dof_indices);
-
-      // Stop logging the insertion of the local (element)
-      // matrix and vector into the global matrix and vector
-      perf_log.pop ("matrix insertion");
     }
 
   // That's it.  We don't need to do anything else to the

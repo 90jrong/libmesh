@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -68,6 +68,7 @@ class MeshBase;
 class PeriodicBoundaryBase;
 class PeriodicBoundaries;
 class System;
+class NonlinearImplicitSystem;
 template <typename T> class DenseVectorBase;
 template <typename T> class DenseVector;
 template <typename T> class DenseMatrix;
@@ -257,6 +258,27 @@ public:
   void clear_sparsity();
 
   /**
+   * Remove any default ghosting functor(s).  User-added ghosting
+   * functors will be unaffected.
+   *
+   * Unless user-added equivalent ghosting functors exist, removing
+   * the default coupling functor is only safe for explicit solves,
+   * and removing the default algebraic ghosting functor is only safe
+   * for codes where no evaluations on neighbor cells (e.g. no jump
+   * error estimators) are done.
+   *
+   * Defaults can be restored manually via add_default_ghosting(), or
+   * automatically if clear() returns the DofMap to a default state.
+   */
+  void remove_default_ghosting();
+
+  /**
+   * Add the default functor(s) for coupling and algebraic ghosting.
+   * User-added ghosting functors will be unaffected.
+   */
+  void add_default_ghosting();
+
+  /**
    * Adds a functor which can specify coupling requirements for
    * creation of sparse matrices.
    * Degree of freedom pairs which match the elements and variables
@@ -269,12 +291,36 @@ public:
    * GhostingFunctor memory must be managed by the code which calls
    * this function; the GhostingFunctor lifetime is expected to extend
    * until either the functor is removed or the DofMap is destructed.
+   *
+   * When \p to_mesh is true, the \p coupling_functor is also added to
+   * our associated mesh, to ensure that coupled elements do not get
+   * lost during mesh distribution.  (if coupled elements were
+   * *already* lost there's no getting them back after the fact,
+   * sorry)
+   *
+   * If \p to_mesh is false, no change to mesh ghosting is made;
+   * the Mesh must already have ghosting functor(s) specifying a
+   * superset of \p coupling_functor or this is a horrible bug.
    */
-  void add_coupling_functor(GhostingFunctor & coupling_functor);
+  void add_coupling_functor(GhostingFunctor & coupling_functor,
+                            bool to_mesh = true);
+
+  /**
+   * Adds a functor which can specify coupling requirements for
+   * creation of sparse matrices.
+   *
+   * GhostingFunctor memory when using this method is managed by the
+   * shared_ptr mechanism.
+   */
+  void add_coupling_functor(std::shared_ptr<GhostingFunctor> coupling_functor,
+                            bool to_mesh = true)
+  { _shared_functors[coupling_functor.get()] = coupling_functor;
+    this->add_coupling_functor(*coupling_functor, to_mesh); }
 
   /**
    * Removes a functor which was previously added to the set of
-   * coupling functors.
+   * coupling functors, from both this DofMap and from the underlying
+   * mesh.
    */
   void remove_coupling_functor(GhostingFunctor & coupling_functor);
 
@@ -300,19 +346,45 @@ public:
    * for use with distributed vectors.  Degrees of freedom on other
    * processors which match the elements and variables returned by
    * these functors will be added to the send_list, and the elements
-   * on other processors will be ghosted on a distributed mesh.
+   * on other processors will be ghosted on a distributed mesh, so
+   * that the elements can always be found and the solutions on them
+   * will always be evaluable.
    *
    * GhostingFunctor memory must be managed by the code which calls
    * this function; the GhostingFunctor lifetime is expected to extend
    * until either the functor is removed or the DofMap is destructed.
+   *
+   * When \p to_mesh is true, the \p coupling_functor is also added to
+   * our associated mesh, to ensure that evaluable elements do not get
+   * lost during mesh distribution.  (if evaluable elements were
+   * *already* lost there's no getting them back after the fact,
+   * sorry)
+   *
+   * If \p to_mesh is false, no change to mesh ghosting is made;
+   * the Mesh must already have ghosting functor(s) specifying a
+   * superset of \p evaluable_functor or this is a horrible bug.
    */
-  void add_algebraic_ghosting_functor(GhostingFunctor & ghosting_functor);
+  void add_algebraic_ghosting_functor(GhostingFunctor & evaluable_functor,
+                                      bool to_mesh = true);
+
+  /**
+   * Adds a functor which can specify algebraic ghosting requirements
+   * for use with distributed vectors.
+   *
+   * GhostingFunctor memory when using this method is managed by the
+   * shared_ptr mechanism.
+   */
+  void add_algebraic_ghosting_functor(std::shared_ptr<GhostingFunctor> evaluable_functor,
+                                      bool to_mesh = true)
+  { _shared_functors[evaluable_functor.get()] = evaluable_functor;
+    this->add_algebraic_ghosting_functor(*evaluable_functor, to_mesh); }
 
   /**
    * Removes a functor which was previously added to the set of
-   * algebraic ghosting functors.
+   * algebraic ghosting functors, from both this DofMap and from the
+   * underlying mesh.
    */
-  void remove_algebraic_ghosting_functor(GhostingFunctor & ghosting_functor);
+  void remove_algebraic_ghosting_functor(GhostingFunctor & evaluable_functor);
 
   /**
    * Beginning of range of algebraic ghosting functors
@@ -360,7 +432,7 @@ public:
                                                    std::vector<dof_id_type> & n_nz,
                                                    std::vector<dof_id_type> & n_oz,
                                                    void *),
-                                      void * context = libmesh_nullptr)
+                                      void * context = nullptr)
   { _extra_sparsity_function = func; _extra_sparsity_context = context; }
 
   /**
@@ -380,7 +452,7 @@ public:
    * send_list with extra entries.
    */
   void attach_extra_send_list_function(void (*func)(std::vector<dof_id_type> &, void *),
-                                       void * context = libmesh_nullptr)
+                                       void * context = nullptr)
   { _extra_send_list_function = func; _extra_send_list_context = context; }
 
   /**
@@ -390,6 +462,28 @@ public:
    * methods for adding to the send list.
    */
   void prepare_send_list ();
+
+  /**
+   * Clears the \p _send_list vector. This should be done in order to completely
+   * rebuild the send_list from scratch rather than merely adding to the existing
+   * send_list.
+   */
+  void clear_send_list ()
+  {
+    _send_list.clear();
+  }
+
+  /**
+   * Clears the \p _send_list vector and then rebuilds it. This may be needed
+   * in special situations, for example when an algebraic coupling functor cannot
+   * be added to the \p DofMap until after it is completely setup. Then this method
+   * can be used to rebuild the send_list once the algebraic coupling functor is
+   * added. Note that while this will recommunicate constraints with the updated
+   * send_list, this does assume no new constraints have been added since the previous
+   * reinit_constraints call.
+   */
+  void reinit_send_list (MeshBase & mesh);
+
 
   /**
    * \returns A constant reference to the \p _send_list for this processor.
@@ -442,11 +536,16 @@ public:
 
   /**
    * Specify whether or not we perform an extra (opt-mode enabled) check
-   * for cyclic constraints. If a cyclic constraint is present then
-   * the system constraints are not valid, so if \p error_on_cyclic_constraint
+   * for constraint loops. If a constraint loop is present then
+   * the system constraints are not valid, so if \p error_on_constraint_loop
    * is true we will throw an error in this case.
+   *
+   * \note We previously referred to these types of constraints as
+   * "cyclic" but that has now been deprecated, and these will now
+   * instead be referred to as "constraint loops" in libMesh.
    */
   void set_error_on_cyclic_constraint(bool error_on_cyclic_constraint);
+  void set_error_on_constraint_loop(bool error_on_constraint_loop);
 
   /**
    * \returns The \p VariableGroup description object for group \p g.
@@ -604,7 +703,7 @@ public:
   { std::vector<dof_id_type>::const_iterator ub =
       std::upper_bound(_end_df.begin(), _end_df.end(), dof);
     libmesh_assert (ub != _end_df.end());
-    return (ub - _end_df.begin());
+    return cast_int<processor_id_type>(ub - _end_df.begin());
   }
 
 #ifdef LIBMESH_ENABLE_AMR
@@ -641,18 +740,40 @@ public:
 
   /**
    * Fills the vector \p di with the global degree of freedom indices
-   * for the node.
+   * for the \p node.
    */
   void dof_indices (const Node * const node,
                     std::vector<dof_id_type> & di) const;
 
   /**
    * Fills the vector \p di with the global degree of freedom indices
-   * for the node.   For one variable \p vn.
+   * for the \p node, for one variable \p vn.
    */
   void dof_indices (const Node * const node,
                     std::vector<dof_id_type> & di,
                     const unsigned int vn) const;
+
+  /**
+   * Appends to the vector \p di the global degree of freedom indices
+   * for \p elem.node_ref(n), for one variable \p vn.  On hanging
+   * nodes with both vertex and non-vertex DoFs, only those indices
+   * which are directly supported on \p elem are included.
+   */
+  void dof_indices (const Elem & elem,
+                    unsigned int n,
+                    std::vector<dof_id_type> & di,
+                    const unsigned int vn) const;
+
+  /**
+   * Appends to the vector \p di the old global degree of freedom
+   * indices for \p elem.node_ref(n), for one variable \p vn.  On
+   * hanging nodes with both vertex and non-vertex DoFs, only those
+   * indices which are directly supported on \p elem are included.
+   */
+  void old_dof_indices (const Elem & elem,
+                        unsigned int n,
+                        std::vector<dof_id_type> & di,
+                        const unsigned int vn) const;
 
   /**
    * Fills the vector \p di with the global degree of freedom indices
@@ -683,6 +804,13 @@ public:
    * don't cache enough information for O(1) right now.
    */
   bool all_semilocal_indices (const std::vector<dof_id_type> & dof_indices) const;
+
+  /**
+   * \returns \p true if degree of freedom index \p dof_index
+   * is a local index.
+   */
+  bool local_index (dof_id_type dof_index) const
+  { return (dof_index >= this->first_dof()) && (dof_index < this->end_dof()); }
 
   /**
    * \returns \p true iff our solutions can be locally evaluated on
@@ -801,11 +929,21 @@ public:
   void process_constraints (MeshBase &);
 
   /**
-   * Throw an error if we detect and cyclic constraints, since these
-   * are not supported by libMesh and give erroneous results if they
-   * are present.
+   * Throw an error if we detect any constraint loops, i.e.
+   * A -> B -> C -> A
+   * that is, "dof A is constrained in terms of dof B which is
+   * constrained in terms of dof C which is constrained in terms of
+   * dof A", since these are not supported by libMesh and give
+   * erroneous results if they are present.
+   *
+   * \note The original "cyclic constraint" terminology was
+   * unfortunate since the word cyclic is used by some software to
+   * indicate an actual type of rotational/angular contraint and not
+   * (as here) a cyclic graph. The former nomenclature will eventually
+   * be deprecated in favor of "constraint loop".
    */
   void check_for_cyclic_constraints();
+  void check_for_constraint_loops();
 
   /**
    * Adds a copy of the user-defined row to the constraint matrix, using
@@ -863,6 +1001,23 @@ public:
   void unstash_dof_constraints()
   {
     libmesh_assert(_dof_constraints.empty());
+    _dof_constraints.swap(_stashed_dof_constraints);
+  }
+
+  /**
+   * Similar to the stash/unstash_dof_constraints() API, but swaps
+   * _dof_constraints and _stashed_dof_constraints without asserting
+   * that the source or destination is empty first.
+   *
+   * \note There is an implicit assumption that swapping between sets
+   * of Constraints does not change the sparsity pattern or expand the
+   * send_list, since the only thing changed is the DofConstraints
+   * themselves.  This is intended to work for swapping between
+   * DofConstraints A and B, where A is used to define the send_list,
+   * and B is a subset of A.
+   */
+  void swap_dof_constraints()
+  {
     _dof_constraints.swap(_stashed_dof_constraints);
   }
 
@@ -935,10 +1090,10 @@ public:
    * entry is the maximum absolute error on a constrained DoF and whose second
    * entry is the maximum relative error.  Useful for debugging purposes.
    *
-   * If \p v == libmesh_nullptr, the system solution vector is tested.
+   * If \p v == nullptr, the system solution vector is tested.
    */
   std::pair<Real, Real> max_constraint_error(const System & system,
-                                             NumericVector<Number> * v = libmesh_nullptr) const;
+                                             NumericVector<Number> * v = nullptr) const;
 
 #endif // LIBMESH_ENABLE_CONSTRAINTS
 
@@ -1082,7 +1237,7 @@ public:
    * solver's solutions do not satisfy your DoF constraints to a tight enough
    * tolerance.
    *
-   * If \p v == libmesh_nullptr, the system solution vector is constrained
+   * If \p v == nullptr, the system solution vector is constrained
    *
    * If \p homogeneous == true, heterogeneous constraints are enforced
    * as if they were homogeneous.  This might be appropriate for e.g. a
@@ -1090,7 +1245,7 @@ public:
    * heterogeneously-constrained solutions.
    */
   void enforce_constraints_exactly (const System & system,
-                                    NumericVector<Number> * v = libmesh_nullptr,
+                                    NumericVector<Number> * v = nullptr,
                                     bool homogeneous = false) const;
 
   /**
@@ -1101,6 +1256,13 @@ public:
    */
   void enforce_adjoint_constraints_exactly (NumericVector<Number> & v,
                                             unsigned int q) const;
+
+  void enforce_constraints_on_residual (const NonlinearImplicitSystem & system,
+                                        NumericVector<Number> * rhs,
+                                        NumericVector<Number> const * solution,
+                                        bool homogeneous = true) const;
+  void enforce_constraints_on_jacobian (const NonlinearImplicitSystem & system,
+                                        SparseMatrix<Number> * jac) const;
 
 
 
@@ -1234,7 +1396,8 @@ public:
   void reinit (MeshBase & mesh);
 
   /**
-   * Free all memory associated with the object, but keep the mesh pointer.
+   * Free all new memory associated with the object, but restore its
+   * original state, with the mesh pointer and any default ghosting.
    */
   void clear ();
 
@@ -1272,22 +1435,37 @@ private:
 
   /**
    * Helper function that gets the dof indices on the current element
-   * for a non-SCALAR type variable.
+   * for a non-SCALAR type variable, where the variable is identified
+   * by its variable group number \p vg and its offset \p vig from the
+   * first variable in that group.
    *
    * In DEBUG mode, the tot_size parameter will add up the total
-   * number of dof indices that should have been added to di.
+   * number of dof indices that should have been added to di, and v
+   * will be the variable number corresponding to vg and vig.
    */
   void _dof_indices (const Elem & elem,
                      int p_level,
                      std::vector<dof_id_type> & di,
-                     const unsigned int v,
+                     const unsigned int vg,
+                     const unsigned int vig,
                      const Node * const * nodes,
                      unsigned int       n_nodes
 #ifdef DEBUG
                      ,
+                     const unsigned int v,
                      std::size_t & tot_size
 #endif
                      ) const;
+
+  /**
+   * Helper function that implements the element-nodal versions of
+   * dof_indices and old_dof_indices
+   */
+  void _node_dof_indices (const Elem & elem,
+                          unsigned int n,
+                          const DofObject & obj,
+                          std::vector<dof_id_type> & di,
+                          const unsigned int vn) const;
 
   /**
    * Builds a sparsity pattern
@@ -1428,9 +1606,10 @@ private:
 
   /**
    * This flag indicates whether or not we do an opt-mode check for
-   * the presence of cyclic constraints.
+   * the presence of constraint loops, i.e. cases where the constraint
+   * graph is cyclic.
    */
-  bool _error_on_cyclic_constraint;
+  bool _error_on_constraint_loop;
 
   /**
    * The finite element type for each variable.
@@ -1438,9 +1617,14 @@ private:
   std::vector<Variable> _variables;
 
   /**
-   * The finite element type for each variable.
+   * The finite element type for each variable group.
    */
   std::vector<VariableGroup> _variable_groups;
+
+  /**
+   * The variable group number for each variable.
+   */
+  std::vector<unsigned int> _variable_group_numbers;
 
   /**
    * The number of the system we manage DOFs for.
@@ -1551,6 +1735,12 @@ private:
    * geometrically ghosted elements.
    */
   std::set<GhostingFunctor *> _coupling_functors;
+
+  /**
+   * Hang on to references to any GhostingFunctor objects we were
+   * passed in shared_ptr form
+   */
+  std::map<GhostingFunctor *, std::shared_ptr<GhostingFunctor> > _shared_functors;
 
   /**
    * Default false; set to true if any attached matrix requires a full

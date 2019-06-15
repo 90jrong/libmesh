@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -57,7 +57,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  InfEdge2 (Elem * p=libmesh_nullptr) :
+  InfEdge2 (Elem * p=nullptr) :
     Edge(InfEdge2::n_nodes(), p, _nodelinks_data) {}
 
   InfEdge2 (InfEdge2 &&) = delete;
@@ -102,6 +102,8 @@ public:
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
+
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the

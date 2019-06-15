@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -55,7 +55,7 @@ class MeshOutput
 protected:
 
   /**
-   * Default constructor. Will set the _obj to NULL, effectively
+   * Default constructor. Will set the _obj to nullptr, effectively
    * rendering this object useless.
    */
   explicit
@@ -87,7 +87,7 @@ public:
    */
   virtual void write_equation_systems (const std::string &,
                                        const EquationSystems &,
-                                       const std::set<std::string> * system_names=libmesh_nullptr);
+                                       const std::set<std::string> * system_names=nullptr);
 
   /**
    * This method implements writing a mesh with discontinuous data to a
@@ -96,7 +96,7 @@ public:
    */
   virtual void write_discontinuous_equation_systems (const std::string &,
                                                      const EquationSystems &,
-                                                     const std::set<std::string> * system_names=libmesh_nullptr);
+                                                     const std::set<std::string> * system_names=nullptr);
 
   /**
    * This method implements writing a mesh with nodal data to a
@@ -194,7 +194,7 @@ inline
 MeshOutput<MT>::MeshOutput (const bool is_parallel_format, const bool serial_only_needed_on_proc_0) :
   _is_parallel_format(is_parallel_format),
   _serial_only_needed_on_proc_0(serial_only_needed_on_proc_0),
-  _obj(libmesh_nullptr),
+  _obj(nullptr),
   _ascii_precision (std::numeric_limits<Real>::digits10 + 2)
 {}
 

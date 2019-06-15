@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,12 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // Quad9 class static member initializations
-const unsigned int Quad9::side_nodes_map[4][3] =
+const int Quad9::num_nodes;
+const int Quad9::num_sides;
+const int Quad9::num_children;
+const int Quad9::nodes_per_side;
+
+const unsigned int Quad9::side_nodes_map[Quad9::num_sides][Quad9::nodes_per_side] =
   {
     {0, 1, 4}, // Side 0
     {1, 2, 5}, // Side 1
@@ -41,7 +46,7 @@ const unsigned int Quad9::side_nodes_map[4][3] =
 
 #ifdef LIBMESH_ENABLE_AMR
 
-const float Quad9::_embedding_matrix[4][9][9] =
+const float Quad9::_embedding_matrix[Quad9::num_children][Quad9::num_nodes][Quad9::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -134,13 +139,17 @@ bool Quad9::is_node_on_side(const unsigned int n,
                             const unsigned int s) const
 {
   libmesh_assert_less (s, n_sides());
-  for (unsigned int i = 0; i != 3; ++i)
-    if (side_nodes_map[s][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(side_nodes_map[s]),
+                   std::end(side_nodes_map[s]),
+                   n) != std::end(side_nodes_map[s]);
 }
 
-
+std::vector<unsigned>
+Quad9::nodes_on_side(const unsigned int s) const
+{
+  libmesh_assert_less(s, n_sides());
+  return {std::begin(side_nodes_map[s]), std::end(side_nodes_map[s])};
+}
 
 bool Quad9::has_affine_map() const
 {
@@ -216,7 +225,7 @@ unsigned int Quad9::which_node_am_i(unsigned int side,
                                     unsigned int side_node) const
 {
   libmesh_assert_less (side, this->n_sides());
-  libmesh_assert_less (side_node, 3);
+  libmesh_assert_less (side_node, Quad9::nodes_per_side);
 
   return Quad9::side_nodes_map[side][side_node];
 }
@@ -246,7 +255,11 @@ std::unique_ptr<Elem> Quad9::build_side_ptr (const unsigned int i,
 
 
 
-
+void Quad9::build_side_ptr (std::unique_ptr<Elem> & side,
+                            const unsigned int i)
+{
+  this->simple_build_side_ptr<Quad9>(side, i, EDGE3);
+}
 
 
 

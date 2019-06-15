@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -50,7 +50,7 @@ class MeshInput
 protected:
 
   /**
-   * Default constructor. Will set the _obj to NULL, effectively
+   * Default constructor. Will set the _obj to nullptr, effectively
    * rendering this object useless.
    */
   explicit
@@ -129,7 +129,7 @@ template <class MT>
 inline
 MeshInput<MT>::MeshInput (const bool is_parallel_format) :
   elems_of_dimension(),
-  _obj (libmesh_nullptr),
+  _obj (nullptr),
   _is_parallel_format(is_parallel_format)
 {
 }
@@ -168,8 +168,8 @@ template <class MT>
 inline
 MT & MeshInput<MT>::mesh ()
 {
-  if (_obj == libmesh_nullptr)
-    libmesh_error_msg("ERROR: _obj should not be NULL!");
+  if (_obj == nullptr)
+    libmesh_error_msg("ERROR: _obj should not be nullptr!");
   return *_obj;
 }
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -48,7 +48,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  Edge2 (Elem * p=libmesh_nullptr) :
+  Edge2 (Elem * p=nullptr) :
     Edge(Edge2::n_nodes(), p, _nodelinks_data) {}
 
   Edge2 (Edge2 &&) = delete;
@@ -64,7 +64,7 @@ public:
   virtual Point master_point (const unsigned int i) const override
   {
     libmesh_assert_less(i, this->n_nodes());
-    return Point(2.0f*i-1,0,0);
+    return Point(2.0f*Real(i)-1.0f,0,0);
   }
 
   /**
@@ -153,12 +153,18 @@ public:
    */
   virtual dof_id_type key () const override;
 
+  /**
+   * Geometric constants for Edge2.
+   */
+  static const int num_nodes = 2;
+  static const int num_children = 2;
+
 protected:
 
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[2];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -176,7 +182,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[2][2][2];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

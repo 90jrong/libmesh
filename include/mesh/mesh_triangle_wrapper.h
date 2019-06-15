@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -68,7 +68,7 @@ enum IO_Type {
   BOTH   = 2};
 
 /**
- * Initializes the fields of t to NULL/0 as necessary.
+ * Initializes the fields of t to nullptr/0 as necessary.
  * This is helpful for preventing the access of uninitialized
  * memory when working with C, which has no constructors or
  * destructors.
@@ -79,7 +79,7 @@ void init(triangulateio & t);
  * Frees any memory which has been dynamically allocated by Triangle.
  *
  * \note Triangle does not free any memory itself.
- * \note It is always safe to call free on a NULL pointer.
+ * \note It is always safe to call free on a nullptr.
  * \note Triangle \e does shallow-copy (for example) the holelist
  * pointer from the input to output struct \e without performing a
  * deep copy of the holelist itself.  Therefore, double-free will

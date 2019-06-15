@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -17,9 +17,6 @@
 
 
 
-// C++ includes
-
-
 // Local Includes
 #include "libmesh/mesh_function.h"
 #include "libmesh/dense_vector.h"
@@ -33,6 +30,8 @@
 #include "libmesh/mesh_base.h"
 #include "libmesh/point.h"
 #include "libmesh/elem.h"
+#include "libmesh/int_range.h"
+#include "libmesh/fe_map.h"
 
 namespace libMesh
 {
@@ -51,7 +50,7 @@ MeshFunction::MeshFunction (const EquationSystems & eqn_systems,
   _vector              (vec),
   _dof_map             (dof_map),
   _system_vars         (vars),
-  _point_locator       (libmesh_nullptr),
+  _point_locator       (nullptr),
   _out_of_mesh_mode    (false),
   _out_of_mesh_value   ()
 {
@@ -70,7 +69,7 @@ MeshFunction::MeshFunction (const EquationSystems & eqn_systems,
   _vector              (vec),
   _dof_map             (dof_map),
   _system_vars         (1,var),
-  _point_locator       (libmesh_nullptr),
+  _point_locator       (nullptr),
   _out_of_mesh_mode    (false),
   _out_of_mesh_value   ()
 {
@@ -88,7 +87,7 @@ MeshFunction::MeshFunction (const EquationSystems & eqn_systems,
 MeshFunction::~MeshFunction ()
 {
   // only delete the point locator when we are the master
-  if (this->_master == libmesh_nullptr)
+  if (this->_master == nullptr)
     delete this->_point_locator;
 }
 
@@ -113,13 +112,13 @@ void MeshFunction::init (const Trees::BuildType /*point_locator_build_type*/)
    * point locator) or this object is the master
    * (build the point locator  on our own).
    */
-  if (this->_master != libmesh_nullptr)
+  if (this->_master != nullptr)
     {
       // we aren't the master
       const MeshFunction * master =
         cast_ptr<const MeshFunction *>(this->_master);
 
-      if (master->_point_locator == libmesh_nullptr)
+      if (master->_point_locator == nullptr)
         libmesh_error_msg("ERROR: When the master-servant concept is used, the master has to be initialized first!");
 
       else
@@ -148,10 +147,10 @@ void
 MeshFunction::clear ()
 {
   // only delete the point locator when we are the master
-  if ((this->_point_locator != libmesh_nullptr) && (this->_master == libmesh_nullptr))
+  if ((this->_point_locator != nullptr) && (this->_master == nullptr))
     {
       delete this->_point_locator;
-      this->_point_locator = libmesh_nullptr;
+      this->_point_locator = nullptr;
     }
   this->_initialized = false;
 }
@@ -237,7 +236,7 @@ void MeshFunction::operator() (const Point & p,
                                const Real time,
                                DenseVector<Number> & output)
 {
-  this->operator() (p, time, output, libmesh_nullptr);
+  this->operator() (p, time, output, nullptr);
 }
 
 void MeshFunction::operator() (const Point & p,
@@ -278,9 +277,8 @@ void MeshFunction::operator() (const Point & p,
                                                             element,
                                                             p));
 
-
         // loop over all vars
-        for (std::size_t index=0; index < this->_system_vars.size(); index++)
+        for (auto index : index_range(this->_system_vars))
           {
             /*
              * the data for this variable
@@ -314,7 +312,7 @@ void MeshFunction::operator() (const Point & p,
               {
                 Number value = 0.;
 
-                for (std::size_t i=0; i<dof_indices.size(); i++)
+                for (auto i : index_range(dof_indices))
                   value += this->_vector(dof_indices[i]) * data.shape[i];
 
                 output(index) = value;
@@ -333,7 +331,7 @@ void MeshFunction::discontinuous_value (const Point & p,
                                         const Real time,
                                         std::map<const Elem *, DenseVector<Number>> & output)
 {
-  this->discontinuous_value (p, time, output, libmesh_nullptr);
+  this->discontinuous_value (p, time, output, nullptr);
 }
 
 
@@ -370,9 +368,8 @@ void MeshFunction::discontinuous_value (const Point & p,
                                                           element,
                                                           p));
 
-
       // loop over all vars
-      for (std::size_t index=0; index < this->_system_vars.size(); index++)
+      for (auto index : index_range(this->_system_vars))
         {
           /*
            * the data for this variable
@@ -406,7 +403,7 @@ void MeshFunction::discontinuous_value (const Point & p,
             {
               Number value = 0.;
 
-              for (std::size_t i=0; i<dof_indices.size(); i++)
+              for (auto i : index_range(dof_indices))
                 value += this->_vector(dof_indices[i]) * data.shape[i];
 
               temp_output(index) = value;
@@ -436,6 +433,7 @@ void MeshFunction::gradient (const Point & p,
   if (!element)
     {
       output.resize(0);
+      return;
     }
   else
     {
@@ -461,7 +459,7 @@ void MeshFunction::gradient (const Point & p,
         std::vector<Point> point_list (1, mapped_point);
 
         // loop over all vars
-        for (std::size_t index=0; index < this->_system_vars.size(); index++)
+        for (auto index : index_range(this->_system_vars))
           {
             /*
              * the data for this variable
@@ -478,20 +476,52 @@ void MeshFunction::gradient (const Point & p,
 
             const FEType & fe_type = this->_dof_map.variable_type(var);
 
-            std::unique_ptr<FEBase> point_fe (FEBase::build(dim, fe_type));
-            const std::vector<std::vector<RealGradient>> & dphi = point_fe->get_dphi();
-            point_fe->reinit(element, &point_list);
-
             // where the solution values for the var-th variable are stored
             std::vector<dof_id_type> dof_indices;
             this->_dof_map.dof_indices (element, dof_indices, var);
 
             // interpolate the solution
             Gradient grad(0.);
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+            //The other algorithm works in case of finite elements as well,
+            //but this one is faster.
+            if (!element->infinite())
+              {
+#endif
+                std::unique_ptr<FEBase> point_fe (FEBase::build(dim, fe_type));
+                const std::vector<std::vector<RealGradient>> & dphi = point_fe->get_dphi();
+                point_fe->reinit(element, &point_list);
 
-            for (std::size_t i=0; i<dof_indices.size(); i++)
-              grad.add_scaled(dphi[i][0], this->_vector(dof_indices[i]));
+                for (auto i : index_range(dof_indices))
+                  grad.add_scaled(dphi[i][0], this->_vector(dof_indices[i]));
 
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+              }
+            else
+              {
+                /**
+                 * Build an FEComputeData that contains both input and output data
+                 * for the specific compute_data method.
+                 */
+                FEComputeData data (this->_eqn_systems, mapped_point);
+                data.enable_derivative();
+                FEInterface::compute_data (dim, fe_type, element, data);
+                //grad [x] = data.dshape[i](v) * dv/dx  * dof_index [i]
+                // sum over all indices
+                for (std::size_t i=0; i<dof_indices.size(); i++)
+                  {
+                    // local coordinates
+                    for (std::size_t v=0; v<dim; v++)
+                      for (std::size_t xyz=0; xyz<LIBMESH_DIM; xyz++)
+                        {
+                          // FIXME: this needs better syntax: It is matrix-vector multiplication.
+                          grad(xyz) += data.local_transform[v][xyz]
+                            * data.dshape[i](v)
+                            * this->_vector(dof_indices[i]);
+                        }
+                  }
+              }
+#endif
             output[index] = grad;
           }
       }
@@ -503,7 +533,7 @@ void MeshFunction::discontinuous_gradient (const Point & p,
                                            const Real time,
                                            std::map<const Elem *, std::vector<Gradient>> & output)
 {
-  this->discontinuous_gradient (p, time, output, libmesh_nullptr);
+  this->discontinuous_gradient (p, time, output, nullptr);
 }
 
 
@@ -543,7 +573,7 @@ void MeshFunction::discontinuous_gradient (const Point & p,
 
       // loop over all vars
       std::vector<Point> point_list (1, mapped_point);
-      for (std::size_t index = 0 ; index < this->_system_vars.size(); ++index)
+      for (auto index : index_range(this->_system_vars))
         {
           /*
            * the data for this variable
@@ -560,19 +590,54 @@ void MeshFunction::discontinuous_gradient (const Point & p,
 
           const FEType & fe_type = this->_dof_map.variable_type(var);
 
-          std::unique_ptr<FEBase> point_fe (FEBase::build(dim, fe_type));
-          const std::vector<std::vector<RealGradient>> & dphi = point_fe->get_dphi();
-          point_fe->reinit(element, &point_list);
-
           // where the solution values for the var-th variable are stored
           std::vector<dof_id_type> dof_indices;
           this->_dof_map.dof_indices (element, dof_indices, var);
 
           Gradient grad(0.);
 
-          for (std::size_t i = 0; i < dof_indices.size(); ++i)
-            grad.add_scaled(dphi[i][0], this->_vector(dof_indices[i]));
+          // for performance-reasons, we use different algorithms now.
+          // TODO: Check that both give the same result for finite elements.
+          // Otherwive it is wrong...
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+          if (!element->infinite())
+            {
+#endif
+              std::unique_ptr<FEBase> point_fe (FEBase::build(dim, fe_type));
+              const std::vector<std::vector<RealGradient>> & dphi = point_fe->get_dphi();
+              point_fe->reinit(element, & point_list);
 
+              for (auto i : index_range(dof_indices))
+                grad.add_scaled(dphi[i][0], this->_vector(dof_indices[i]));
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+            }
+          else
+            {
+              /**
+               * Build an FEComputeData that contains both input and output data
+               * for the specific compute_data method.
+               */
+              //TODO: enable this for a vector of points as well...
+              FEComputeData data (this->_eqn_systems, mapped_point);
+              data.enable_derivative();
+              FEInterface::compute_data (dim, fe_type, element, data);
+
+              //grad [x] = data.dshape[i](v) * dv/dx  * dof_index [i]
+              // sum over all indices
+              for (auto i : index_range(dof_indices))
+                {
+                  // local coordinates.
+                  for (std::size_t v=0; v<dim; v++)
+                    for (std::size_t xyz=0; xyz<LIBMESH_DIM; xyz++)
+                      {
+                        // FIXME: this needs better syntax: It is matrix-vector multiplication.
+                        grad(xyz) += data.local_transform[v][xyz]
+                          * data.dshape[i](v)
+                          * this->_vector(dof_indices[i]);
+                      }
+                }
+            }
+#endif
           temp_output[index] = grad;
 
           // next variable
@@ -601,6 +666,13 @@ void MeshFunction::hessian (const Point & p,
     }
   else
     {
+#ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
+      if(element->infinite())
+        libmesh_warning("Warning: Requested the Hessian of an Infinite element."
+                        << "Second derivatives for Infinite elements"
+                        << " are not yet implemented!"
+                        << std::endl);
+#endif
       // resize the output vector to the number of output values
       // that the user told us
       output.resize (this->_system_vars.size());
@@ -623,7 +695,7 @@ void MeshFunction::hessian (const Point & p,
         std::vector<Point> point_list (1, mapped_point);
 
         // loop over all vars
-        for (std::size_t index=0; index < this->_system_vars.size(); index++)
+        for (auto index : index_range(this->_system_vars))
           {
             /*
              * the data for this variable
@@ -651,7 +723,7 @@ void MeshFunction::hessian (const Point & p,
             // interpolate the solution
             Tensor hess;
 
-            for (std::size_t i=0; i<dof_indices.size(); i++)
+            for (auto i : index_range(dof_indices))
               hess.add_scaled(d2phi[i][0], this->_vector(dof_indices[i]));
 
             output[index] = hess;
@@ -670,7 +742,7 @@ const Elem * MeshFunction::find_element(const Point & p,
      the point locator.  Since this is time consuming, enable it only
      in debug mode.  */
 #ifdef DEBUG
-  if (this->_master != libmesh_nullptr)
+  if (this->_master != nullptr)
     {
       const MeshFunction * master =
         cast_ptr<const MeshFunction *>(this->_master);
@@ -693,18 +765,13 @@ const Elem * MeshFunction::find_element(const Point & p,
       // look for a local element containing the point
       std::set<const Elem *> point_neighbors;
       element->find_point_neighbors(p, point_neighbors);
-      element = libmesh_nullptr;
-      std::set<const Elem *>::const_iterator       it  = point_neighbors.begin();
-      const std::set<const Elem *>::const_iterator end = point_neighbors.end();
-      for (; it != end; ++it)
-        {
-          const Elem * elem = *it;
+      element = nullptr;
+      for (const auto & elem : point_neighbors)
           if (elem->processor_id() == this->processor_id())
             {
               element = elem;
               break;
             }
-        }
     }
 
   return element;
@@ -719,7 +786,7 @@ std::set<const Elem *> MeshFunction::find_elements(const Point & p,
      the point locator.  Since this is time consuming, enable it only
      in debug mode.  */
 #ifdef DEBUG
-  if (this->_master != libmesh_nullptr)
+  if (this->_master != nullptr)
     {
       const MeshFunction * master =
         cast_ptr<const MeshFunction *>(this->_master);

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,30 @@
 // C++ includes
 #include <cstdlib> // *must* precede <cmath> for proper std:abs() on PGI, Sun Studio CC
 #include <cmath>
+#include <tuple>
+
+#ifdef LIBMESH_HAVE_METAPHYSICL
+namespace MetaPhysicL
+{
+template <typename, typename>
+class DualNumber;
+}
+namespace std
+{
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> norm(const MetaPhysicL::DualNumber<T, D> & in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> norm(MetaPhysicL::DualNumber<T, D> && in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> sqrt(const MetaPhysicL::DualNumber<T, D> & in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> sqrt(MetaPhysicL::DualNumber<T, D> && in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> abs(const MetaPhysicL::DualNumber<T, D> & in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> abs(MetaPhysicL::DualNumber<T, D> && in);
+}
+#endif
 
 namespace libMesh
 {
@@ -38,9 +62,7 @@ template <unsigned int N, typename T> class TypeNTensor;
 
 /**
  * This class defines a tensor in \p LIBMESH_DIM dimensional space of
- * type T.  T may either be Real or Complex.  The default constructor
- * for this class is protected, suggesting that you should not
- * instantiate one of these directly.
+ * type T.  T may either be Real or Complex.
  *
  * \author Roy Stogner
  * \date 2004
@@ -51,46 +73,46 @@ class TypeTensor
   template <typename T2>
   friend class TypeTensor;
 
-protected:
-
+public:
   /**
    * Empty constructor. Gives the tensor 0 in \p LIBMESH_DIM
    * dimensions.
    */
   TypeTensor  ();
 
+protected:
   /**
    * Constructor-from-T.  By default sets higher dimensional entries
    * to 0.  This is a poor constructor for 2D tensors - if the default
    * arguments are to be overridden it requires that the "xz = 0."
    * etc. arguments also be given explicitly.
    */
-  explicit TypeTensor  (const T xx,
-                        const T xy=0,
-                        const T xz=0,
-                        const T yx=0,
-                        const T yy=0,
-                        const T yz=0,
-                        const T zx=0,
-                        const T zy=0,
-                        const T zz=0);
+  explicit TypeTensor  (const T & xx,
+                        const T & xy=0,
+                        const T & xz=0,
+                        const T & yx=0,
+                        const T & yy=0,
+                        const T & yz=0,
+                        const T & zx=0,
+                        const T & zy=0,
+                        const T & zz=0);
 
 
   /**
    * Constructor-from-Scalar.
    */
   template <typename Scalar>
-  explicit TypeTensor  (const Scalar xx,
-                        const Scalar xy=0,
-                        const Scalar xz=0,
-                        const Scalar yx=0,
-                        const Scalar yy=0,
-                        const Scalar yz=0,
-                        const Scalar zx=0,
-                        const Scalar zy=0,
+  explicit TypeTensor  (const Scalar & xx,
+                        const Scalar & xy=0,
+                        const Scalar & xz=0,
+                        const Scalar & yx=0,
+                        const Scalar & yy=0,
+                        const Scalar & yz=0,
+                        const Scalar & zx=0,
+                        const Scalar & zy=0,
                         typename
                         boostcopy::enable_if_c<ScalarTraits<Scalar>::value,
-                        const Scalar>::type zz=0);
+                        const Scalar>::type & zz=0);
 
   /**
    * Constructor.  Assigns each vector to a different row of the
@@ -115,6 +137,11 @@ public:
    * Helper typedef for C++98 generic programming.
    */
   typedef T value_type;
+
+  /**
+   * Helper typedef for generic index programming
+   */
+  typedef std::tuple<unsigned int, unsigned int> index_type;
 
   /**
    * Copy-constructor.
@@ -197,7 +224,7 @@ public:
    * Add a scaled tensor to this tensor without creating a temporary.
    */
   template <typename T2>
-  void add_scaled (const TypeTensor<T2> &, const T);
+  void add_scaled (const TypeTensor<T2> &, const T &);
 
   /**
    * Subtract a tensor from this tensor.
@@ -227,7 +254,7 @@ public:
    * temporary.
    */
   template <typename T2>
-  void subtract_scaled (const TypeTensor<T2> &, const T);
+  void subtract_scaled (const TypeTensor<T2> &, const T &);
 
   /**
    * \returns The negative of this tensor in a separate copy.
@@ -240,18 +267,25 @@ public:
    * \returns A copy of the result, this tensor is unchanged.
    */
   template <typename Scalar>
-  typename boostcopy::enable_if_c<
+  auto
+  operator * (const Scalar & scalar) const -> typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
-    TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
-  operator * (const Scalar) const;
+    TypeTensor<decltype(T() * scalar)>>::type;
 
   /**
    * Multiply this tensor by a scalar value in place.
    *
    * \returns A reference to *this.
    */
-  template <typename Scalar>
-  const TypeTensor<T> & operator *= (const Scalar);
+  template <typename Scalar, typename boostcopy::enable_if_c<
+                               ScalarTraits<Scalar>::value, int>::type = 0>
+  const TypeTensor<T> & operator *= (const Scalar & factor)
+    {
+      for (unsigned int i=0; i<LIBMESH_DIM*LIBMESH_DIM; i++)
+        _coords[i] *= factor;
+
+      return *this;
+    }
 
   /**
    * Divide each entry of this tensor by a scalar value.
@@ -262,14 +296,14 @@ public:
   typename boostcopy::enable_if_c<
     ScalarTraits<Scalar>::value,
     TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
-  operator / (const Scalar) const;
+  operator / (const Scalar &) const;
 
   /**
    * Divide each entry of this tensor by a scalar value.
    *
    * \returns A reference to *this.
    */
-  const TypeTensor<T> & operator /= (const T);
+  const TypeTensor<T> & operator /= (const T &);
 
   /**
    * Multiply 2 tensors together, i.e. matrix-matrix product.
@@ -278,7 +312,16 @@ public:
    * \returns A copy of the result, this tensor is unchanged.
    */
   template <typename T2>
-  TypeTensor<T> operator * (const TypeTensor<T2> &) const;
+  TypeTensor<typename CompareTypes<T, T2>::supertype>
+  operator * (const TypeTensor<T2> &) const;
+
+  /**
+   * Multiply this tensor by a tensor value in place
+   *
+   * \returns A reference to *this
+   */
+  template <typename T2>
+  const TypeTensor<T> & operator *= (const TypeTensor<T2> &);
 
   /**
    * Multiply 2 tensors together to return a scalar, i.e.
@@ -294,7 +337,7 @@ public:
   contract (const TypeTensor<T2> &) const;
 
   /**
-   * Multiply this tensor by a vector, i.e. matrix-vector product.
+   * Right-multiply this tensor by a vector, i.e. matrix-vector product.
    * The tensor and vector may contain different numeric types.
    *
    * \returns A copy of the result vector, this tensor is unchanged.
@@ -302,6 +345,16 @@ public:
   template <typename T2>
   TypeVector<typename CompareTypes<T,T2>::supertype>
   operator * (const TypeVector<T2> &) const;
+
+  /**
+   * Left-multiply this tensor by a vector, i.e. matrix-vector product.
+   * The tensor and vector may contain different numeric types.
+   *
+   * \returns A copy of the result vector, this tensor is unchanged.
+   */
+  template <typename T2>
+  TypeVector<typename CompareTypes<T,T2>::supertype>
+  left_multiply (const TypeVector<T2> & p) const;
 
   /**
    * \returns The transpose of this tensor (with complex numbers not conjugated).
@@ -328,14 +381,14 @@ public:
    * \deprecated Use the norm() function instead.
    */
 #ifdef LIBMESH_ENABLE_DEPRECATED
-  Real size() const;
+  auto size() const -> decltype(std::norm(T()));
 #endif
 
   /**
    * \returns The Frobenius norm of the tensor, i.e. the square-root of
    * the sum of the elements squared.
    */
-  Real norm() const;
+  auto norm() const -> decltype(std::norm(T()));
 
   /**
    * \returns The Frobenius norm of the tensor squared, i.e. sum of the
@@ -344,14 +397,19 @@ public:
    * \deprecated Use the norm_sq() function instead.
    */
 #ifdef LIBMESH_ENABLE_DEPRECATED
-  Real size_sq() const;
+  auto size_sq() const -> decltype(std::norm(T()));
 #endif
 
   /**
    * \returns The Frobenius norm of the tensor squared, i.e. sum of the
    * element magnitudes squared.
    */
-  Real norm_sq() const;
+  auto norm_sq() const -> decltype(std::norm(T()));
+
+  /**
+   * \returns True if all values in the tensor are zero
+   */
+  bool is_zero() const;
 
   /**
    * \returns The determinant of the tensor.
@@ -505,15 +563,15 @@ TypeTensor<T>::TypeTensor ()
 
 template <typename T>
 inline
-TypeTensor<T>::TypeTensor (const T xx,
-                           const T xy,
-                           const T xz,
-                           const T yx,
-                           const T yy,
-                           const T yz,
-                           const T zx,
-                           const T zy,
-                           const T zz)
+TypeTensor<T>::TypeTensor (const T & xx,
+                           const T & xy,
+                           const T & xz,
+                           const T & yx,
+                           const T & yy,
+                           const T & yz,
+                           const T & zx,
+                           const T & zy,
+                           const T & zz)
 {
   _coords[0] = xx;
 
@@ -521,6 +579,10 @@ TypeTensor<T>::TypeTensor (const T xx,
   _coords[1] = xy;
   _coords[2] = yx;
   _coords[3] = yy;
+#elif LIBMESH_DIM == 1
+  libmesh_assert_equal_to (xy, 0);
+  libmesh_assert_equal_to (yx, 0);
+  libmesh_assert_equal_to (yy, 0);
 #endif
 
 #if LIBMESH_DIM == 3
@@ -532,6 +594,12 @@ TypeTensor<T>::TypeTensor (const T xx,
   _coords[6] = zx;
   _coords[7] = zy;
   _coords[8] = zz;
+#else
+  libmesh_assert_equal_to (xz, 0);
+  libmesh_assert_equal_to (yz, 0);
+  libmesh_assert_equal_to (zx, 0);
+  libmesh_assert_equal_to (zy, 0);
+  libmesh_assert_equal_to (zz, 0);
 #endif
 }
 
@@ -539,17 +607,17 @@ TypeTensor<T>::TypeTensor (const T xx,
 template <typename T>
 template <typename Scalar>
 inline
-TypeTensor<T>::TypeTensor (const Scalar xx,
-                           const Scalar xy,
-                           const Scalar xz,
-                           const Scalar yx,
-                           const Scalar yy,
-                           const Scalar yz,
-                           const Scalar zx,
-                           const Scalar zy,
+TypeTensor<T>::TypeTensor (const Scalar & xx,
+                           const Scalar & xy,
+                           const Scalar & xz,
+                           const Scalar & yx,
+                           const Scalar & yy,
+                           const Scalar & yz,
+                           const Scalar & zx,
+                           const Scalar & zy,
                            typename
                            boostcopy::enable_if_c<ScalarTraits<Scalar>::value,
-                           const Scalar>::type zz)
+                           const Scalar>::type & zz)
 {
   _coords[0] = xx;
 
@@ -723,27 +791,27 @@ TypeTensor<T>::operator + (const TypeTensor<T2> & p) const
 {
 
 #if LIBMESH_DIM == 1
-  return TypeTensor(_coords[0] + p._coords[0]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] + p._coords[0]);
 #endif
 
 #if LIBMESH_DIM == 2
-  return TypeTensor(_coords[0] + p._coords[0],
-                    _coords[1] + p._coords[1],
-                    0.,
-                    _coords[2] + p._coords[2],
-                    _coords[3] + p._coords[3]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] + p._coords[0],
+                                                             _coords[1] + p._coords[1],
+                                                             0.,
+                                                             _coords[2] + p._coords[2],
+                                                             _coords[3] + p._coords[3]);
 #endif
 
 #if LIBMESH_DIM == 3
-  return TypeTensor(_coords[0] + p._coords[0],
-                    _coords[1] + p._coords[1],
-                    _coords[2] + p._coords[2],
-                    _coords[3] + p._coords[3],
-                    _coords[4] + p._coords[4],
-                    _coords[5] + p._coords[5],
-                    _coords[6] + p._coords[6],
-                    _coords[7] + p._coords[7],
-                    _coords[8] + p._coords[8]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] + p._coords[0],
+                                                             _coords[1] + p._coords[1],
+                                                             _coords[2] + p._coords[2],
+                                                             _coords[3] + p._coords[3],
+                                                             _coords[4] + p._coords[4],
+                                                             _coords[5] + p._coords[5],
+                                                             _coords[6] + p._coords[6],
+                                                             _coords[7] + p._coords[7],
+                                                             _coords[8] + p._coords[8]);
 #endif
 
 }
@@ -776,7 +844,7 @@ void TypeTensor<T>::add (const TypeTensor<T2> & p)
 template <typename T>
 template <typename T2>
 inline
-void TypeTensor<T>::add_scaled (const TypeTensor<T2> & p, const T factor)
+void TypeTensor<T>::add_scaled (const TypeTensor<T2> & p, const T & factor)
 {
   for (unsigned int i=0; i<LIBMESH_DIM*LIBMESH_DIM; i++)
     _coords[i] += factor*p._coords[i];
@@ -793,27 +861,27 @@ TypeTensor<T>::operator - (const TypeTensor<T2> & p) const
 {
 
 #if LIBMESH_DIM == 1
-  return TypeTensor(_coords[0] - p._coords[0]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] - p._coords[0]);
 #endif
 
 #if LIBMESH_DIM == 2
-  return TypeTensor(_coords[0] - p._coords[0],
-                    _coords[1] - p._coords[1],
-                    0.,
-                    _coords[2] - p._coords[2],
-                    _coords[3] - p._coords[3]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] - p._coords[0],
+                                                             _coords[1] - p._coords[1],
+                                                             0.,
+                                                             _coords[2] - p._coords[2],
+                                                             _coords[3] - p._coords[3]);
 #endif
 
 #if LIBMESH_DIM == 3
-  return TypeTensor(_coords[0] - p._coords[0],
-                    _coords[1] - p._coords[1],
-                    _coords[2] - p._coords[2],
-                    _coords[3] - p._coords[3],
-                    _coords[4] - p._coords[4],
-                    _coords[5] - p._coords[5],
-                    _coords[6] - p._coords[6],
-                    _coords[7] - p._coords[7],
-                    _coords[8] - p._coords[8]);
+  return TypeTensor<typename CompareTypes<T, T2>::supertype>(_coords[0] - p._coords[0],
+                                                             _coords[1] - p._coords[1],
+                                                             _coords[2] - p._coords[2],
+                                                             _coords[3] - p._coords[3],
+                                                             _coords[4] - p._coords[4],
+                                                             _coords[5] - p._coords[5],
+                                                             _coords[6] - p._coords[6],
+                                                             _coords[7] - p._coords[7],
+                                                             _coords[8] - p._coords[8]);
 #endif
 
 }
@@ -846,7 +914,7 @@ void TypeTensor<T>::subtract (const TypeTensor<T2> & p)
 template <typename T>
 template <typename T2>
 inline
-void TypeTensor<T>::subtract_scaled (const TypeTensor<T2> & p, const T factor)
+void TypeTensor<T>::subtract_scaled (const TypeTensor<T2> & p, const T & factor)
 {
   for (unsigned int i=0; i<LIBMESH_DIM*LIBMESH_DIM; i++)
     _coords[i] -= factor*p._coords[i];
@@ -889,12 +957,12 @@ TypeTensor<T> TypeTensor<T>::operator - () const
 template <typename T>
 template <typename Scalar>
 inline
-typename boostcopy::enable_if_c<
+auto
+TypeTensor<T>::operator * (const Scalar & factor) const -> typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
-  TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
-TypeTensor<T>::operator * (const Scalar factor) const
+  TypeTensor<decltype(T() * factor)>>::type
 {
-  typedef typename CompareTypes<T, Scalar>::supertype TS;
+  typedef decltype((*this)(0, 0) * factor) TS;
 
 
 #if LIBMESH_DIM == 1
@@ -928,27 +996,11 @@ inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
   TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
-operator * (const Scalar factor,
+operator * (const Scalar & factor,
             const TypeTensor<T> & t)
 {
   return t * factor;
 }
-
-
-
-template <typename T>
-template <typename Scalar>
-inline
-const TypeTensor<T> & TypeTensor<T>::operator *= (const Scalar factor)
-{
-  for (unsigned int i=0; i<LIBMESH_DIM*LIBMESH_DIM; i++)
-    _coords[i] *= factor;
-
-  return *this;
-}
-
-
-
 
 template <typename T>
 template <typename Scalar>
@@ -956,7 +1008,7 @@ inline
 typename boostcopy::enable_if_c<
   ScalarTraits<Scalar>::value,
   TypeTensor<typename CompareTypes<T, Scalar>::supertype>>::type
-TypeTensor<T>::operator / (const Scalar factor) const
+TypeTensor<T>::operator / (const Scalar & factor) const
 {
   libmesh_assert_not_equal_to (factor, static_cast<T>(0.));
 
@@ -1121,7 +1173,7 @@ void TypeTensor<T>::solve(const TypeVector<T> & b, TypeVector<T> & x) const
 
 template <typename T>
 inline
-const TypeTensor<T> & TypeTensor<T>::operator /= (const T factor)
+const TypeTensor<T> & TypeTensor<T>::operator /= (const T & factor)
 {
   libmesh_assert_not_equal_to (factor, static_cast<T>(0.));
 
@@ -1148,14 +1200,35 @@ TypeTensor<T>::operator * (const TypeVector<T2> & p) const
   return returnval;
 }
 
+template <typename T>
+template <typename T2>
+inline
+TypeVector<typename CompareTypes<T,T2>::supertype>
+TypeTensor<T>::left_multiply (const TypeVector<T2> & p) const
+{
+  TypeVector<typename CompareTypes<T,T2>::supertype> returnval;
+  for (unsigned int i=0; i<LIBMESH_DIM; i++)
+    for (unsigned int j=0; j<LIBMESH_DIM; j++)
+      returnval(i) += p(j)*(*this)(j,i);
 
+  return returnval;
+}
+
+template <typename T, typename T2>
+inline
+TypeVector<typename CompareTypes<T,T2>::supertype>
+operator * (const TypeVector<T> & a, const TypeTensor<T2> & b)
+{
+  return b.left_multiply(a);
+}
 
 template <typename T>
 template <typename T2>
 inline
-TypeTensor<T> TypeTensor<T>::operator * (const TypeTensor<T2> & p) const
+TypeTensor<typename CompareTypes<T, T2>::supertype>
+TypeTensor<T>::operator * (const TypeTensor<T2> & p) const
 {
-  TypeTensor<T> returnval;
+  TypeTensor<typename CompareTypes<T, T2>::supertype> returnval;
   for (unsigned int i=0; i<LIBMESH_DIM; i++)
     for (unsigned int j=0; j<LIBMESH_DIM; j++)
       for (unsigned int k=0; k<LIBMESH_DIM; k++)
@@ -1164,6 +1237,20 @@ TypeTensor<T> TypeTensor<T>::operator * (const TypeTensor<T2> & p) const
   return returnval;
 }
 
+template <typename T>
+template <typename T2>
+inline
+const TypeTensor<T> & TypeTensor<T>::operator *= (const TypeTensor<T2> & p)
+{
+  TypeTensor<T> temp;
+  for (unsigned int i=0; i<LIBMESH_DIM; i++)
+    for (unsigned int j=0; j<LIBMESH_DIM; j++)
+      for (unsigned int k=0; k<LIBMESH_DIM; k++)
+        temp(i,j) += (*this)(i,k)*p(k,j);
+
+  this->assign(temp);
+  return *this;
+}
 
 
 /**
@@ -1187,7 +1274,7 @@ TypeTensor<T>::contract (const TypeTensor<T2> & t) const
 #ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
-Real TypeTensor<T>::size() const
+auto TypeTensor<T>::size() const -> decltype(std::norm(T()))
 {
   libmesh_deprecated();
   return this->norm();
@@ -1198,12 +1285,21 @@ Real TypeTensor<T>::size() const
 
 template <typename T>
 inline
-Real TypeTensor<T>::norm() const
+auto TypeTensor<T>::norm() const -> decltype(std::norm(T()))
 {
   return std::sqrt(this->norm_sq());
 }
 
 
+template <typename T>
+inline
+bool TypeTensor<T>::is_zero() const
+{
+  for (const auto & val : _coords)
+    if (val != T(0))
+      return false;
+  return true;
+}
 
 template <typename T>
 inline
@@ -1258,7 +1354,7 @@ void TypeTensor<T>::zero()
 #ifdef LIBMESH_ENABLE_DEPRECATED
 template <typename T>
 inline
-Real TypeTensor<T>::size_sq () const
+auto TypeTensor<T>::size_sq () const -> decltype(std::norm(T()))
 {
   libmesh_deprecated();
   return this->norm_sq();
@@ -1269,7 +1365,7 @@ Real TypeTensor<T>::size_sq () const
 
 template <typename T>
 inline
-Real TypeTensor<T>::norm_sq () const
+auto TypeTensor<T>::norm_sq () const -> decltype(std::norm(T()))
 {
   Real sum = 0.;
   for (unsigned int i=0; i<LIBMESH_DIM*LIBMESH_DIM; i++)
@@ -1310,6 +1406,20 @@ bool TypeTensor<T>::operator == (const TypeTensor<T> & rhs) const
 #endif
 
 }
+
+template <typename T, typename T2>
+inline
+TypeTensor<typename CompareTypes<T, T2>::supertype>
+outer_product(const TypeVector<T> & a, const TypeVector<T2> & b)
+{
+  TypeTensor<typename CompareTypes<T, T2>::supertype> ret;
+  for (unsigned int i=0; i<LIBMESH_DIM; i++)
+    for (unsigned int j=0; j<LIBMESH_DIM; j++)
+      ret(i,j) = a(i) * libmesh_conj(b(j));
+
+  return ret;
+}
+
 
 } // namespace libMesh
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -99,10 +99,10 @@ public:
   {
     PetscErrorCode ierr = 0;
     ierr = KSPSetType (_petsc_linear_solver.ksp(), const_cast<KSPType>(KSPCG));
-    libmesh_assert(ierr == 0);
+    CHKERRABORT(_petsc_linear_solver.comm().get(), ierr);
 
     ierr = PCSetType (_petsc_linear_solver.pc(), const_cast<PCType>(PCBJACOBI));
-    libmesh_assert(ierr == 0);
+    CHKERRABORT(_petsc_linear_solver.comm().get(), ierr);
   }
 
   // The linear solver object that we are configuring
@@ -245,7 +245,7 @@ public:
         g_vec(2) = -1.;
         {
           for (auto side : elem->side_index_range())
-            if (elem->neighbor_ptr(side) == libmesh_nullptr)
+            if (elem->neighbor_ptr(side) == nullptr)
               {
                 const std::vector<std::vector<Real>> & phi_face = fe_face->get_phi();
                 const std::vector<Real> & JxW_face = fe_face->get_JxW();

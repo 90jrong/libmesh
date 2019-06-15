@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,7 @@ namespace libMesh
  * \date 2005
  * \brief A 1D geometric element with 4 nodes.
  */
-class Edge4 libmesh_final : public Edge
+class Edge4 final : public Edge
 {
 public:
 
@@ -49,7 +49,7 @@ public:
    * Constructor. By default this element has no parent.
    */
   explicit
-  Edge4 (Elem * p=libmesh_nullptr) :
+  Edge4 (Elem * p=nullptr) :
     Edge(Edge4::n_nodes(), p, _nodelinks_data) {}
 
   Edge4 (Edge4 &&) = delete;
@@ -66,14 +66,14 @@ public:
   {
     libmesh_assert_less(i, this->n_nodes());
     if (i < 2)
-      return Point(2.0f*i-1,0,0);
-    return Point((Real(2)*i-5)/3,0,0);
+      return Point(2.0f*Real(i)-1.0f,0,0);
+    return Point((Real(2)*Real(i)-5)/3,0,0);
   }
 
   /**
    * \returns 4.
    */
-  virtual unsigned int n_nodes() const override { return 4; }
+  virtual unsigned int n_nodes() const override { return num_nodes; }
 
   /**
    * \returns 2.
@@ -175,12 +175,18 @@ public:
    */
   virtual Real volume () const override;
 
+  /**
+   * Geometric constants for Edge4.
+   */
+  static const int num_nodes = 4;
+  static const int num_children = 2;
+
 protected:
 
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[4];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -198,7 +204,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[2][4][4];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

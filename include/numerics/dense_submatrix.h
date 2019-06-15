@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -58,14 +58,14 @@ public:
                  const unsigned int n=0);
 
   /**
-   * Copy Constructor.
+   * The 5 special functions can be defaulted for this class, as it
+   * does not manage any memory itself.
    */
-  DenseSubMatrix (const DenseSubMatrix<T> & other_matrix);
-
-  /**
-   * Destructor.  Empty.
-   */
-  virtual ~DenseSubMatrix() {}
+  DenseSubMatrix (DenseSubMatrix &&) = default;
+  DenseSubMatrix (const DenseSubMatrix &) = default;
+  DenseSubMatrix & operator= (const DenseSubMatrix &) = default;
+  DenseSubMatrix & operator= (DenseSubMatrix &&) = default;
+  virtual ~DenseSubMatrix() = default;
 
   /**
    * \returns A reference to the parent matrix.
@@ -164,18 +164,6 @@ DenseSubMatrix<T>::DenseSubMatrix(DenseMatrix<T> & new_parent,
   _parent_matrix(new_parent)
 {
   this->reposition (ioff, joff, new_m, new_n);
-}
-
-
-// Copy Constructor
-template<typename T>
-inline
-DenseSubMatrix<T>::DenseSubMatrix(const DenseSubMatrix<T> & other_matrix) :
-  DenseMatrixBase<T>(other_matrix._m, other_matrix._n),
-  _parent_matrix(other_matrix._parent_matrix)
-{
-  _i_off = other_matrix._i_off;
-  _j_off = other_matrix._j_off;
 }
 
 

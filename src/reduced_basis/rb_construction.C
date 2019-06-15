@@ -33,6 +33,7 @@
 #include "libmesh/gmv_io.h"
 #include "libmesh/linear_solver.h"
 #include "libmesh/getpot.h"
+#include "libmesh/int_range.h"
 #include "libmesh/mesh_base.h"
 #include "libmesh/parallel.h"
 #include "libmesh/xdr_cxx.h"
@@ -45,6 +46,7 @@
 #include "libmesh/face_tri3_subdivision.h"
 #include "libmesh/quadrature.h"
 #include "libmesh/utility.h"
+#include "libmesh/int_range.h"
 
 // C++ includes
 #include <sys/types.h>
@@ -62,21 +64,22 @@ RBConstruction::RBConstruction (EquationSystems & es,
                                 const unsigned int number_in)
   : Parent(es, name_in, number_in),
     inner_product_solver(LinearSolver<Number>::build(es.comm())),
-    extra_linear_solver(libmesh_nullptr),
+    extra_linear_solver(nullptr),
     inner_product_matrix(SparseMatrix<Number>::build(es.comm())),
+    skip_residual_in_train_reduced_basis(false),
     exit_on_repeated_greedy_parameters(true),
     impose_internal_fluxes(false),
+    skip_degenerate_sides(true),
     compute_RB_inner_product(false),
     store_non_dirichlet_operators(false),
     use_empty_rb_solve_in_greedy(true),
     Fq_representor_innerprods_computed(false),
     Nmax(0),
     delta_N(1),
-    quiet_mode(true),
     output_dual_innerprods_computed(false),
     assert_convergence(true),
-    rb_eval(libmesh_nullptr),
-    inner_product_assembly(libmesh_nullptr),
+    rb_eval(nullptr),
+    inner_product_assembly(nullptr),
     rel_training_tolerance(1.e-4),
     abs_training_tolerance(1.e-12),
     normalize_rb_bound_in_greedy(false)
@@ -178,7 +181,7 @@ RBEvaluation & RBConstruction::get_rb_evaluation()
 
 bool RBConstruction::is_rb_eval_initialized() const
 {
-  return (rb_eval != libmesh_nullptr);
+  return (rb_eval != nullptr);
 }
 
 RBThetaExpansion & RBConstruction::get_rb_theta_expansion()
@@ -205,9 +208,8 @@ void RBConstruction::process_parameters_file (const std::string & parameters_fil
                                                 abs_training_tolerance);
 
   // Initialize value to false, let the input file value override.
-  bool normalize_rb_bound_in_greedy = false;
   const bool normalize_rb_bound_in_greedy_in = infile("normalize_rb_bound_in_greedy",
-                                                      normalize_rb_bound_in_greedy);
+                                                      false);
 
   // Read in the parameters from the input file too
   unsigned int n_continuous_parameters = infile.vector_variable_size("parameter_names");
@@ -238,7 +240,7 @@ void RBConstruction::process_parameters_file (const std::string & parameters_fil
 
       unsigned int n_vals_for_param = infile.vector_variable_size(param_name);
       std::vector<Real> vals_for_param(n_vals_for_param);
-      for (std::size_t j=0; j<vals_for_param.size(); j++)
+      for (auto j : IntRange<unsigned int>(0, vals_for_param.size()))
         vals_for_param[j] = infile(param_name, 0., j);
 
       discrete_parameter_values_in[param_name] = vals_for_param;
@@ -454,7 +456,7 @@ void RBConstruction::allocate_data_structures()
   Aq_vector.resize(get_rb_theta_expansion().get_n_A_terms());
   Fq_vector.resize(get_rb_theta_expansion().get_n_F_terms());
 
-  // Resize the Fq_representors and initialize each to NULL
+  // Resize the Fq_representors and initialize each to nullptr.
   // These are basis independent and hence stored here, whereas
   // the Aq_representors are stored in RBEvaluation
   Fq_representor.resize(get_rb_theta_expansion().get_n_F_terms());
@@ -578,8 +580,8 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
 {
   LOG_SCOPE("add_scaled_matrix_and_vector()", "RBConstruction");
 
-  bool assemble_matrix = (input_matrix != libmesh_nullptr);
-  bool assemble_vector = (input_vector != libmesh_nullptr);
+  bool assemble_matrix = (input_matrix != nullptr);
+  bool assemble_vector = (input_vector != nullptr);
 
   if (!assemble_matrix && !assemble_vector)
     return;
@@ -619,21 +621,6 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
                   if (assemble_matrix)
                     input_matrix->add_matrix(nodal_matrix, nodal_dof_indices);
                 }
-#ifdef LIBMESH_ENABLE_DEPRECATED
-              else if(elem_assembly->is_nodal_rhs_values_overriden)
-                {
-                  // This is the "old" implementation, to be deprecated soon.
-                  // Only enter this if ElemAssembly::get_nodal_rhs_values has
-                  // a non-default implementation.
-                  libmesh_deprecated();
-
-                  std::map<numeric_index_type, Number> rhs_values;
-                  elem_assembly->get_nodal_rhs_values(rhs_values, *this, node);
-
-                  for (const auto & pr : rhs_values)
-                    input_vector->add(pr.first, pr.second);
-                }
-#endif
             }
         }
     }
@@ -658,7 +645,7 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
           // For subdivision shell elements, a single Gauss point per
           // element is sufficient, hence we use extraorder = 0.
           const int extraorder = 0;
-          FEBase * elem_fe = libmesh_nullptr;
+          FEBase * elem_fe = nullptr;
           context.get_element_fe( 0, elem_fe );
 
           qrule = elem_fe->get_fe_type().default_quadrature_rule (2, extraorder);
@@ -671,38 +658,19 @@ void RBConstruction::add_scaled_matrix_and_vector(Number scalar,
       context.elem_fe_reinit();
       elem_assembly->interior_assembly(context);
 
-      for (context.side = 0;
-           context.side != context.get_elem().n_sides();
-           ++context.side )
+      const unsigned char n_sides = context.get_elem().n_sides();
+      for (context.side = 0; context.side != n_sides; ++context.side)
         {
           // May not need to apply fluxes on non-boundary elements
-          if ((context.get_elem().neighbor_ptr(context.get_side()) != libmesh_nullptr) && !impose_internal_fluxes)
+          if ((context.get_elem().neighbor_ptr(context.get_side()) != nullptr) && !impose_internal_fluxes)
             continue;
 
-          bool reinit_succeeded = false;
+          // skip degenerate sides with zero area
+          if( (context.get_elem().side_ptr(context.get_side())->volume() <= 0.) && skip_degenerate_sides)
+            continue;
 
-          // Exceptions can be thrown in side_fe_reinit, e.g. due to a zero or negative
-          // Jacobian on an element side. This is sometimes intentional, e.g. some people
-          // use "degenerate HEX" elements when generating meshes. In order to support this
-          // case we just print a message and skip the side assembly on this element
-          // if an exception occurs during side_fe_reinit.
-          try
-            {
-              context.side_fe_reinit();
-              reinit_succeeded = true;
-            }
-          catch(std::exception& e)
-            {
-              libMesh::err << std::endl << "Error detected when computing element data on side "
-                           << static_cast<int>(context.side) << " of element "
-                           << context.get_elem().id() << std::endl;
-              libMesh::err << "Skipping assembly on this element side" << std::endl << std::endl;
-            }
-
-          if(reinit_succeeded)
-            {
-              elem_assembly->boundary_assembly(context);
-            }
+          context.side_fe_reinit();
+          elem_assembly->boundary_assembly(context);
 
           if (context.dg_terms_are_active())
             {
@@ -846,7 +814,7 @@ void RBConstruction::assemble_inner_product_matrix(SparseMatrix<Number> * input_
   add_scaled_matrix_and_vector(1.,
                                inner_product_assembly,
                                input_matrix,
-                               libmesh_nullptr,
+                               nullptr,
                                false, /* symmetrize */
                                apply_dof_constraints);
 }
@@ -863,7 +831,7 @@ void RBConstruction::assemble_Aq_matrix(unsigned int q,
   add_scaled_matrix_and_vector(1.,
                                &rb_assembly_expansion->get_A_assembly(q),
                                input_matrix,
-                               libmesh_nullptr,
+                               nullptr,
                                false, /* symmetrize */
                                apply_dof_constraints);
 }
@@ -888,7 +856,7 @@ void RBConstruction::add_scaled_Aq(Number scalar,
       add_scaled_matrix_and_vector(scalar,
                                    &rb_assembly_expansion->get_A_assembly(q_a),
                                    input_matrix,
-                                   libmesh_nullptr,
+                                   nullptr,
                                    symmetrize);
     }
 }
@@ -957,7 +925,7 @@ void RBConstruction::assemble_Fq_vector(unsigned int q,
 
   add_scaled_matrix_and_vector(1.,
                                &rb_assembly_expansion->get_F_assembly(q),
-                               libmesh_nullptr,
+                               nullptr,
                                input_vector,
                                false,             /* symmetrize */
                                apply_dof_constraints /* apply_dof_constraints */);
@@ -974,7 +942,7 @@ void RBConstruction::assemble_all_output_vectors()
                      << std::endl;
         get_output_vector(n, q_l)->zero();
         add_scaled_matrix_and_vector(1., &rb_assembly_expansion->get_output_assembly(n,q_l),
-                                     libmesh_nullptr,
+                                     nullptr,
                                      get_output_vector(n,q_l),
                                      false, /* symmetrize */
                                      true   /* apply_dof_constraints */);
@@ -991,7 +959,7 @@ void RBConstruction::assemble_all_output_vectors()
                          << std::endl;
             get_non_dirichlet_output_vector(n, q_l)->zero();
             add_scaled_matrix_and_vector(1., &rb_assembly_expansion->get_output_assembly(n,q_l),
-                                         libmesh_nullptr,
+                                         nullptr,
                                          get_non_dirichlet_output_vector(n,q_l),
                                          false, /* symmetrize */
                                          false  /* apply_dof_constraints */);
@@ -1005,28 +973,28 @@ Real RBConstruction::train_reduced_basis(const bool resize_rb_eval_data)
 
   int count = 0;
 
-  // initialize rb_eval's parameters
-  get_rb_evaluation().initialize_parameters(*this);
+  RBEvaluation & rbe = get_rb_evaluation();
+
+  // initialize rbe's parameters
+  rbe.initialize_parameters(*this);
 
   // possibly resize data structures according to Nmax
   if (resize_rb_eval_data)
-    {
-      get_rb_evaluation().resize_data_structures(get_Nmax());
-    }
+    rbe.resize_data_structures(get_Nmax());
 
   // Clear the Greedy param list
-  for (std::size_t i=0; i<get_rb_evaluation().greedy_param_list.size(); i++)
-    get_rb_evaluation().greedy_param_list[i].clear();
+  for (auto & plist : rbe.greedy_param_list)
+    plist.clear();
 
-  get_rb_evaluation().greedy_param_list.clear();
+  rbe.greedy_param_list.clear();
 
-  Real training_greedy_error;
+  Real training_greedy_error = 0.;
 
 
   // If we are continuing from a previous training run,
   // we might already be at the max number of basis functions.
   // If so, we can just return.
-  if (get_rb_evaluation().get_n_basis_functions() >= get_Nmax())
+  if (rbe.get_n_basis_functions() >= get_Nmax())
     {
       libMesh::out << "Maximum number of basis functions reached: Nmax = "
                    << get_Nmax() << std::endl;
@@ -1034,11 +1002,14 @@ Real RBConstruction::train_reduced_basis(const bool resize_rb_eval_data)
     }
 
 
-  // Compute the dual norms of the outputs if we haven't already done so
-  compute_output_dual_innerprods();
+  if(!skip_residual_in_train_reduced_basis)
+    {
+      // Compute the dual norms of the outputs if we haven't already done so.
+      compute_output_dual_innerprods();
 
-  // Compute the Fq Riesz representor dual norms if we haven't already done so
-  compute_Fq_representor_innerprods();
+      // Compute the Fq Riesz representor dual norms if we haven't already done so.
+      compute_Fq_representor_innerprods();
+    }
 
   libMesh::out << std::endl << "---- Performing Greedy basis enrichment ----" << std::endl;
   Real initial_greedy_error = 0.;
@@ -1046,7 +1017,7 @@ Real RBConstruction::train_reduced_basis(const bool resize_rb_eval_data)
   while (true)
     {
       libMesh::out << std::endl << "---- Basis dimension: "
-                   << get_rb_evaluation().get_n_basis_functions() << " ----" << std::endl;
+                   << rbe.get_n_basis_functions() << " ----" << std::endl;
 
       if (count > 0 || (count==0 && use_empty_rb_solve_in_greedy))
         {
@@ -1083,12 +1054,76 @@ Real RBConstruction::train_reduced_basis(const bool resize_rb_eval_data)
 
       update_system();
 
+      // Check if we've reached Nmax now. We do this before calling
+      // update_residual_terms() since we can skip that step if we've
+      // already reached Nmax.
+      if (rbe.get_n_basis_functions() >= this->get_Nmax())
+      {
+        libMesh::out << "Maximum number of basis functions reached: Nmax = "
+                     << get_Nmax() << std::endl;
+        break;
+      }
+
+      if(!skip_residual_in_train_reduced_basis)
+        {
+          update_residual_terms();
+        }
+
       // Increment counter
       count++;
     }
   this->update_greedy_param_list();
 
   return training_greedy_error;
+}
+
+void RBConstruction::enrich_basis_from_rhs_terms(const bool resize_rb_eval_data)
+{
+  LOG_SCOPE("enrich_basis_from_rhs_terms()", "RBConstruction");
+
+  // initialize rb_eval's parameters
+  get_rb_evaluation().initialize_parameters(*this);
+
+  // possibly resize data structures according to Nmax
+  if (resize_rb_eval_data)
+    {
+      get_rb_evaluation().resize_data_structures(get_Nmax());
+    }
+
+  libMesh::out << std::endl << "---- Enriching basis from rhs terms ----" << std::endl;
+
+  truth_assembly();
+
+  for (unsigned int q_f=0; q_f<get_rb_theta_expansion().get_n_F_terms(); q_f++)
+    {
+      libMesh::out << std::endl << "Performing truth solve with rhs from rhs term " << q_f << std::endl;
+
+      *rhs = *get_Fq(q_f);
+
+      // truth_assembly assembles into matrix and rhs, so use those for the solve
+      if (extra_linear_solver)
+        {
+          // If extra_linear_solver has been initialized, then we use it for the
+          // truth solves.
+          solve_for_matrix_and_rhs(*extra_linear_solver, *matrix, *rhs);
+
+          if (assert_convergence)
+            check_convergence(*extra_linear_solver);
+        }
+      else
+        {
+          solve_for_matrix_and_rhs(*get_linear_solver(), *matrix, *rhs);
+
+          if (assert_convergence)
+            check_convergence(*get_linear_solver());
+        }
+
+      // Add orthogonal part of the snapshot to the RB space
+      libMesh::out << "Enriching the RB space" << std::endl;
+      enrich_RB_space();
+
+      update_system();
+    }
 }
 
 bool RBConstruction::greedy_termination_test(Real abs_greedy_error,
@@ -1108,7 +1143,9 @@ bool RBConstruction::greedy_termination_test(Real abs_greedy_error,
       return true;
     }
 
-  if (get_rb_evaluation().get_n_basis_functions() >= this->get_Nmax())
+  RBEvaluation & rbe = get_rb_evaluation();
+
+  if (rbe.get_n_basis_functions() >= this->get_Nmax())
     {
       libMesh::out << "Maximum number of basis functions reached: Nmax = "
                    << get_Nmax() << std::endl;
@@ -1116,18 +1153,12 @@ bool RBConstruction::greedy_termination_test(Real abs_greedy_error,
     }
 
   if (exit_on_repeated_greedy_parameters)
-    {
-      for (std::size_t i=0; i<get_rb_evaluation().greedy_param_list.size(); i++)
+    for (auto & plist : rbe.greedy_param_list)
+      if (plist == get_parameters())
         {
-          RBParameters & previous_parameters = get_rb_evaluation().greedy_param_list[i];
-          if (previous_parameters == get_parameters())
-            {
-              libMesh::out << "Exiting greedy because the same parameters were selected twice"
-                           << std::endl;
-              return true;
-            }
+          libMesh::out << "Exiting greedy because the same parameters were selected twice" << std::endl;
+          return true;
         }
-    }
 
   return false;
 }
@@ -1256,10 +1287,6 @@ void RBConstruction::update_system()
 {
   libMesh::out << "Updating RB matrices" << std::endl;
   update_RB_system_matrices();
-
-  libMesh::out << "Updating RB residual terms" << std::endl;
-
-  update_residual_terms();
 }
 
 Real RBConstruction::get_RB_error_bound()
@@ -1444,6 +1471,8 @@ void RBConstruction::update_RB_system_matrices()
 void RBConstruction::update_residual_terms(bool compute_inner_products)
 {
   LOG_SCOPE("update_residual_terms()", "RBConstruction");
+
+  libMesh::out << "Updating RB residual terms" << std::endl;
 
   unsigned int RB_size = get_rb_evaluation().get_n_basis_functions();
 
@@ -1715,7 +1744,7 @@ void RBConstruction::load_rb_solution()
                       << " RB_solution vector constains " << get_rb_evaluation().RB_solution.size() << " entries." \
                       << " RB_solution in RBConstruction::load_rb_solution is too long!");
 
-  for (std::size_t i=0; i<get_rb_evaluation().RB_solution.size(); i++)
+  for (auto i : IntRange<unsigned int>(0, get_rb_evaluation().RB_solution.size()))
     solution->add(get_rb_evaluation().RB_solution(i), get_rb_evaluation().get_basis_function(i));
 
   update();
@@ -1966,7 +1995,7 @@ void RBConstruction::write_riesz_representors_to_files(const std::string & riesz
     if ( Utility::mkdir(riesz_representors_dir.c_str()) != 0)
       libMesh::out << "Skipping creating residual_representors directory: " << strerror(errno) << std::endl;
 
-  for (std::size_t i=0; i<Fq_representor.size(); ++i)
+  for (auto i : index_range(Fq_representor))
     {
       if (Fq_representor[i])
         {
@@ -2019,7 +2048,9 @@ void RBConstruction::write_riesz_representors_to_files(const std::string & riesz
 
   const unsigned int jstop  = get_rb_evaluation().get_n_basis_functions();
   const unsigned int jstart = jstop-get_delta_N();
-  for (std::size_t i=0; i<get_rb_evaluation().Aq_representor.size(); ++i)
+
+  RBEvaluation & rbe = get_rb_evaluation();
+  for (auto i : index_range(rbe.Aq_representor))
     for (unsigned int j=jstart; j<jstop; ++j)
       {
         libMesh::out << "Writing out Aq_representor[" << i << "][" << j << "]..." << std::endl;
@@ -2032,7 +2063,7 @@ void RBConstruction::write_riesz_representors_to_files(const std::string & riesz
         {
           // No need to copy! Use swap instead.
           // *solution = *(Aq_representor[i][j]);
-          get_rb_evaluation().Aq_representor[i][j]->swap(*solution);
+          rbe.Aq_representor[i][j]->swap(*solution);
 
           Xdr aqr_data(file_name.str(),
                        write_binary_residual_representors ? ENCODE : WRITE);
@@ -2043,7 +2074,7 @@ void RBConstruction::write_riesz_representors_to_files(const std::string & riesz
           this->comm().barrier();
 
           // Swap back.
-          get_rb_evaluation().Aq_representor[i][j]->swap(*solution);
+          rbe.Aq_representor[i][j]->swap(*solution);
 
           // TODO: bzip the resulting file?  See $LIBMESH_DIR/src/mesh/unstructured_mesh.C
           // for the system call, be sure to do it only on one processor, etc.
@@ -2066,13 +2097,11 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
 
   // Read in the Fq_representors.  There should be Q_f of these.  FIXME:
   // should we be worried about leaks here?
-  for (std::size_t i=0; i<Fq_representor.size(); ++i)
-    {
-      if (Fq_representor[i])
-        libmesh_error_msg("Error, must delete existing Fq_representor before reading in from file.");
-    }
+  for (const auto & rep : Fq_representor)
+    if (rep)
+      libmesh_error_msg("Error, must delete existing Fq_representor before reading in from file.");
 
-  for (std::size_t i=0; i<Fq_representor.size(); i++)
+  for (auto i : index_range(Fq_representor))
     {
       file_name.str(""); // reset filename
       file_name << riesz_representors_dir
@@ -2110,16 +2139,15 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
   // Read in the Aq representors.  The class makes room for [Q_a][Nmax] of these.  We are going to
   // read in [Q_a][get_rb_evaluation().get_n_basis_functions()].  FIXME:
   // should we be worried about leaks in the locations where we're about to fill entries?
-  for (std::size_t i=0; i<get_rb_evaluation().Aq_representor.size(); ++i)
-    for (std::size_t j=0; j<get_rb_evaluation().Aq_representor[i].size(); ++j)
-      {
-        if (get_rb_evaluation().Aq_representor[i][j] != libmesh_nullptr)
-          libmesh_error_msg("Error, must delete existing Aq_representor before reading in from file.");
-      }
+  RBEvaluation & rbe = get_rb_evaluation();
+  for (const auto & row : rbe.Aq_representor)
+    for (const auto & rep : row)
+      if (rep)
+        libmesh_error_msg("Error, must delete existing Aq_representor before reading in from file.");
 
   // Now ready to read them in from file!
-  for (std::size_t i=0; i<get_rb_evaluation().Aq_representor.size(); ++i)
-    for (unsigned int j=0; j<get_rb_evaluation().get_n_basis_functions(); ++j)
+  for (auto i : index_range(rbe.Aq_representor))
+    for (unsigned int j=0; j<rbe.get_n_basis_functions(); ++j)
       {
         file_name.str(""); // reset filename
         file_name << riesz_representors_dir
@@ -2138,13 +2166,12 @@ void RBConstruction::read_riesz_representors_from_files(const std::string & ries
 
         read_serialized_data(aqr_data, false);
 
-        get_rb_evaluation().Aq_representor[i][j] = NumericVector<Number>::build(this->comm());
-        get_rb_evaluation().Aq_representor[i][j]->init (n_dofs(), n_local_dofs(),
-                                                        false, PARALLEL);
+        rbe.Aq_representor[i][j] = NumericVector<Number>::build(this->comm());
+        rbe.Aq_representor[i][j]->init (n_dofs(), n_local_dofs(),
+                                            false, PARALLEL);
 
         // No need to copy, just swap
-        //*Aq_representor[i][j] = *solution;
-        get_rb_evaluation().Aq_representor[i][j]->swap(*solution);
+        rbe.Aq_representor[i][j]->swap(*solution);
       }
 }
 

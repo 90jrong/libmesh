@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -194,7 +194,7 @@ uint32_t hashword(const uint32_t * k, size_t length, uint32_t initval=0)
 inline
 uint32_t hashword(const std::vector<uint32_t> & keys, uint32_t initval=0)
 {
-  return hashword(&keys[0], keys.size(), initval);
+  return hashword(keys.data(), keys.size(), initval);
 }
 
 
@@ -254,15 +254,6 @@ uint64_t hashword(const uint64_t * k, size_t length)
 
 
 /**
- * Calls function above with slightly more convenient std::vector interface.
- */
-inline
-uint64_t hashword(const std::vector<uint64_t> & keys)
-{
-  return hashword(&keys[0], keys.size());
-}
-
-/**
  * In a personal communication from Bob Jenkins, he recommended using
  * "Probably final() from lookup3.c... You could hash up to 6 16-bit
  * integers that way.  The output is c, or the top or bottom 16 bits
@@ -305,12 +296,14 @@ uint16_t hashword(const uint16_t * k, size_t length)
 
 
 /**
- * Calls function above with slightly more convenient std::vector interface.
+ * Calls functions above with slightly more convenient
+ * std::vector/array compatible interface.
  */
+template <typename Container>
 inline
-uint16_t hashword(const std::vector<uint16_t> & keys)
+typename Container::value_type hashword(const Container & keys)
 {
-  return hashword(&keys[0], keys.size());
+  return hashword(keys.data(), keys.size());
 }
 
 

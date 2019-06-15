@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,6 @@
 // C++ includes
 #include <fstream>
 
-
 // Local includes
 #include "libmesh/libmesh_config.h"
 #include "libmesh/ucd_io.h"
@@ -31,9 +30,12 @@
 #include "libmesh/cell_prism6.h"
 #include "libmesh/enum_io_package.h"
 #include "libmesh/enum_elem_type.h"
+#include "libmesh/int_range.h"
 
 #ifdef LIBMESH_HAVE_GZSTREAM
+# include "libmesh/ignore_warnings.h" // shadowing in gzstream.h
 # include "gzstream.h" // For reading/writing compressed streams
+# include "libmesh/restore_warnings.h"
 #endif
 
 
@@ -186,7 +188,7 @@ void UCDIO::read_implementation (std::istream & in)
            >> type;        // string describing cell type
 
         // Convert the UCD type string to a libmesh ElementType
-        std::map<std::string, ElemType>::iterator it = _reading_element_map.find(type);
+        auto it = _reading_element_map.find(type);
         if (it == _reading_element_map.end())
           libmesh_error_msg("Unsupported element type = " << type);
 
@@ -307,7 +309,7 @@ void UCDIO::write_interior_elems(std::ostream & out_stream,
 
       // Look up the corresponding UCD element type in the static map.
       const ElemType etype = elem->type();
-      std::map<ElemType, std::string>::iterator it = _writing_element_map.find(etype);
+      auto it = _writing_element_map.find(etype);
       if (it == _writing_element_map.end())
         libmesh_error_msg("Error: Unsupported ElemType " << etype << " for UCDIO.");
 
@@ -371,14 +373,11 @@ void UCDIO::write_soln(std::ostream & out_stream,
 
   // Now write out variable names and units. Since we don't store units
   // We just write out dummy.
-  {
-    std::vector<std::string>::const_iterator var = names.begin();
-    for (; var != names.end(); ++var)
-      {
-        libmesh_assert (out_stream.good());
-        out_stream << *var << ", dummy" << std::endl;
-      }
-  }
+  for (const auto & name : names)
+    {
+      libmesh_assert (out_stream.good());
+      out_stream << name << ", dummy" << std::endl;
+    }
 
   // Now, for each node, write out the solution variables.
   // We use a 1-based node numbering for UCD.

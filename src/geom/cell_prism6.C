@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,14 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // Prism6 class static member initializations
-const unsigned int Prism6::side_nodes_map[5][4] =
+const int Prism6::num_nodes;
+const int Prism6::num_sides;
+const int Prism6::num_edges;
+const int Prism6::num_children;
+const int Prism6::nodes_per_side;
+const int Prism6::nodes_per_edge;
+
+const unsigned int Prism6::side_nodes_map[Prism6::num_sides][Prism6::nodes_per_side] =
   {
     {0, 2, 1, 99}, // Side 0
     {0, 1, 4,  3}, // Side 1
@@ -41,7 +48,7 @@ const unsigned int Prism6::side_nodes_map[5][4] =
     {3, 4, 5, 99}  // Side 4
   };
 
-const unsigned int Prism6::side_elems_map[5][4] =
+const unsigned int Prism6::side_elems_map[Prism6::num_sides][Prism6::nodes_per_side] =
   {
     {0, 1, 2, 3}, // Side 0
     {0, 1, 4, 5}, // Side 1
@@ -50,7 +57,7 @@ const unsigned int Prism6::side_elems_map[5][4] =
     {4, 5, 6, 7}  // Side 4
   };
 
-const unsigned int Prism6::edge_nodes_map[9][2] =
+const unsigned int Prism6::edge_nodes_map[Prism6::num_edges][Prism6::nodes_per_edge] =
   {
     {0, 1}, // Edge 0
     {1, 2}, // Edge 1
@@ -86,20 +93,26 @@ bool Prism6::is_node_on_side(const unsigned int n,
                              const unsigned int s) const
 {
   libmesh_assert_less (s, n_sides());
-  for (unsigned int i = 0; i != 4; ++i)
-    if (side_nodes_map[s][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(side_nodes_map[s]),
+                   std::end(side_nodes_map[s]),
+                   n) != std::end(side_nodes_map[s]);
+}
+
+std::vector<unsigned>
+Prism6::nodes_on_side(const unsigned int s) const
+{
+  libmesh_assert_less(s, n_sides());
+  auto trim = (s > 0 && s < 4) ? 0 : 1;
+  return {std::begin(side_nodes_map[s]), std::end(side_nodes_map[s]) - trim};
 }
 
 bool Prism6::is_node_on_edge(const unsigned int n,
                              const unsigned int e) const
 {
   libmesh_assert_less (e, n_edges());
-  for (unsigned int i = 0; i != 2; ++i)
-    if (edge_nodes_map[e][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(edge_nodes_map[e]),
+                   std::end(edge_nodes_map[e]),
+                   n) != std::end(edge_nodes_map[e]);
 }
 
 
@@ -182,6 +195,14 @@ std::unique_ptr<Elem> Prism6::build_side_ptr (const unsigned int i,
 
 
 
+void Prism6::build_side_ptr (std::unique_ptr<Elem> & side,
+                             const unsigned int i)
+{
+  this->side_ptr(side, i);
+}
+
+
+
 std::unique_ptr<Elem> Prism6::build_edge_ptr (const unsigned int i)
 {
   libmesh_assert_less (i, this->n_edges());
@@ -236,7 +257,7 @@ void Prism6::connectivity(const unsigned int libmesh_dbg_var(sc),
 
 #ifdef LIBMESH_ENABLE_AMR
 
-const float Prism6::_embedding_matrix[8][6][6] =
+const float Prism6::_embedding_matrix[Prism6::num_children][Prism6::num_nodes][Prism6::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -372,26 +393,26 @@ Real Prism6::volume () const
 
   static const Real w2D[N2D] =
     {
-      1.5902069087198858469718450103758e-01L,
-      9.0979309128011415302815498962418e-02L,
-      1.5902069087198858469718450103758e-01L,
-      9.0979309128011415302815498962418e-02L
+      Real(1.5902069087198858469718450103758e-01L),
+      Real(9.0979309128011415302815498962418e-02L),
+      Real(1.5902069087198858469718450103758e-01L),
+      Real(9.0979309128011415302815498962418e-02L)
     };
 
   static const Real xi[N2D] =
     {
-      1.5505102572168219018027159252941e-01L,
-      6.4494897427831780981972840747059e-01L,
-      1.5505102572168219018027159252941e-01L,
-      6.4494897427831780981972840747059e-01L
+      Real(1.5505102572168219018027159252941e-01L),
+      Real(6.4494897427831780981972840747059e-01L),
+      Real(1.5505102572168219018027159252941e-01L),
+      Real(6.4494897427831780981972840747059e-01L)
     };
 
   static const Real eta[N2D] =
     {
-      1.7855872826361642311703513337422e-01L,
-      7.5031110222608118177475598324603e-02L,
-      6.6639024601470138670269327409637e-01L,
-      2.8001991549907407200279599420481e-01L
+      Real(1.7855872826361642311703513337422e-01L),
+      Real(7.5031110222608118177475598324603e-02L),
+      Real(6.6639024601470138670269327409637e-01L),
+      Real(2.8001991549907407200279599420481e-01L)
     };
 
   // Number of points in the 1D quadrature rule.  The weights of the
@@ -424,6 +445,12 @@ Real Prism6::volume () const
     }
 
   return vol;
+}
+
+BoundingBox
+Prism6::loose_bounding_box () const
+{
+  return Elem::loose_bounding_box();
 }
 
 } // namespace libMesh

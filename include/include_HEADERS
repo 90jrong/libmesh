@@ -133,6 +133,7 @@ include_HEADERS =  \
         geom/elem.h \
         geom/elem_cutter.h \
         geom/elem_hash.h \
+        geom/elem_internal.h \
         geom/elem_quality.h \
         geom/elem_range.h \
         geom/face.h \
@@ -221,6 +222,7 @@ include_HEADERS =  \
         numerics/coupling_matrix.h \
         numerics/dense_matrix.h \
         numerics/dense_matrix_base.h \
+        numerics/dense_matrix_base_impl.h \
         numerics/dense_matrix_impl.h \
         numerics/dense_submatrix.h \
         numerics/dense_subvector.h \
@@ -256,6 +258,7 @@ include_HEADERS =  \
         numerics/trilinos_epetra_matrix.h \
         numerics/trilinos_epetra_vector.h \
         numerics/trilinos_preconditioner.h \
+        numerics/tuple_of.h \
         numerics/type_n_tensor.h \
         numerics/type_tensor.h \
         numerics/type_vector.h \
@@ -285,6 +288,8 @@ include_HEADERS =  \
         parallel/parallel_sync.h \
         parallel/post_wait_copy_buffer.h \
         parallel/post_wait_delete_buffer.h \
+        parallel/post_wait_dereference_shared_ptr.h \
+        parallel/post_wait_dereference_tag.h \
         parallel/post_wait_free_buffer.h \
         parallel/post_wait_unpack_buffer.h \
         parallel/post_wait_work.h \
@@ -320,6 +325,7 @@ include_HEADERS =  \
         quadrature/quadrature_grid.h \
         quadrature/quadrature_jacobi.h \
         quadrature/quadrature_monomial.h \
+        quadrature/quadrature_nodal.h \
         quadrature/quadrature_simpson.h \
         quadrature/quadrature_trap.h \
         reduced_basis/rb_assembly_expansion.h \
@@ -373,6 +379,7 @@ include_HEADERS =  \
         solvers/optimization_solver.h \
         solvers/petsc_auto_fieldsplit.h \
         solvers/petsc_diff_solver.h \
+        solvers/petsc_dm_wrapper.h \
         solvers/petsc_linear_solver.h \
         solvers/petsc_nonlinear_solver.h \
         solvers/petscdmlibmesh.h \

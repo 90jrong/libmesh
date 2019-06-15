@@ -8,6 +8,13 @@ AM_CPPFLAGS  = $(libmesh_optional_INCLUDES) -I$(top_builddir)/include \
 AM_LDFLAGS   = $(libmesh_LDFLAGS)
 LIBS         = $(libmesh_optional_LIBS) $(CPPUNIT_LIBS)
 
+# We might have turned on -Werror and/or paranoid warnings
+CXXFLAGS_DBG += $(ANY_WERROR_FLAG) $(ANY_PARANOID_FLAGS)
+CXXFLAGS_DEVEL += $(ANY_WERROR_FLAG) $(ANY_PARANOID_FLAGS)
+CXXFLAGS_OPROF += $(ANY_WERROR_FLAG) $(ANY_PARANOID_FLAGS)
+CXXFLAGS_OPT += $(ANY_WERROR_FLAG) $(ANY_PARANOID_FLAGS)
+CXXFLAGS_PROF += $(ANY_WERROR_FLAG) $(ANY_PARANOID_FLAGS)
+
 unit_tests_sources = \
   driver.C \
   test_comm.h \
@@ -17,6 +24,7 @@ unit_tests_sources = \
   base/default_coupling_test.C \
   base/getpot_test.C \
   base/point_neighbor_coupling_test.C \
+  base/overlapping_coupling_test.C \
   fe/fe_bernstein_test.C \
   fe/fe_clough_test.C \
   fe/fe_hermite_test.C \
@@ -28,16 +36,21 @@ unit_tests_sources = \
   fe/fe_szabab_test.C \
   fe/fe_test.h \
   fe/fe_xyz_test.C \
+  geom/bbox_test.C \
   geom/elem_test.C \
   geom/point_test.C \
   geom/point_test.h \
+  geom/side_test.C \
   geom/which_node_am_i_test.C \
   mesh/all_tri.C \
+  mesh/distort.C \
   mesh/boundary_mesh.C \
   mesh/boundary_info.C \
   mesh/checkpoint.C \
   mesh/contains_point.C \
+  mesh/extra_integers.C \
   mesh/mesh_input.C \
+  mesh/mesh_function.C \
   mesh/mixed_dim_mesh_test.C \
   mesh/nodal_neighbors.C \
   mesh/mesh_extruder.C \
@@ -60,9 +73,20 @@ unit_tests_sources = \
   numerics/vector_value_test.C \
   numerics/type_tensor_test.C \
   numerics/dense_matrix_test.C \
+  parallel/message_tag.C \
   parallel/packed_range_test.C \
+  parallel/parallel_sort_test.C \
+  parallel/parallel_sync_test.C \
   parallel/parallel_test.C \
   parallel/parallel_point_test.C \
+  partitioning/partitioner_test.h \
+  partitioning/centroid_partitioner_test.C \
+  partitioning/hilbert_sfc_partitioner_test.C \
+  partitioning/linear_partitioner_test.C \
+  partitioning/metis_partitioner_test.C \
+  partitioning/morton_sfc_partitioner_test.C \
+  partitioning/parmetis_partitioner_test.C \
+  partitioning/sfc_partitioner_test.C \
   quadrature/quadrature_test.C \
   solvers/time_solver_test_common.h \
   solvers/first_order_unsteady_solver_test.C \
@@ -187,7 +211,8 @@ endif
 CLEANFILES = cube_mesh.xda \
              slit_mesh.xda slit_solution.xda \
 	     out.e \
-	     mesh_with_soln.e
+	     mesh_with_soln.e \
+	     elemental_from_nodal.e
 
 # CLEANFILES only applies to files, handle directories separately
 clean-local:

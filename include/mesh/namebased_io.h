@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -81,7 +81,7 @@ public:
    */
   virtual void write_equation_systems (const std::string & filename,
                                        const EquationSystems & es,
-                                       const std::set<std::string> * system_names=libmesh_nullptr) override;
+                                       const std::set<std::string> * system_names=nullptr) override;
 
   /**
    * Bring in base class functionality for name resolution and to

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -407,7 +407,11 @@ int main(int argc, char ** argv)
               std::ostringstream ss;
               ss << r_step;
 #ifdef LIBMESH_HAVE_EXODUS_API
+#  ifdef LIBMESH_HAVE_NEMESIS_API
+              std::string error_output = "error_" + ss.str() + ".n";
+#  else
               std::string error_output = "error_" + ss.str() + ".e";
+#  endif
 #else
               std::string error_output = "error_" + ss.str() + ".gmv";
 #endif
@@ -620,8 +624,7 @@ void assemble_laplace(EquationSystems & es,
                       const std::string & system_name)
 {
   // Ignore unused parameter warnings when !LIBMESH_ENABLE_AMR.
-  libmesh_ignore(es);
-  libmesh_ignore(system_name);
+  libmesh_ignore(es, system_name);
 
 #ifdef LIBMESH_ENABLE_AMR
   // It is a good idea to make sure we are assembling
@@ -733,16 +736,19 @@ void assemble_laplace(EquationSystems & es,
       // (phi, dphi) for the current element.
       fe->reinit (elem);
 
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+      libmesh_assert_equal_to (n_dofs, phi.size());
+
       // Zero the element matrix and right-hand side before
       // summing them.  We use the resize member here because
       // the number of degrees of freedom might have changed from
       // the last element.  Note that this will be the case if the
       // element type is different (i.e. the last element was a
       // triangle, now we are on a quadrilateral).
-      Ke.resize (dof_indices.size(),
-                 dof_indices.size());
+      Ke.resize (n_dofs, n_dofs);
 
-      Fe.resize (dof_indices.size());
+      Fe.resize (n_dofs);
 
       // Stop logging the shape function initialization.
       // If you forget to stop logging an event the PerfLog
@@ -757,8 +763,8 @@ void assemble_laplace(EquationSystems & es,
       perf_log.push ("Ke");
 
       for (unsigned int qp=0; qp<qrule->n_points(); qp++)
-        for (std::size_t i=0; i<dphi.size(); i++)
-          for (std::size_t j=0; j<dphi.size(); j++)
+        for (unsigned int i=0; i != n_dofs; i++)
+          for (unsigned int j=0; j != n_dofs; j++)
             Ke(i,j) += JxW[qp]*(dphi[i][qp]*dphi[j][qp]);
 
       // We need a forcing function to make the 1D case interesting
@@ -768,7 +774,7 @@ void assemble_laplace(EquationSystems & es,
             Real x = q_point[qp](0);
             Real f = singularity ? sqrt(3.)/9.*pow(-x, -4./3.) :
               cos(x);
-            for (std::size_t i=0; i<dphi.size(); ++i)
+            for (unsigned int i=0; i != n_dofs; ++i)
               Fe(i) += JxW[qp]*phi[i][qp]*f;
           }
 
@@ -788,8 +794,9 @@ void assemble_laplace(EquationSystems & es,
       // which is applicable to non-Lagrange finite element
       // discretizations.
       {
-        // Start logging the boundary condition computation
-        perf_log.push ("BCs");
+        // Start logging the boundary condition computation.  We use a
+        // macro to log everything in this scope.
+        LOG_SCOPE_WITH("BCs", "", perf_log);
 
         // The penalty value.
         const Real penalty = 1.e10;
@@ -798,7 +805,7 @@ void assemble_laplace(EquationSystems & es,
         // If the element has no neighbor on a side then that
         // side MUST live on a boundary of the domain.
         for (auto s : elem->side_index_range())
-          if (elem->neighbor_ptr(s) == libmesh_nullptr)
+          if (elem->neighbor_ptr(s) == nullptr)
             {
               fe_face->reinit(elem, s);
 
@@ -810,18 +817,15 @@ void assemble_laplace(EquationSystems & es,
                                                        "void");
 
                   // RHS contribution
-                  for (std::size_t i=0; i<psi.size(); i++)
+                  for (unsigned int i=0; i != n_dofs; i++)
                     Fe(i) += penalty*JxW_face[qp]*value*psi[i][qp];
 
                   // Matrix contribution
-                  for (std::size_t i=0; i<psi.size(); i++)
-                    for (std::size_t j=0; j<psi.size(); j++)
+                  for (unsigned int i=0; i != n_dofs; i++)
+                    for (unsigned int j=0; j != n_dofs; j++)
                       Ke(i,j) += penalty*JxW_face[qp]*psi[i][qp]*psi[j][qp];
                 }
             }
-
-        // Stop logging the boundary condition computation
-        perf_log.pop ("BCs");
       }
 
 
@@ -831,15 +835,11 @@ void assemble_laplace(EquationSystems & es,
       // and NumericVector::add_vector() members do this for us.
       // Start logging the insertion of the local (element)
       // matrix and vector into the global matrix and vector
-      perf_log.push ("matrix insertion");
+      LOG_SCOPE_WITH("matrix insertion", "", perf_log);
 
       dof_map.constrain_element_matrix_and_vector(Ke, Fe, dof_indices);
       system.matrix->add_matrix (Ke, dof_indices);
       system.rhs->add_vector    (Fe, dof_indices);
-
-      // Start logging the insertion of the local (element)
-      // matrix and vector into the global matrix and vector
-      perf_log.pop ("matrix insertion");
     }
 
   // That's it.  We don't need to do anything else to the

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -166,21 +166,25 @@ extern "C"
     if (rc.solver->matvec && rc.solver->residual_and_jacobian_object)
       libmesh_error_msg("ERROR: cannot specify both a function and object to compute the combined Residual & Jacobian!");
 
-    if (rc.solver->residual != libmesh_nullptr)
+    if (rc.solver->residual != nullptr)
       rc.solver->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
-    else if (rc.solver->residual_object != libmesh_nullptr)
+    else if (rc.solver->residual_object != nullptr)
       rc.solver->residual_object->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
-    else if (rc.solver->matvec != libmesh_nullptr)
-      rc.solver->matvec (*rc.sys.current_local_solution.get(), &R, libmesh_nullptr, rc.sys);
+    else if (rc.solver->matvec != nullptr)
+      rc.solver->matvec (*rc.sys.current_local_solution.get(), &R, nullptr, rc.sys);
 
-    else if (rc.solver->residual_and_jacobian_object != libmesh_nullptr)
-      rc.solver->residual_and_jacobian_object->residual_and_jacobian (*rc.sys.current_local_solution.get(), &R, libmesh_nullptr, rc.sys);
+    else if (rc.solver->residual_and_jacobian_object != nullptr)
+      rc.solver->residual_and_jacobian_object->residual_and_jacobian (*rc.sys.current_local_solution.get(), &R, nullptr, rc.sys);
 
     else
       libmesh_error_msg("Error! Unable to compute residual and/or Jacobian!");
 
+    PetscVector<Number> X(x, rc.sys.comm());
+
+    R.close();
+    rc.sys.get_dof_map().enforce_constraints_on_residual(rc.sys, &R, &X);
     R.close();
 
     return rc.ierr;
@@ -208,14 +212,18 @@ extern "C"
     if (rc.solver->_zero_out_residual)
       R.zero();
 
-    if (rc.solver->fd_residual_object != libmesh_nullptr)
+    if (rc.solver->fd_residual_object != nullptr)
       rc.solver->fd_residual_object->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
-    else if (rc.solver->residual_object != libmesh_nullptr)
+    else if (rc.solver->residual_object != nullptr)
       rc.solver->residual_object->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
     else
       libmesh_error_msg("Error! Unable to compute residual for forming finite difference Jacobian!");
+
+    R.close();
+    PetscVector<Number> X(x, rc.sys.comm());
+    rc.sys.get_dof_map().enforce_constraints_on_residual(rc.sys, &R, &X);
 
     R.close();
 
@@ -245,15 +253,19 @@ extern "C"
     if (rc.solver->_zero_out_residual)
       R.zero();
 
-    if (rc.solver->mffd_residual_object != libmesh_nullptr)
+    if (rc.solver->mffd_residual_object != nullptr)
       rc.solver->mffd_residual_object->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
-    else if (rc.solver->residual_object != libmesh_nullptr)
+    else if (rc.solver->residual_object != nullptr)
       rc.solver->residual_object->residual(*rc.sys.current_local_solution.get(), R, rc.sys);
 
     else
       libmesh_error_msg("Error! Unable to compute residual for forming finite differenced"
                         "Jacobian-vector products!");
+
+    R.close();
+    PetscVector<Number> X(x, rc.sys.comm());
+    rc.sys.get_dof_map().enforce_constraints_on_residual(rc.sys, &R, &X);
 
     R.close();
 
@@ -351,20 +363,23 @@ extern "C"
     if (solver->matvec && solver->residual_and_jacobian_object)
       libmesh_error_msg("ERROR: cannot specify both a function and object to compute the combined Residual & Jacobian!");
 
-    if (solver->jacobian != libmesh_nullptr)
+    if (solver->jacobian != nullptr)
       solver->jacobian(*sys.current_local_solution.get(), PC, sys);
 
-    else if (solver->jacobian_object != libmesh_nullptr)
+    else if (solver->jacobian_object != nullptr)
       solver->jacobian_object->jacobian(*sys.current_local_solution.get(), PC, sys);
 
-    else if (solver->matvec != libmesh_nullptr)
-      solver->matvec(*sys.current_local_solution.get(), libmesh_nullptr, &PC, sys);
+    else if (solver->matvec != nullptr)
+      solver->matvec(*sys.current_local_solution.get(), nullptr, &PC, sys);
 
-    else if (solver->residual_and_jacobian_object != libmesh_nullptr)
-      solver->residual_and_jacobian_object->residual_and_jacobian (*sys.current_local_solution.get(), libmesh_nullptr, &PC, sys);
+    else if (solver->residual_and_jacobian_object != nullptr)
+      solver->residual_and_jacobian_object->residual_and_jacobian (*sys.current_local_solution.get(), nullptr, &PC, sys);
 
     else
       libmesh_error_msg("Error! Unable to compute residual and/or Jacobian!");
+
+    PC.close();
+    sys.get_dof_map().enforce_constraints_on_jacobian(sys, &PC);
 
     PC.close();
     Jac.close();
@@ -453,9 +468,8 @@ extern "C"
     // It's also possible that we don't need to do anything at all, in
     // that case return early...
     NonlinearImplicitSystem & sys = solver->system();
-    DofMap & dof_map = sys.get_dof_map();
 
-    if (!dof_map.n_constrained_dofs() && !solver->postcheck && !solver->postcheck_object)
+    if (!solver->postcheck && !solver->postcheck_object)
       return ierr;
 
     // We definitely need to wrap at least "w"
@@ -496,25 +510,6 @@ extern "C"
     if (changed_new_soln)
       *changed_w = PETSC_TRUE;
 
-    if (dof_map.n_constrained_dofs())
-      {
-        PetscVector<Number> & system_soln = *cast_ptr<PetscVector<Number> *>(sys.solution.get());
-
-        // ... and swap it in before enforcing the constraints.
-        petsc_w.swap(system_soln);
-
-        dof_map.enforce_constraints_exactly(sys);
-
-        // If we have constraints, we'll assume that we did change the
-        // solution w (hopefully slightly).  Enforcing constraints
-        // does not change the search direction, y, but the user may
-        // have, so we leave it alone.
-        *changed_w = PETSC_TRUE;
-
-        // Swap back
-        petsc_w.swap(system_soln);
-      }
-
     return ierr;
   }
 
@@ -552,7 +547,8 @@ PetscNonlinearSolver<T>::PetscNonlinearSolver (sys_type & system_in) :
   _current_nonlinear_iteration_number(0),
   _zero_out_residual(true),
   _zero_out_jacobian(true),
-  _default_monitor(true)
+  _default_monitor(true),
+  _snesmf_reuse_base(true)
 {
 }
 
@@ -896,6 +892,10 @@ PetscNonlinearSolver<T>::solve (SparseMatrix<T> &  pre_in,  // System Preconditi
   // (petsc/petsc@154060b), so this code block should be safe to use
   // in 3.5.0 and later.
 #if !PETSC_VERSION_LESS_THAN(3,5,0)
+#if !PETSC_VERSION_LESS_THAN(3,6,0)
+  ierr = SNESSetSolution(_snes, x->vec());
+  LIBMESH_CHKERR(ierr);
+#endif
   ierr = SNESSetUp(_snes);
   LIBMESH_CHKERR(ierr);
 
@@ -904,9 +904,9 @@ PetscNonlinearSolver<T>::solve (SparseMatrix<T> &  pre_in,  // System Preconditi
   LIBMESH_CHKERR(ierr);
   ierr = MatMFFDSetFunction(J, libmesh_petsc_snes_mffd_interface, this);
   LIBMESH_CHKERR(ierr);
-#if !PETSC_RELEASE_LESS_THAN(3, 8, 4)
+#if !PETSC_VERSION_LESS_THAN(3, 8, 4)
   // Resue the residual vector from SNES
-  ierr = MatSNESMFSetReuseBase(J, PETSC_TRUE);
+  ierr = MatSNESMFSetReuseBase(J, static_cast<PetscBool>(_snesmf_reuse_base));
   LIBMESH_CHKERR(ierr);
 #endif
 #endif
@@ -935,12 +935,6 @@ PetscNonlinearSolver<T>::solve (SparseMatrix<T> &  pre_in,  // System Preconditi
 
   ierr = SNESGetLinearSolveIterations(_snes, &_n_linear_iterations);
   LIBMESH_CHKERR(ierr);
-
-  // Enforce constraints exactly now that the solve is done.  We have
-  // been enforcing them on the current_local_solution during the
-  // solve, but now need to be sure they are enforced on the parallel
-  // solution vector as well.
-  this->system().get_dof_map().enforce_constraints_exactly(this->system());
 
   // SNESGetFunction has been around forever and should work on all
   // versions of PETSc.  This is also now the recommended approach

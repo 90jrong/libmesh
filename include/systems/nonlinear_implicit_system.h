@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -35,16 +35,21 @@ template<typename T> class NonlinearSolver;
 
 
 /**
- * This class provides a specific system class.  It aims
- * at implicit systems, offering nothing more than just
- * the essentials needed to solve a system.
+ * \brief Manages consistently variables, degrees of freedom, coefficient
+ * vectors, matrices and non-linear solvers for implicit systems.
+ *
+ * An implicit system is a system that requires the solution of a
+ * system of equations. This class has the ability to create and use a
+ * non-linear solver to solve the system of equations.
+ *
+ * The matrix NonlinearImplicitSystem::matrix and the vector
+ * NonlinearImplicitSystem::rhs should be filled during assembly.
  *
  * \note Additional vectors/matrices can be added via parent class
  * interfaces.
  *
  * \author Benjamin S. Kirk
  * \date 2005
- * \brief Used for solving nonlinear implicit systems of equations.
  */
 class NonlinearImplicitSystem : public ImplicitSystem
 {

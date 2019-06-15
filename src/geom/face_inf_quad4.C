@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,12 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // InfQuad4 class static member initializations
-const unsigned int InfQuad4::side_nodes_map[3][2] =
+const int InfQuad4::num_nodes;
+const int InfQuad4::num_sides;
+const int InfQuad4::num_children;
+const int InfQuad4::nodes_per_side;
+
+const unsigned int InfQuad4::side_nodes_map[InfQuad4::num_sides][InfQuad4::nodes_per_side] =
   {
     {0, 1}, // Side 0
     {1, 3}, // Side 1
@@ -49,7 +54,7 @@ const unsigned int InfQuad4::side_nodes_map[3][2] =
 
 #ifdef LIBMESH_ENABLE_AMR
 
-const float InfQuad4::_embedding_matrix[2][4][4] =
+const float InfQuad4::_embedding_matrix[InfQuad4::num_children][InfQuad4::num_nodes][InfQuad4::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -99,10 +104,16 @@ bool InfQuad4::is_node_on_side(const unsigned int n,
                                const unsigned int s) const
 {
   libmesh_assert_less (s, n_sides());
-  for (unsigned int i = 0; i != 2; ++i)
-    if (side_nodes_map[s][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(side_nodes_map[s]),
+                   std::end(side_nodes_map[s]),
+                   n) != std::end(side_nodes_map[s]);
+}
+
+std::vector<unsigned>
+InfQuad4::nodes_on_side(const unsigned int s) const
+{
+  libmesh_assert_less(s, n_sides());
+  return {std::begin(side_nodes_map[s]), std::end(side_nodes_map[s])};
 }
 
 bool InfQuad4::contains_point (const Point & p, Real tol) const
@@ -228,6 +239,51 @@ std::unique_ptr<Elem> InfQuad4::build_side_ptr (const unsigned int i,
       return edge;
     }
 }
+
+
+
+void InfQuad4::build_side_ptr (std::unique_ptr<Elem> & side,
+                               const unsigned int i)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  // Think of a unit cube: (-1,1) x (-1,1) x (1,1)
+  switch (i)
+    {
+      // the base face
+    case 0:
+      {
+        if (!side.get() || side->type() != EDGE2)
+          {
+            side = this->build_side_ptr(i, false);
+            return;
+          }
+        break;
+      }
+
+      // connecting to another infinite element
+    case 1:
+    case 2:
+      {
+        if (!side.get() || side->type() != INFEDGE2)
+          {
+            side = this->build_side_ptr(i, false);
+            return;
+          }
+        break;
+      }
+
+    default:
+      libmesh_error_msg("Invalid side i = " << i);
+    }
+
+  side->subdomain_id() = this->subdomain_id();
+
+  // Set the nodes
+  for (auto n : side->node_index_range())
+    side->set_node(n) = this->node_ptr(InfQuad4::side_nodes_map[i][n]);
+}
+
 
 
 void InfQuad4::connectivity(const unsigned int libmesh_dbg_var(sf),

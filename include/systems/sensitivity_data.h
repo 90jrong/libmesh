@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -172,8 +172,7 @@ void SensitivityData::allocate_data(const QoISet & qoi_indices,
                                     const ParameterVector & parameter_vector)
 {
   const std::size_t Np = parameter_vector.size();
-  const unsigned int Nq =
-    cast_int<unsigned int>(sys.qoi.size());
+  const unsigned int Nq = sys.n_qois();
 
   if (_grad_data.size() < Nq)
     _grad_data.resize(Nq);
@@ -194,8 +193,7 @@ void SensitivityData::allocate_hessian_data(const QoISet & qoi_indices,
                                             const ParameterVector & parameter_vector)
 {
   const std::size_t Np = parameter_vector.size();
-  const unsigned int Nq =
-    cast_int<unsigned int>(sys.qoi.size());
+  const unsigned int Nq = sys.n_qois();
 
   if (_hess_data.size() < Nq)
     _hess_data.resize(Nq);

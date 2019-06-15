@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -279,13 +279,13 @@ public:
    */
   template<typename OutputShape>
   void get_element_fe( unsigned int var, FEGenericBase<OutputShape> *& fe,
-                       unsigned char dim ) const;
+                       unsigned short dim ) const;
 
   /**
    * Accessor for interior finite element object for scalar-valued variable var for
    * dimension dim.
    */
-  FEBase * get_element_fe( unsigned int var, unsigned char dim ) const;
+  FEBase * get_element_fe( unsigned int var, unsigned short dim ) const;
 
   /**
    * Accessor for edge/face (2D/3D) finite element object for variable var
@@ -316,13 +316,13 @@ public:
    */
   template<typename OutputShape>
   void get_side_fe( unsigned int var, FEGenericBase<OutputShape> *& fe,
-                    unsigned char dim ) const;
+                    unsigned short dim ) const;
 
   /**
    * Accessor for side finite element object for scalar-valued variable var
    * for dimension dim.
    */
-  FEBase * get_side_fe( unsigned int var, unsigned char dim ) const;
+  FEBase * get_side_fe( unsigned int var, unsigned short dim ) const;
 
   /**
    * Accessor for edge (3D only!) finite element object for variable var.
@@ -517,6 +517,18 @@ public:
   void interior_rate(unsigned int var,
                      unsigned int qp,
                      OutputType & u) const;
+
+
+  /**
+   * \returns The time derivative (rate) of the solution gradient
+   * of variable \p var at the quadrature point \p qp on the current
+   * element interior.
+   */
+  template<typename OutputType>
+  void interior_rate_gradient(unsigned int var,
+                              unsigned int qp,
+                              OutputType & u) const;
+
 
   /**
    * \returns The time derivative (rate) of the solution variable
@@ -746,7 +758,7 @@ public:
   /**
    * Reinitializes interior FE objects on the current geometric element
    */
-  virtual void elem_fe_reinit(const std::vector<Point> * const pts = libmesh_nullptr);
+  virtual void elem_fe_reinit(const std::vector<Point> * const pts = nullptr);
 
   /**
    * Reinitializes side FE objects on the current geometric element
@@ -775,14 +787,14 @@ public:
   /**
    * Accessor for element interior quadrature rule.
    */
-  const QBase & get_element_qrule( unsigned char dim ) const
+  const QBase & get_element_qrule( unsigned short dim ) const
   { libmesh_assert(_element_qrule[dim]);
     return *(this->_element_qrule[dim]); }
 
   /**
    * Accessor for element side quadrature rule.
    */
-  const QBase & get_side_qrule( unsigned char dim ) const
+  const QBase & get_side_qrule( unsigned short dim ) const
   {
     libmesh_assert(_side_qrule[dim]);
     return *(this->_side_qrule[dim]);
@@ -863,7 +875,7 @@ public:
    * Test for current Elem object
    */
   bool has_elem() const
-  { return (this->_elem != libmesh_nullptr); }
+  { return (this->_elem != nullptr); }
 
   /**
    * Accessor for current Elem object
@@ -955,7 +967,7 @@ public:
 
   /**
    * Set a NumericVector to be used in place of current_local_solution
-   * for calculating elem_solution.  Set to NULL to restore the
+   * for calculating elem_solution.  Set to nullptr to restore the
    * current_local_solution behavior.  Advanced DifferentiableSystem
    * specific capabilities will only be enabled in the
    * current_local_solution case.
@@ -1043,17 +1055,17 @@ protected:
     // Typedefs for "Value getter" function pointer
     typedef typename TensorTools::MakeReal<OutputType>::type value_shape;
     typedef FEGenericBase<value_shape> value_base;
-    typedef void (FEMContext::*value_getter) (unsigned int, value_base *&, unsigned char) const;
+    typedef void (FEMContext::*value_getter) (unsigned int, value_base *&, unsigned short) const;
 
     // Typedefs for "Grad getter" function pointer
     typedef typename TensorTools::MakeReal<Rank1Decrement>::type grad_shape;
     typedef FEGenericBase<grad_shape> grad_base;
-    typedef void (FEMContext::*grad_getter) (unsigned int, grad_base *&, unsigned char) const;
+    typedef void (FEMContext::*grad_getter) (unsigned int, grad_base *&, unsigned short) const;
 
     // Typedefs for "Hessian getter" function pointer
     typedef typename TensorTools::MakeReal<Rank2Decrement>::type hess_shape;
     typedef FEGenericBase<hess_shape> hess_base;
-    typedef void (FEMContext::*hess_getter) (unsigned int, hess_base *&, unsigned char) const;
+    typedef void (FEMContext::*hess_getter) (unsigned int, hess_base *&, unsigned short) const;
   };
 
 
@@ -1203,7 +1215,7 @@ void FEMContext::elem_position_set(Real theta)
 template<typename OutputShape>
 inline
 void FEMContext::get_element_fe( unsigned int var, FEGenericBase<OutputShape> *& fe,
-                                 unsigned char dim ) const
+                                 unsigned short dim ) const
 {
   libmesh_assert( !_element_fe_var[dim].empty() );
   libmesh_assert_less ( var, (_element_fe_var[dim].size() ) );
@@ -1211,7 +1223,7 @@ void FEMContext::get_element_fe( unsigned int var, FEGenericBase<OutputShape> *&
 }
 
 inline
-FEBase * FEMContext::get_element_fe( unsigned int var, unsigned char dim ) const
+FEBase * FEMContext::get_element_fe( unsigned int var, unsigned short dim ) const
 {
   libmesh_assert( !_element_fe_var[dim].empty() );
   libmesh_assert_less ( var, (_element_fe_var[dim].size() ) );
@@ -1221,7 +1233,7 @@ FEBase * FEMContext::get_element_fe( unsigned int var, unsigned char dim ) const
 template<typename OutputShape>
 inline
 void FEMContext::get_side_fe( unsigned int var, FEGenericBase<OutputShape> *& fe,
-                              unsigned char dim ) const
+                              unsigned short dim ) const
 {
   libmesh_assert( !_side_fe_var[dim].empty() );
   libmesh_assert_less ( var, (_side_fe_var[dim].size() ) );
@@ -1229,7 +1241,7 @@ void FEMContext::get_side_fe( unsigned int var, FEGenericBase<OutputShape> *& fe
 }
 
 inline
-FEBase * FEMContext::get_side_fe( unsigned int var, unsigned char dim ) const
+FEBase * FEMContext::get_side_fe( unsigned int var, unsigned short dim ) const
 {
   libmesh_assert( !_side_fe_var[dim].empty() );
   libmesh_assert_less ( var, (_side_fe_var[dim].size() ) );

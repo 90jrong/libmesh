@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -42,13 +42,13 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  NodeElem (Elem * p=libmesh_nullptr) :
+  NodeElem (Elem * p=nullptr) :
     Elem(NodeElem::n_nodes(), NodeElem::n_sides(), p, _elemlinks_data,
          _nodelinks_data)
   {
     // Make sure the interior parent isn't undefined
     if (LIBMESH_DIM > 0)
-      this->set_interior_parent(libmesh_nullptr);
+      this->set_interior_parent(nullptr);
   }
 
   NodeElem (NodeElem &&) = delete;
@@ -70,7 +70,7 @@ public:
   /**
    * \returns 0, the dimensionality of the object.
    */
-  virtual unsigned int dim () const override { return 0; }
+  virtual unsigned short dim () const override { return 0; }
 
   /**
    * \returns 1.
@@ -122,16 +122,22 @@ public:
   { libmesh_error_msg("Calling NodeElem::which_node_am_i() does not make sense."); return 0; }
 
   /**
-   * The \p Elem::side() member makes no sense for nodes.
+   * The \p Elem::side_ptr() member makes no sense for nodes.
    */
   virtual std::unique_ptr<Elem> side_ptr (const unsigned int) override
   { libmesh_not_implemented(); return std::unique_ptr<Elem>(); }
+
+  virtual void side_ptr (std::unique_ptr<Elem> &, const unsigned int) override
+  { libmesh_not_implemented(); }
 
   /**
    * The \p Elem::build_side_ptr() member makes no sense for nodes.
    */
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int, bool) override
   { libmesh_not_implemented(); return std::unique_ptr<Elem>(); }
+
+  virtual void build_side_ptr (std::unique_ptr<Elem> &, const unsigned int) override
+  { libmesh_not_implemented(); }
 
   /**
    * The \p Elem::build_edge_ptr() member makes no sense for nodes.
@@ -162,6 +168,12 @@ public:
   virtual bool is_node_on_side(const unsigned int,
                                const unsigned int) const override
   { libmesh_not_implemented(); return false; }
+
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int) const override
+  {
+    libmesh_not_implemented();
+    return {0};
+  }
 
   virtual bool is_node_on_edge(const unsigned int,
                                const unsigned int) const override

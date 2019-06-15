@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -159,13 +159,14 @@ Real FE<1,BERNSTEIN>::shape(const ElemType,
         const int m       = p_order-i+1;
         const int n       = (i-1);
 
-        // Using an unsigned long here will work for any of the orders we support.
-        unsigned long binomial_p_i = 1;
+        Real binomial_p_i = 1;
 
         // the binomial coefficient (p choose n)
+        // Using an unsigned long here will work for any of the orders we support.
+        // Explicitly construct a Real to prevent conversion warnings
         if (i>1)
-          binomial_p_i = Utility::binomial(static_cast<unsigned long>(p_order),
-                                           static_cast<unsigned long>(n));
+          binomial_p_i = Real(Utility::binomial(static_cast<unsigned long>(p_order),
+                                                static_cast<unsigned long>(n)));
 
         switch(i)
           {
@@ -327,13 +328,14 @@ Real FE<1,BERNSTEIN>::shape_deriv(const ElemType,
         const int m       = p_order-(i-1);
         const int n       = (i-1);
 
-        // Using an unsigned long here will work for any of the orders we support.
-        unsigned long binomial_p_i = 1;
+        Real binomial_p_i = 1;
 
         // the binomial coefficient (p choose n)
+        // Using an unsigned long here will work for any of the orders we support.
+        // Explicitly construct a Real to prevent conversion warnings
         if (i>1)
-          binomial_p_i = Utility::binomial(static_cast<unsigned long>(p_order),
-                                           static_cast<unsigned long>(n));
+          binomial_p_i = Real(Utility::binomial(static_cast<unsigned long>(p_order),
+                                                static_cast<unsigned long>(n)));
 
         switch(i)
           {
@@ -369,6 +371,7 @@ Real FE<1,BERNSTEIN>::shape_deriv(const Elem * elem,
 }
 
 
+#ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
 
 template <>
 Real FE<1,BERNSTEIN>::shape_second_deriv(const ElemType,
@@ -408,6 +411,8 @@ Real FE<1,BERNSTEIN>::shape_second_deriv(const Elem *,
   warning_given = true;
   return 0.;
 }
+
+#endif
 
 } // namespace libMesh
 

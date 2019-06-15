@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -165,7 +165,7 @@ int main (int argc, char ** argv)
   // see, so we loop over all elements, not just local elements.
   for (const auto & elem : mesh.element_ptr_range())
     for (auto side : elem->side_index_range())
-      if (elem->neighbor_ptr (side) == NULL)
+      if (elem->neighbor_ptr (side) == nullptr)
         mesh.get_boundary_info().add_side(elem, side, BOUNDARY_ID);
 
   // Print information about the mesh to the screen.
@@ -372,8 +372,10 @@ void assemble_matrices(EquationSystems & es,
       // the last element.  Note that this will be the case if the
       // element type is different (i.e. the last element was a
       // triangle, now we are on a quadrilateral).
-      Ke.resize (dof_indices.size(), dof_indices.size());
-      Me.resize (dof_indices.size(), dof_indices.size());
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+      Ke.resize (n_dofs, n_dofs);
+      Me.resize (n_dofs, n_dofs);
 
       // Now loop over the quadrature points.  This handles
       // the numeric integration.
@@ -382,8 +384,8 @@ void assemble_matrices(EquationSystems & es,
       // a double loop to integrate the test functions (i) against
       // the trial functions (j).
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
-        for (std::size_t i=0; i<phi.size(); i++)
-          for (std::size_t j=0; j<phi.size(); j++)
+        for (unsigned int i=0; i<n_dofs; i++)
+          for (unsigned int j=0; j<n_dofs; j++)
             {
               Me(i,j) += JxW[qp]*phi[i][qp]*phi[j][qp];
               Ke(i,j) += JxW[qp]*(dphi[i][qp]*dphi[j][qp]);

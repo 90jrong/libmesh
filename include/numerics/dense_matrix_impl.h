@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,23 @@
 #include "libmesh/dense_matrix.h"
 #include "libmesh/dense_vector.h"
 #include "libmesh/libmesh.h"
+
+#ifdef LIBMESH_HAVE_METAPHYSICL
+namespace MetaPhysicL
+{
+template <typename, typename>
+class DualNumber;
+}
+namespace std
+{
+// When instantiating a DenseMatrix<DualNumber> we need these declarations visible
+// in order to compile the DenseMatrix<T>::_cholesky_decompose method
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> sqrt(const MetaPhysicL::DualNumber<T, D> & in);
+template <typename T, typename D>
+MetaPhysicL::DualNumber<T, D> sqrt(MetaPhysicL::DualNumber<T, D> && in);
+}
+#endif
 
 namespace libMesh
 {
@@ -247,7 +264,7 @@ void DenseMatrix<T>::right_multiply (const DenseMatrixBase<T> & M3)
     this->_multiply_blas(M3, RIGHT_MULTIPLY);
   else
     {
-      // (*this) <- M3 * (*this)
+      // (*this) <- (*this) * M3
       // Where:
       // (*this) = (m x n),
       // M2      = (m x p),
@@ -796,10 +813,10 @@ void DenseMatrix<T>::_lu_decompose ()
       _pivots[i] = i;
 
       // std::abs(complex) must return a Real!
-      Real the_max = std::abs( A(i,i) );
+      auto the_max = std::abs( A(i,i) );
       for (unsigned int j=i+1; j<n_rows; ++j)
         {
-          Real candidate_max = std::abs( A(j,i) );
+          auto candidate_max = std::abs( A(j,i) );
           if (the_max < candidate_max)
             {
               the_max = candidate_max;
@@ -897,7 +914,7 @@ void DenseMatrix<T>::evd_left(DenseVector<T> & lambda_real,
                               DenseMatrix<T> & VL)
 {
   // We use the LAPACK eigenvalue problem implementation
-  _evd_lapack(lambda_real, lambda_imag, &VL, libmesh_nullptr);
+  _evd_lapack(lambda_real, lambda_imag, &VL, nullptr);
 }
 
 
@@ -908,7 +925,7 @@ void DenseMatrix<T>::evd_right(DenseVector<T> & lambda_real,
                                DenseMatrix<T> & VR)
 {
   // We use the LAPACK eigenvalue problem implementation
-  _evd_lapack(lambda_real, lambda_imag, libmesh_nullptr, &VR);
+  _evd_lapack(lambda_real, lambda_imag, nullptr, &VR);
 }
 
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,10 @@ namespace libMesh
 // Forward Declarations
 template <typename T> class DenseMatrix;
 
+enum PetscMatrixType : int {
+                 AIJ=0,
+                 HYPRE};
+
 
 /**
  * This class provides a nice interface to the PETSc C-based data
@@ -71,7 +75,7 @@ template <typename T> class DenseMatrix;
  * \brief SparseMatrix interface to PETSc Mat.
  */
 template <typename T>
-class PetscMatrix libmesh_final : public SparseMatrix<T>
+class PetscMatrix final : public SparseMatrix<T>
 {
 public:
   /**
@@ -99,10 +103,17 @@ public:
                const Parallel::Communicator & comm_in);
 
   /**
-   * Destructor. Free all memory, but do not release the memory of the
-   * sparsity structure.
+   * This class manages a C-style struct (Mat) manually, so we
+   * don't want to allow any automatic copy/move functions to be
+   * generated, and we can't default the destructor.
    */
-  ~PetscMatrix ();
+  PetscMatrix (PetscMatrix &&) = delete;
+  PetscMatrix (const PetscMatrix &) = delete;
+  PetscMatrix & operator= (const PetscMatrix &) = delete;
+  PetscMatrix & operator= (PetscMatrix &&) = delete;
+  virtual ~PetscMatrix ();
+
+  void set_matrix_type(PetscMatrixType mat_type);
 
   virtual void init (const numeric_index_type m,
                      const numeric_index_type n,
@@ -194,7 +205,7 @@ public:
    * \note \p X will be closed, if not already done, before performing
    * any work.
    */
-  virtual void add (const T a, SparseMatrix<T> & X) override;
+  virtual void add (const T a, const SparseMatrix<T> & X) override;
 
   virtual T operator () (const numeric_index_type i,
                          const numeric_index_type j) const override;
@@ -204,6 +215,12 @@ public:
   virtual Real linfty_norm () const override;
 
   virtual bool closed() const override;
+
+  /**
+   * If set to false, we don't delete the Mat on destruction and allow
+   * instead for \p PETSc to manage it.
+   */
+  virtual void set_destroy_mat_on_exit(bool destroy = true);
 
   /**
    * Print the contents of the matrix to the screen with the PETSc
@@ -264,6 +281,8 @@ private:
    * constructor which takes a PETSc Mat object.
    */
   bool _destroy_mat_on_exit;
+
+  PetscMatrixType _mat_type;
 };
 
 } // namespace libMesh

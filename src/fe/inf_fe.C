@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -19,11 +19,13 @@
 
 // Local includes
 #include "libmesh/libmesh_config.h"
+
 #ifdef LIBMESH_ENABLE_INFINITE_ELEMENTS
 #include "libmesh/inf_fe.h"
 #include "libmesh/quadrature_gauss.h"
 #include "libmesh/elem.h"
 #include "libmesh/libmesh_logging.h"
+#include "libmesh/int_range.h"
 
 namespace libMesh
 {
@@ -83,8 +85,9 @@ void InfFE<Dim,T_radial,T_map>::attach_quadrature_rule (QBase * q)
   // in radial direction, always use Gauss quadrature
   radial_qrule.reset(new QGauss(1, radial_int_order));
 
-  // currently not used. But maybe helpful to store the QBase *
-  // with which we initialized our own quadrature rules
+  // Maybe helpful to store the QBase *
+  // with which we initialized our own quadrature rules.
+  // Used e.g. in \p InfFE::reinit(elem,side)
   qrule = q;
 }
 
@@ -120,7 +123,7 @@ void InfFE<Dim,T_radial,T_map>::reinit(const Elem * inf_elem,
   base_fe->get_xyz();
   base_fe->determine_calculations();
 
-  if (pts == libmesh_nullptr)
+  if (pts == nullptr)
     {
       libmesh_assert(base_fe->qrule);
       libmesh_assert_equal_to (base_fe->qrule, base_qrule.get());
@@ -204,7 +207,7 @@ void InfFE<Dim,T_radial,T_map>::reinit(const Elem * inf_elem,
       this->compute_shape_functions (inf_elem,base_fe->qrule->get_points());
     }
 
-  else // if pts != libmesh_nullptr
+  else // if pts != nullptr
     {
       // update the elem_type
       elem_type = inf_elem->type();
@@ -214,18 +217,47 @@ void InfFE<Dim,T_radial,T_map>::reinit(const Elem * inf_elem,
       // right now, and it will generalize a bit, and it won't break
       // the assumptions elsewhere in InfFE.
       std::vector<Point> radial_pts;
-      for (std::size_t p=0; p != pts->size(); ++p)
+      if (pts->size() > 0)
         {
-          Real radius = (*pts)[p](Dim-1);
-          if (radial_pts.size() && radial_pts[0](0) == radius)
-            break;
+          Real radius = (*pts)[0](Dim-1);
           radial_pts.push_back(Point(radius));
+          unsigned int n_radial_pts=1;
+          unsigned int n_angular_pts=1;
+          for (std::size_t p=1; p < pts->size(); ++p)
+            {
+              radius = (*pts)[p](Dim-1);
+              // check for repetition of radius: The max. allowed distance is somewhat arbitrary
+              // but the given value should not produce false positives...
+              if (abs(radial_pts[p-n_radial_pts*n_angular_pts](0) - radius)< 1e-4)
+                {
+                  // should the next one be in the next segment?
+                  if (p+1 == n_radial_pts*(n_angular_pts+1))
+                     n_angular_pts++;
+                }
+              // if none yet repeated:
+              else if (n_angular_pts == 1)
+                radial_pts.push_back(Point(radius));
+              // if there was repetition but this does not, the assumed
+              // format does not work:
+              else
+                {
+                  libmesh_error_msg("We assumed that the "<<pts->size()
+                                  <<" points are of tensor-product type with "
+                                  <<n_radial_pts<<" radial points and "
+                                  <<n_angular_pts<< " angular points."<<std::endl
+                                  <<"But apparently point "<<p
+                                  <<" does not fit that scheme: Its radius is "
+                                  <<radius <<"but should have "
+                                  <<radial_pts[p-n_radial_pts*n_angular_pts]<<".");
+                }
+            }
         }
-      const unsigned int radial_pts_size = radial_pts.size();
-      const unsigned int base_pts_size = pts->size() / radial_pts_size;
+      const std::size_t radial_pts_size = radial_pts.size();
+      const std::size_t base_pts_size = pts->size() / radial_pts_size;
       // If we're a tensor product we should have no remainder
       libmesh_assert_equal_to
         (base_pts_size * radial_pts_size, pts->size());
+
 
       std::vector<Point> base_pts;
       base_pts.reserve(base_pts_size);
@@ -276,7 +308,7 @@ void InfFE<Dim,T_radial,T_map>::reinit(const Elem * inf_elem,
       this->combine_base_radial (inf_elem);
 
       // weights
-      if (weights != libmesh_nullptr)
+      if (weights != nullptr)
         {
           this->_fe_map->compute_map (this->dim, *weights, inf_elem, this->calculate_d2phi);
         }
@@ -318,7 +350,7 @@ init_radial_shape_functions(const Elem * libmesh_dbg_var(inf_elem),
   const Order radial_approx_order = fe_type.radial_order;
   const unsigned int n_radial_approx_shape_functions = Radial::n_dofs(radial_approx_order);
 
-  const unsigned int n_radial_qp =
+  const std::size_t n_radial_qp =
     radial_pts ? radial_pts->size() : radial_qrule->n_points();
   const std::vector<Point> & radial_qp =
     radial_pts ? *radial_pts : radial_qrule->get_points();
@@ -353,7 +385,7 @@ init_radial_shape_functions(const Elem * libmesh_dbg_var(inf_elem),
 
 
   // compute scalar values at radial quadrature points
-  for (unsigned int p=0; p<n_radial_qp; p++)
+  for (std::size_t p=0; p<n_radial_qp; p++)
     {
       som[p] = Radial::decay (radial_qp[p](0));
       dsomdv[p] = Radial::decay_deriv (radial_qp[p](0));
@@ -362,7 +394,7 @@ init_radial_shape_functions(const Elem * libmesh_dbg_var(inf_elem),
 
   // evaluate the mode shapes in radial direction at radial quadrature points
   for (unsigned int i=0; i<n_radial_approx_shape_functions; i++)
-    for (unsigned int p=0; p<n_radial_qp; p++)
+    for (std::size_t p=0; p<n_radial_qp; p++)
       {
         mode[i][p] = InfFE<Dim,T_radial,T_map>::eval (radial_qp[p](0), radial_approx_order, i);
         dmodedv[i][p] = InfFE<Dim,T_radial,T_map>::eval_deriv (radial_qp[p](0), radial_approx_order, i);
@@ -371,7 +403,7 @@ init_radial_shape_functions(const Elem * libmesh_dbg_var(inf_elem),
 
   // evaluate the mapping functions in radial direction at radial quadrature points
   for (unsigned int i=0; i<n_radial_mapping_shape_functions; i++)
-    for (unsigned int p=0; p<n_radial_qp; p++)
+    for (std::size_t p=0; p<n_radial_qp; p++)
       {
         radial_map[i][p] = InfFE<Dim,INFINITE_MAP,T_map>::eval (radial_qp[p](0), radial_mapping_order, i);
         dradialdv_map[i][p] = InfFE<Dim,INFINITE_MAP,T_map>::eval_deriv (radial_qp[p](0), radial_mapping_order, i);
@@ -428,7 +460,7 @@ void InfFE<Dim,T_radial,T_map>::init_shape_functions(const std::vector<Point> & 
 
 
   // The number of the base quadrature points.
-  const unsigned int n_base_qp = base_qp.size();
+  const unsigned int n_base_qp = cast_int<unsigned int>(base_qp.size());
 
   // The total number of quadrature points.
   const unsigned int n_total_qp = n_radial_qp * n_base_qp;
@@ -763,10 +795,10 @@ void InfFE<Dim,T_radial,T_map>::combine_base_radial(const Elem * inf_elem)
         const std::vector<std::vector<Real>> & Ss_map = (base_fe->get_fe_map()).get_dphidxi_map();
         const std::vector<std::vector<Real>> & St_map = (base_fe->get_fe_map()).get_dphideta_map();
 
-        const unsigned int n_radial_qp = som.size();
+        const unsigned int n_radial_qp = cast_int<unsigned int>(som.size());
         if (radial_qrule)
           libmesh_assert_equal_to(n_radial_qp, radial_qrule->n_points());
-        const unsigned int n_base_qp = S_map[0].size();
+        const unsigned int n_base_qp = cast_int<unsigned int>(S_map[0].size());
         if (base_qrule)
           libmesh_assert_equal_to(n_base_qp, base_qrule->n_points());
 
@@ -900,7 +932,7 @@ void InfFE<Dim,T_radial,T_map>::compute_shape_functions(const Elem *,
         const std::vector<Real> & dzetadz_map = this->_fe_map->get_dzetadz();
 
         // These are _all_ shape functions of this infinite element
-        for (std::size_t i=0; i<phi.size(); i++)
+        for (auto i : index_range(phi))
           for (unsigned int p=0; p<n_total_qp; p++)
             {
               // dphi/dx    = (dphi/dxi)*(dxi/dx) + (dphi/deta)*(deta/dx) + (dphi/dzeta)*(dzeta/dx);

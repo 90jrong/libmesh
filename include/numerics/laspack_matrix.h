@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,7 @@ template <typename T> class LaspackLinearSolver;
  * \date 2003
  */
 template <typename T>
-class LaspackMatrix libmesh_final : public SparseMatrix<T>
+class LaspackMatrix final : public SparseMatrix<T>
 {
 
 public:
@@ -70,10 +70,15 @@ public:
   LaspackMatrix (const Parallel::Communicator & comm);
 
   /**
-   * Destructor. Free all memory, but do not release the memory of the
-   * sparsity structure.
+   * This class manages a C-style struct (QMatrix) manually, so we
+   * don't want to allow any automatic copy/move functions to be
+   * generated, and we can't default the destructor.
    */
-  ~LaspackMatrix ();
+  LaspackMatrix (LaspackMatrix &&) = delete;
+  LaspackMatrix (const LaspackMatrix &) = delete;
+  LaspackMatrix & operator= (const LaspackMatrix &) = delete;
+  LaspackMatrix & operator= (LaspackMatrix &&) = delete;
+  virtual ~LaspackMatrix ();
 
   /**
    * The \p LaspackMatrix needs the full sparsity pattern.
@@ -102,7 +107,7 @@ public:
 
   virtual void zero () override;
 
-  virtual void close () override { this->_closed = true; }
+  virtual void close () override;
 
   virtual numeric_index_type m () const override;
 
@@ -134,7 +139,7 @@ public:
    * so a hand-coded version with hopefully acceptable performance
    * is provided.
    */
-  virtual void add (const T a, SparseMatrix<T> & X) override;
+  virtual void add (const T a, const SparseMatrix<T> & X) override;
 
   virtual T operator () (const numeric_index_type i,
                          const numeric_index_type j) const override;

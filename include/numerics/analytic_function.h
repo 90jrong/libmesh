@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -34,10 +34,12 @@ template <typename T>
 class DenseVector;
 
 /**
+ * \brief Wraps a function pointer into a FunctionBase object.
+ *
  * This class provides function-like objects for which an analytical
- * expression can be provided.  The user may either provide
- * vector-return or number-return functions.  All overridden virtual
- * functions are documented in function_base.h.
+ * expression can be provided.  The user may either provide a function pointer
+ * that returns a vector or a number.  All overridden virtual functions are
+ * documented in function_base.h.
  *
  * \author Daniel Dreyer
  * \date 2003
@@ -47,27 +49,32 @@ class AnalyticFunction : public FunctionBase<Output>
 {
 public:
 
+  /** Scalar return value function pointer type. */
+  typedef Output (*OutputFunction)(const Point & p, const Real time);
+
   /**
    * Constructor.  Takes a function pointer for scalar
    * return values.
    */
-  typedef Output (*OutputFunction)(const Point & p, const Real time);
   AnalyticFunction (OutputFunction fptr);
 
-  /**
-   * Constructor.  Takes a function pointer for
-   * vector valued functions.
-   */
+  /** Vector return value function pointer type. */
   typedef void (*OutputVectorFunction)(DenseVector<Output> & output,
                                        const Point & p,
                                        const Real time);
+  /**
+   * Constructor.  Takes a function pointer for vector valued functions.
+   */
   AnalyticFunction (OutputVectorFunction fptr);
 
   /**
-   * Destructor.
+   * The 5 special functions can be defaulted for this class.
    */
-  ~AnalyticFunction ();
-
+  AnalyticFunction (AnalyticFunction &&) = default;
+  AnalyticFunction (const AnalyticFunction &) = default;
+  AnalyticFunction & operator= (const AnalyticFunction &) = default;
+  AnalyticFunction & operator= (AnalyticFunction &&) = default;
+  virtual ~AnalyticFunction () = default;
 
   /**
    * Pointer to user-provided function that computes
@@ -127,7 +134,7 @@ template <typename Output>
 AnalyticFunction<Output>::AnalyticFunction (OutputFunction fptr) :
   FunctionBase<Output> (),
   _number_fptr (fptr),
-  _vector_fptr (libmesh_nullptr)
+  _vector_fptr (nullptr)
 {
   libmesh_assert(fptr);
   this->_initialized = true;
@@ -139,7 +146,7 @@ template <typename Output>
 inline
 AnalyticFunction<Output>::AnalyticFunction (OutputVectorFunction fptr) :
   FunctionBase<Output> (),
-  _number_fptr (libmesh_nullptr),
+  _number_fptr (nullptr),
   _vector_fptr (fptr)
 {
   libmesh_assert(fptr);
@@ -149,18 +156,10 @@ AnalyticFunction<Output>::AnalyticFunction (OutputVectorFunction fptr) :
 
 
 template <typename Output>
-inline
-AnalyticFunction<Output>::~AnalyticFunction ()
-{
-}
-
-
-
-template <typename Output>
 void AnalyticFunction<Output>::init ()
 {
   // dumb double-test
-  libmesh_assert ((_number_fptr != libmesh_nullptr) || (_vector_fptr != libmesh_nullptr));
+  libmesh_assert ((_number_fptr != nullptr) || (_vector_fptr != nullptr));
 
   // definitely ready
   this->_initialized = true;
@@ -173,8 +172,8 @@ inline
 void AnalyticFunction<Output>::clear ()
 {
   // We probably need a method to reset these later...
-  _number_fptr = libmesh_nullptr;
-  _vector_fptr = libmesh_nullptr;
+  _number_fptr = nullptr;
+  _vector_fptr = nullptr;
 
   // definitely not ready
   this->_initialized = false;

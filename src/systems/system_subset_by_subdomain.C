@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -100,7 +100,7 @@ set_var_nums (const std::set<unsigned int> * const var_nums)
 {
   _var_nums.clear();
 
-  if (var_nums != libmesh_nullptr)
+  if (var_nums != nullptr)
     _var_nums = *var_nums;
 
   else
@@ -125,18 +125,13 @@ init (const SubdomainSelection & subdomain_selection)
   for (const auto & elem : mesh.active_local_element_ptr_range())
     if (subdomain_selection(elem->subdomain_id()))
       {
-        std::set<unsigned int>::const_iterator it = _var_nums.begin();
-        const std::set<unsigned int>::const_iterator itEnd = _var_nums.end();
-        for (; it!=itEnd; ++it)
+        for (const auto & var_num : _var_nums)
           {
-            dof_map.dof_indices (elem, dof_indices, *it);
-            for (std::size_t i=0; i<dof_indices.size(); i++)
-              {
-                const dof_id_type dof = dof_indices[i];
-                for (processor_id_type proc=0; proc<this->n_processors(); proc++)
-                  if ((dof>=dof_map.first_dof(proc)) && (dof<dof_map.end_dof(proc)))
-                    dof_ids_per_processor[proc].push_back(dof);
-              }
+            dof_map.dof_indices (elem, dof_indices, var_num);
+            for (const auto & dof : dof_indices)
+              for (processor_id_type proc=0; proc<this->n_processors(); proc++)
+                if ((dof>=dof_map.first_dof(proc)) && (dof<dof_map.end_dof(proc)))
+                  dof_ids_per_processor[proc].push_back(dof);
           }
       }
 

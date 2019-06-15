@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -82,17 +82,6 @@ public:
     return this->parent()->set_node (ParentType::side_nodes_map[_side_number][i]);
   }
 
-  /**
-   * Sides do not have sides.
-   */
-  virtual unsigned int n_sides () const override
-  { return 0; }
-
-  virtual bool is_child_on_side(const unsigned int,
-                                const unsigned int) const override
-  { libmesh_not_implemented(); return false; }
-
-
 private:
 
   /**
@@ -143,11 +132,6 @@ public:
     libmesh_assert_less (i, this->n_nodes());
     return this->parent()->set_node (ParentType::edge_nodes_map[_edge_number][i]);
   }
-
-  /**
-   * \returns 0. Edges do not have sides, so don't even ask!
-   */
-  virtual unsigned int n_sides () const override { return 0; }
 
 private:
 

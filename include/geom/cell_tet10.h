@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -57,7 +57,7 @@ namespace libMesh
  * \date 2002
  * \brief A 3D tetrahedral element with 10 nodes.
  */
-class Tet10 libmesh_final : public Tet
+class Tet10 final : public Tet
 {
 public:
 
@@ -65,7 +65,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  Tet10 (Elem * p=libmesh_nullptr) :
+  Tet10 (Elem * p=nullptr) :
     Tet(Tet10::n_nodes(), p, _nodelinks_data)
   {}
 
@@ -83,7 +83,7 @@ public:
   /**
    * \returns 10.
    */
-  virtual unsigned int n_nodes() const override { return 10; }
+  virtual unsigned int n_nodes() const override { return num_nodes; }
 
   /**
    * \returns 8.
@@ -111,6 +111,8 @@ public:
    */
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
+
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
 
   /**
    * \returns \p true if the specified (local) node number is on the
@@ -148,7 +150,13 @@ public:
    * The \p std::unique_ptr<Elem> handles the memory aspect.
    */
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds a TRI6 built coincident with face i.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   /**
    * Builds a \p EDGE3 built coincident with edge i.
@@ -184,16 +192,26 @@ public:
   second_order_child_vertex (const unsigned int n) const override;
 
   /**
+   * Geometric constants for Tet10.
+   */
+  static const int num_nodes = 10;
+  static const int num_sides = 4;
+  static const int num_edges = 6;
+  static const int num_children = 8;
+  static const int nodes_per_side = 6;
+  static const int nodes_per_edge = 3;
+
+  /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int side_nodes_map[4][6];
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ edge to
    * element node numbers.
    */
-  static const unsigned int edge_nodes_map[6][3];
+  static const unsigned int edge_nodes_map[num_edges][nodes_per_edge];
 
   /**
    * A specialization for computing the volume of a Tet10.
@@ -205,7 +223,7 @@ protected:
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[10];
+  Node * _nodelinks_data[num_nodes];
 
 
 
@@ -222,7 +240,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[8][10][10];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

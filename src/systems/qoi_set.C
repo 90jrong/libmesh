@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -28,14 +28,14 @@
 namespace libMesh
 {
 
-QoISet::QoISet(const System & sys) : _indices(sys.qoi.size(), true) {}
+QoISet::QoISet(const System & sys) : _indices(sys.n_qois(), true) {}
 
 
 
-unsigned int QoISet::size (const System & sys) const
+std::size_t QoISet::size (const System & sys) const
 {
-  unsigned int qoi_count = 0;
-  for (std::size_t i=0; i != sys.qoi.size(); ++i)
+  std::size_t qoi_count = 0;
+  for (unsigned int i=0; i != sys.n_qois(); ++i)
     if (this->has_index(i))
       qoi_count++;
   return qoi_count;

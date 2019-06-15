@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -58,7 +58,10 @@
 #define EXTERN_C_FOR_PETSC_END
 
 // Petsc include files
+// Wrapped to avoid triggering our more paranoid warnings
+#include <libmesh/ignore_warnings.h>
 #include <petsc.h>
+#include <libmesh/restore_warnings.h>
 
 #if PETSC_RELEASE_LESS_THAN(3,1,1)
 typedef PetscTruth PetscBool;
@@ -83,6 +86,12 @@ typedef PetscTruth PetscBool;
 #  define LibMeshPetscViewerDestroy(x) PetscViewerDestroy(x)
 #  define LibMeshPCDestroy(x)          PCDestroy(x)
 #endif
+
+// PETSc devs temporarily considered adding VecScatterCreateWithData, but
+// it was dropped in PETSc-130e142e39 and never made it into any release.
+// We will keep the ifdef for backwards compatibility in case anyone wrote
+// code directly using it, but that should be pretty unlikely.
+#define LibMeshVecScatterCreate(xin,ix,yin,iy,newctx)  VecScatterCreate(xin,ix,yin,iy,newctx)
 
 #if PETSC_RELEASE_LESS_THAN(3,1,1)
 typedef enum { PETSC_COPY_VALUES, PETSC_OWN_POINTER, PETSC_USE_POINTER} PetscCopyMode;

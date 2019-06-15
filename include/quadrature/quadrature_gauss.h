@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -49,11 +49,11 @@ public:
    * however if we called the function with INVALID_ELEM it would try
    * to be smart and return, thinking it had already done the work.
    */
-  QGauss (unsigned int _dim,
-          Order _order=INVALID_ORDER) :
-    QBase(_dim, _order)
+  QGauss (unsigned int dim,
+          Order order=INVALID_ORDER) :
+    QBase(dim, order)
   {
-    if (_dim == 1)
+    if (dim == 1)
       init(EDGE2);
   }
 
@@ -75,12 +75,9 @@ public:
 
 private:
 
-  virtual void init_1D (const ElemType _type=INVALID_ELEM,
-                        unsigned int p_level=0) override;
-  virtual void init_2D (const ElemType _type=INVALID_ELEM,
-                        unsigned int p_level=0) override;
-  virtual void init_3D (const ElemType _type=INVALID_ELEM,
-                        unsigned int p_level=0) override;
+  virtual void init_1D (const ElemType, unsigned int) override;
+  virtual void init_2D (const ElemType, unsigned int) override;
+  virtual void init_3D (const ElemType, unsigned int) override;
 
   /**
    * The Dunavant rules are for triangles. This function takes

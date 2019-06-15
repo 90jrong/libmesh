@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -134,6 +134,51 @@ std::unique_ptr<Elem> InfPrism::side_ptr (const unsigned int i)
 
 
 
+void InfPrism::side_ptr (std::unique_ptr<Elem> & side,
+                         const unsigned int i)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  switch (i)
+    {
+      // the base face
+    case 0:
+      {
+        if (!side.get() || side->type() != TRI3)
+          {
+            side = this->side_ptr(i);
+            return;
+          }
+        break;
+      }
+
+      // connecting to another infinite element
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      {
+        if (!side.get() || side->type() != INFQUAD4)
+          {
+            side = this->side_ptr(i);
+            return;
+          }
+        break;
+      }
+
+    default:
+      libmesh_error_msg("Invalid side i = " << i);
+    }
+
+  side->subdomain_id() = this->subdomain_id();
+
+  // Set the nodes
+  for (auto n : side->node_index_range())
+    side->set_node(n) = this->node_ptr(InfPrism6::side_nodes_map[i][n]);
+}
+
+
+
 bool InfPrism::is_child_on_side(const unsigned int c,
                                 const unsigned int s) const
 {
@@ -176,9 +221,18 @@ bool InfPrism::contains_point (const Point & p, Real tol) const
   Point pt0_o(this->point(0) - my_origin);
   Point pt1_o(this->point(1) - my_origin);
   Point pt2_o(this->point(2) - my_origin);
-  const Real min_distance_sq = std::min(pt0_o.norm_sq(),
-                                        std::min(pt1_o.norm_sq(),
-                                                 pt2_o.norm_sq()));
+  const Real tmp_min_distance_sq = std::min(pt0_o.norm_sq(),
+                                            std::min(pt1_o.norm_sq(),
+                                                     pt2_o.norm_sq()));
+
+  // For a coarse grid, it is important to account for the fact
+  // that the sides are not spherical, thus the closest point
+  // can be closer than all edges.
+  // This is an estimator using Pythagoras:
+  const Real min_distance_sq = tmp_min_distance_sq
+                              - .5*std::max((point(0)-point(1)).norm_sq(),
+                                             std::max((point(0)-point(2)).norm_sq(),
+                                                      (point(1)-point(2)).norm_sq()));
 
   // work with 1% allowable deviation.  We can still fall
   // back to the InfFE::inverse_map()

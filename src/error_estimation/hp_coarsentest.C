@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -106,12 +106,8 @@ void HPCoarsenTest::add_projection(const System & system,
             system.current_solution(dof_num);
           if (cont == C_ZERO || cont == C_ONE)
             grad.add_scaled((*dphi)[i][qp],system.current_solution(dof_num));
-          // grad += (*dphi)[i][qp] *
-          //  system.current_solution(dof_num);
           if (cont == C_ONE)
             hess.add_scaled((*d2phi)[i][qp], system.current_solution(dof_num));
-          // hess += (*d2phi)[i][qp] *
-          //  system.current_solution(dof_num);
         }
 
       // The projection matrix and vector
@@ -125,8 +121,6 @@ void HPCoarsenTest::add_projection(const System & system,
           if (cont == C_ONE)
             Fe(i) += (*JxW)[qp] *
               hess.contract((*d2phi_coarse)[i][qp]);
-          // Fe(i) += (*JxW)[qp] *
-          //  (*d2phi_coarse)[i][qp].contract(hess);
 
           for (unsigned int j=0; j != Fe.size(); ++j)
             {
@@ -199,7 +193,7 @@ void HPCoarsenTest::select_refinement (System & system)
       fe_coarse = FEBase::build (dim, fe_type);
 
       // Any cached coarse element results have expired
-      coarse = libmesh_nullptr;
+      coarse = nullptr;
       unsigned int cached_coarse_p_level = 0;
 
       const FEContinuity cont = fe->get_continuity();
@@ -242,7 +236,7 @@ void HPCoarsenTest::select_refinement (System & system)
 
       // Iterate over all the active elements in the mesh
       // that live on this processor.
-      for (const auto & elem : mesh.active_local_element_ptr_range())
+      for (auto & elem : mesh.active_local_element_ptr_range())
         {
           // We're only checking elements that are already flagged for h
           // refinement
@@ -263,11 +257,11 @@ void HPCoarsenTest::select_refinement (System & system)
               cached_coarse_p_level = elem->p_level();
 
               unsigned int old_parent_level = coarse->p_level();
-              (const_cast<Elem *>(coarse))->hack_p_level(elem->p_level());
+              coarse->hack_p_level(elem->p_level());
 
               this->add_projection(system, coarse, var);
 
-              (const_cast<Elem *>(coarse))->hack_p_level(old_parent_level);
+              coarse->hack_p_level(old_parent_level);
 
               // Solve the h-coarsening projection problem
               Ke.cholesky_solve(Fe, Uc);
@@ -312,14 +306,14 @@ void HPCoarsenTest::select_refinement (System & system)
           else
             {
               unsigned int old_elem_level = elem->p_level();
-              (const_cast<Elem *>(elem))->hack_p_level(old_elem_level - 1);
+              elem->hack_p_level(old_elem_level - 1);
 
               fe_coarse->reinit(elem, &(qrule->get_points()));
 
               const unsigned int n_coarse_dofs =
                 cast_int<unsigned int>(phi_coarse->size());
 
-              (const_cast<Elem *>(elem))->hack_p_level(old_elem_level);
+              elem->hack_p_level(old_elem_level);
 
               Ke.resize(n_coarse_dofs, n_coarse_dofs);
               Ke.zero();
@@ -341,12 +335,8 @@ void HPCoarsenTest::select_refinement (System & system)
                         system.current_solution(dof_num);
                       if (cont == C_ZERO || cont == C_ONE)
                         grad.add_scaled((*dphi)[i][qp], system.current_solution(dof_num));
-                      // grad += (*dphi)[i][qp] *
-                      //  system.current_solution(dof_num);
                       if (cont == C_ONE)
                         hess.add_scaled((*d2phi)[i][qp], system.current_solution(dof_num));
-                      // hess += (*d2phi)[i][qp] *
-                      //  system.current_solution(dof_num);
                     }
 
                   // The projection matrix and vector
@@ -392,12 +382,8 @@ void HPCoarsenTest::select_refinement (System & system)
                     system.current_solution(dof_num);
                   if (cont == C_ZERO || cont == C_ONE)
                     grad_error.add_scaled((*dphi)[i][qp], system.current_solution(dof_num));
-                  // grad_error += (*dphi)[i][qp] *
-                  //  system.current_solution(dof_num);
                   if (cont == C_ONE)
                     hessian_error.add_scaled((*d2phi)[i][qp], system.current_solution(dof_num));
-                  // hessian_error += (*d2phi)[i][qp] *
-                  //    system.current_solution(dof_num);
                 }
               if (elem->p_level() == 0)
                 {
@@ -410,10 +396,8 @@ void HPCoarsenTest::select_refinement (System & system)
                       value_error -= (*phi_coarse)[i][qp] * Up(i);
                       if (cont == C_ZERO || cont == C_ONE)
                         grad_error.subtract_scaled((*dphi_coarse)[i][qp], Up(i));
-                      // grad_error -= (*dphi_coarse)[i][qp] * Up(i);
                       if (cont == C_ONE)
                         hessian_error.subtract_scaled((*d2phi_coarse)[i][qp], Up(i));
-                      // hessian_error -= (*d2phi_coarse)[i][qp] * Up(i);
                     }
                 }
 
@@ -445,11 +429,11 @@ void HPCoarsenTest::select_refinement (System & system)
                                         *xyz_values, coarse_qpoints);
 
               unsigned int old_parent_level = coarse->p_level();
-              (const_cast<Elem *>(coarse))->hack_p_level(elem->p_level());
+              coarse->hack_p_level(elem->p_level());
 
               fe_coarse->reinit(coarse, &coarse_qpoints);
 
-              (const_cast<Elem *>(coarse))->hack_p_level(old_parent_level);
+              coarse->hack_p_level(old_parent_level);
 
               // The number of DOFS on the coarse element
               unsigned int n_coarse_dofs =
@@ -470,23 +454,17 @@ void HPCoarsenTest::select_refinement (System & system)
                         system.current_solution(dof_num);
                       if (cont == C_ZERO || cont == C_ONE)
                         grad_error.add_scaled((*dphi)[i][qp], system.current_solution(dof_num));
-                      // grad_error += (*dphi)[i][qp] *
-                      //  system.current_solution(dof_num);
                       if (cont == C_ONE)
                         hessian_error.add_scaled((*d2phi)[i][qp], system.current_solution(dof_num));
-                      // hessian_error += (*d2phi)[i][qp] *
-                      //  system.current_solution(dof_num);
                     }
 
                   for (unsigned int i=0; i != n_coarse_dofs; ++i)
                     {
                       value_error -= (*phi_coarse)[i][qp] * Uc(i);
                       if (cont == C_ZERO || cont == C_ONE)
-                        // grad_error -= (*dphi_coarse)[i][qp] * Uc(i);
                         grad_error.subtract_scaled((*dphi_coarse)[i][qp], Uc(i));
                       if (cont == C_ONE)
                         hessian_error.subtract_scaled((*d2phi_coarse)[i][qp], Uc(i));
-                      // hessian_error -= (*d2phi_coarse)[i][qp] * Uc(i);
                     }
 
                   h_error_per_cell[e_id] += static_cast<ErrorVectorReal>

@@ -104,7 +104,7 @@ struct AssemblyA0 : ElemAssemblyWithConstruction
         {
           const unsigned int u_var = 0;
 
-          FEBase * side_fe = libmesh_nullptr;
+          FEBase * side_fe = nullptr;
           c.get_side_fe(u_var, side_fe);
 
           const std::vector<Real> & JxW_side = side_fe->get_JxW();
@@ -147,7 +147,7 @@ struct AssemblyA1 : ElemAssemblyWithConstruction
         {
           const unsigned int u_var = 0;
 
-          FEBase * side_fe = libmesh_nullptr;
+          FEBase * side_fe = nullptr;
           c.get_side_fe(u_var, side_fe);
 
           const std::vector<Real> & JxW_side = side_fe->get_JxW();
@@ -194,7 +194,7 @@ struct AssemblyA2 : ElemAssemblyWithConstruction
         {
           const unsigned int u_var = 0;
 
-          FEBase * side_fe = libmesh_nullptr;
+          FEBase * side_fe = nullptr;
           c.get_side_fe(u_var, side_fe);
 
           const std::vector<Real> & JxW_side = side_fe->get_JxW();
@@ -260,7 +260,7 @@ struct AssemblyEIM : RBEIMAssembly
     const unsigned int Gy_var = 1;
     const unsigned int Gz_var = 2;
 
-    FEBase * elem_fe = libmesh_nullptr;
+    FEBase * elem_fe = nullptr;
     c.get_element_fe(u_var, elem_fe);
 
     const std::vector<Real> & JxW = elem_fe->get_JxW();
@@ -270,28 +270,25 @@ struct AssemblyEIM : RBEIMAssembly
     // The number of local degrees of freedom in each variable
     const unsigned int n_u_dofs = c.get_dof_indices(u_var).size();
 
-    // Now we will build the affine operator
-    unsigned int n_qpoints = c.get_element_qrule().n_points();
-
     std::vector<Number> eim_values_Gx;
     evaluate_basis_function(Gx_var,
                             c.get_elem(),
-                            c.get_element_qrule(),
+                            c.get_element_qrule().get_points(),
                             eim_values_Gx);
 
     std::vector<Number> eim_values_Gy;
     evaluate_basis_function(Gy_var,
                             c.get_elem(),
-                            c.get_element_qrule(),
+                            c.get_element_qrule().get_points(),
                             eim_values_Gy);
 
     std::vector<Number> eim_values_Gz;
     evaluate_basis_function(Gz_var,
                             c.get_elem(),
-                            c.get_element_qrule(),
+                            c.get_element_qrule().get_points(),
                             eim_values_Gz);
 
-    for (unsigned int qp=0; qp != n_qpoints; qp++)
+    for (unsigned int qp=0; qp != c.get_element_qrule().n_points(); qp++)
       for (unsigned int i=0; i != n_u_dofs; i++)
         for (unsigned int j=0; j != n_u_dofs; j++)
           c.get_elem_jacobian()(i,j) += JxW[qp] * (eim_values_Gx[qp]*dphi[i][qp](0)*dphi[j][qp](0) +
@@ -313,7 +310,7 @@ struct AssemblyF0 : ElemAssembly
   {
     const unsigned int u_var = 0;
 
-    FEBase * elem_fe = libmesh_nullptr;
+    FEBase * elem_fe = nullptr;
     c.get_element_fe(u_var, elem_fe);
 
     const std::vector<Real> & JxW = elem_fe->get_JxW();
@@ -347,7 +344,7 @@ struct AssemblyF1 : ElemAssembly
   {
     const unsigned int u_var = 0;
 
-    FEBase * elem_fe = libmesh_nullptr;
+    FEBase * elem_fe = nullptr;
     c.get_element_fe(u_var, elem_fe);
 
     const std::vector<Real> & JxW = elem_fe->get_JxW();
@@ -379,7 +376,7 @@ struct Ex6InnerProduct : ElemAssembly
   {
     const unsigned int u_var = 0;
 
-    FEBase * elem_fe = libmesh_nullptr;
+    FEBase * elem_fe = nullptr;
     c.get_element_fe(u_var, elem_fe);
 
     const std::vector<Real> & JxW = elem_fe->get_JxW();
@@ -404,7 +401,7 @@ struct Ex6EIMInnerProduct : ElemAssembly
   // Use the L2 inner product to find the best fit
   virtual void interior_assembly(FEMContext & c)
   {
-    FEBase * elem_fe = libmesh_nullptr;
+    FEBase * elem_fe = nullptr;
     c.get_element_fe(0, elem_fe);
 
     const std::vector<Real> & JxW = elem_fe->get_JxW();

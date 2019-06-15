@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -61,21 +61,21 @@ RemoteElem::~RemoteElem()
 {
   RemoteElemMutex::scoped_lock lock(remote_elem_mtx);
 
-  remote_elem = libmesh_nullptr;
+  remote_elem = nullptr;
 }
 
 
 
 const Elem & RemoteElem::create ()
 {
-  if (remote_elem != libmesh_nullptr)
+  if (remote_elem != nullptr)
     return *remote_elem;
 
   RemoteElemMutex::scoped_lock lock(remote_elem_mtx);
 
   // check again - object could have been created while waiting
   // for the lock to acquire!
-  if (remote_elem == libmesh_nullptr)
+  if (remote_elem == nullptr)
     remote_elem = new RemoteElem;
 
   return *remote_elem;

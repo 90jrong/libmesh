@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -257,6 +257,9 @@ public:
     libmesh_assert_less (v, this->n_variables());
     return _number + v;
   }
+
+  // Don't let number(uint) hide number()
+  using Variable::number;
 
   /**
    * \returns The index of the first scalar component of this variable in the

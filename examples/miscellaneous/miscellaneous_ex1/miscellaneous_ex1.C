@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -306,6 +306,9 @@ void assemble_wave(EquationSystems & es,
       // contribute to.
       dof_map.dof_indices (elem, dof_indices);
 
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+
       // The mesh contains both finite and infinite elements.  These
       // elements are handled through different classes, namely
       // FE and InfFE, respectively.  However, since both
@@ -313,7 +316,7 @@ void assemble_wave(EquationSystems & es,
       // and overall burden of coding is @e greatly reduced through
       // using a pointer, which is adjusted appropriately to the
       // current element type.
-      FEBase * cfe = libmesh_nullptr;
+      FEBase * cfe = nullptr;
 
       // This here is almost the only place where we need to
       // distinguish between finite and infinite elements.
@@ -341,7 +344,7 @@ void assemble_wave(EquationSystems & es,
           // conditions check e.g. previous examples.
           {
             // Zero the RHS for this element.
-            Fe.resize (dof_indices.size());
+            Fe.resize (n_dofs);
 
             system.rhs->add_vector (Fe, dof_indices);
           } // end boundary condition section
@@ -383,9 +386,9 @@ void assemble_wave(EquationSystems & es,
 
       // Zero the element matrices.  Boundary conditions were already
       // processed in the FE-only section, see above.
-      Ke.resize (dof_indices.size(), dof_indices.size());
-      Ce.resize (dof_indices.size(), dof_indices.size());
-      Me.resize (dof_indices.size(), dof_indices.size());
+      Ke.resize (n_dofs, n_dofs);
+      Ce.resize (n_dofs, n_dofs);
+      Me.resize (n_dofs, n_dofs);
 
       // The total number of quadrature points for infinite elements
       // @e has to be determined in a different way, compared to

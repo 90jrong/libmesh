@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,12 @@ namespace libMesh
 
 // ------------------------------------------------------------
 // InfQuad6 class static member initializations
-const unsigned int InfQuad6::side_nodes_map[3][3] =
+const int InfQuad6::num_nodes;
+const int InfQuad6::num_sides;
+const int InfQuad6::num_children;
+const int InfQuad6::nodes_per_side;
+
+const unsigned int InfQuad6::side_nodes_map[InfQuad6::num_sides][InfQuad6::nodes_per_side] =
   {
     {0, 1, 4},  // Side 0
     {1, 3, 99}, // Side 1
@@ -71,15 +76,22 @@ bool InfQuad6::is_node_on_side(const unsigned int n,
                                const unsigned int s) const
 {
   libmesh_assert_less (s, n_sides());
-  for (unsigned int i = 0; i != 3; ++i)
-    if (side_nodes_map[s][i] == n)
-      return true;
-  return false;
+  return std::find(std::begin(side_nodes_map[s]),
+                   std::end(side_nodes_map[s]),
+                   n) != std::end(side_nodes_map[s]);
+}
+
+std::vector<unsigned>
+InfQuad6::nodes_on_side(const unsigned int s) const
+{
+  libmesh_assert_less(s, n_sides());
+  auto trim = (s == 0) ? 0 : 1;
+  return {std::begin(side_nodes_map[s]), std::end(side_nodes_map[s]) - trim};
 }
 
 #ifdef LIBMESH_ENABLE_AMR
 
-const float InfQuad6::_embedding_matrix[2][6][6] =
+const float InfQuad6::_embedding_matrix[InfQuad6::num_children][InfQuad6::num_nodes][InfQuad6::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -142,7 +154,7 @@ unsigned int InfQuad6::which_node_am_i(unsigned int side,
                                        unsigned int side_node) const
 {
   libmesh_assert_less (side, this->n_sides());
-  libmesh_assert ((side == 0 && side_node < 3) || (side_node < 2));
+  libmesh_assert ((side == 0 && side_node < InfQuad6::nodes_per_side) || (side_node < 2));
 
   return InfQuad6::side_nodes_map[side][side_node];
 }
@@ -205,6 +217,49 @@ std::unique_ptr<Elem> InfQuad6::build_side_ptr (const unsigned int i,
     }
 }
 
+
+
+void InfQuad6::build_side_ptr (std::unique_ptr<Elem> & side,
+                               const unsigned int i)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  // Think of a unit cube: (-1,1) x (-1,1) x (1,1)
+  switch (i)
+    {
+      // the base face
+    case 0:
+      {
+        if (!side.get() || side->type() != EDGE3)
+          {
+            side = this->build_side_ptr(i, false);
+            return;
+          }
+        break;
+      }
+
+      // connecting to another infinite element
+    case 1:
+    case 2:
+      {
+        if (!side.get() || side->type() != INFEDGE2)
+          {
+            side = this->build_side_ptr(i, false);
+            return;
+          }
+        break;
+      }
+
+    default:
+      libmesh_error_msg("Invalid side i = " << i);
+    }
+
+  side->subdomain_id() = this->subdomain_id();
+
+  // Set the nodes
+  for (auto n : side->node_index_range())
+    side->set_node(n) = this->node_ptr(InfQuad6::side_nodes_map[i][n]);
+}
 
 
 

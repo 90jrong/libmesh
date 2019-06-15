@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -46,7 +46,14 @@ class ConstFEMFunction : public FEMFunctionBase<Output>
 public:
   ConstFEMFunction (const Output c) : _c(c) {}
 
-  ~ConstFEMFunction() {}
+  /**
+   * The 5 special functions can be defaulted for this class.
+   */
+  ConstFEMFunction (ConstFEMFunction &&) = default;
+  ConstFEMFunction (const ConstFEMFunction &) = default;
+  ConstFEMFunction & operator= (const ConstFEMFunction &) = default;
+  ConstFEMFunction & operator= (ConstFEMFunction &&) = default;
+  virtual ~ConstFEMFunction () = default;
 
   virtual std::unique_ptr<FEMFunctionBase<Output>> clone () const
   {return libmesh_make_unique<ConstFEMFunction>(*this); }
@@ -61,7 +68,7 @@ public:
                            const Real,
                            DenseVector<Output> & output)
   {
-    for (std::size_t i = 0; i < output.size(); i++)
+    for (unsigned int i = 0; i < output.size(); i++)
       output(i) = _c;
   }
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,8 +30,10 @@
 
 // Trilinos include files.  AztecOO requires Epetra, so there's no
 // need to check for both.
+#include "libmesh/ignore_warnings.h"
 #include <Epetra_LinearProblem.h>
 #include <AztecOO.h>
+#include "libmesh/restore_warnings.h"
 
 // C++ includes
 #include <vector>
@@ -69,7 +71,7 @@ public:
   /**
    * Initialize data structures if not done so already.
    */
-  virtual void init (const char * name=libmesh_nullptr) override;
+  virtual void init (const char * name=nullptr) override;
 
   /**
    * Call the Aztec solver.  It calls the method below, using the

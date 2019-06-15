@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -94,7 +94,7 @@ public:
    * skip it.
    */
   virtual void read (const std::string & name,
-                     void * mesh_data=libmesh_nullptr,
+                     void * mesh_data=nullptr,
                      bool skip_renumber_nodes_and_elements=false,
                      bool skip_find_neighbors=false) override;
   /**
@@ -147,7 +147,7 @@ public:
    * them to the new mesh.
    */
   void create_submesh (UnstructuredMesh & new_mesh,
-                       const_element_iterator & it,
+                       const const_element_iterator & it,
                        const const_element_iterator & it_end) const;
 
 

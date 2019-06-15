@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -249,16 +249,19 @@ public:
 
 // Ask a mesh's ghosting functors to insert into a set all elements
 // that are either on or connected to processor id \p pid.  Ask only
-// for newly-coarsened elements if \p newly_coarsened_only is true.
+// for elements in the range from \p elem_it before \p elem_end;
+// typically this may be mesh.active_pid_elements_*(pid)
 void query_ghosting_functors(const MeshBase & mesh,
                              processor_id_type pid,
-                             bool newly_coarsened_only,
+                             MeshBase::const_element_iterator elem_it,
+                             MeshBase::const_element_iterator elem_end,
                              std::set<const Elem *, CompareElemIdsByLevel> & connected_elements);
 
-// Take a set of elements and insert all elements' immediate
-// children as well.
+// Take a set of elements and insert all immediate
+// children of elements in the given range
 void connect_children(const MeshBase & mesh,
-                      processor_id_type pid,
+                      MeshBase::const_element_iterator elem_it,
+                      MeshBase::const_element_iterator elem_end,
                       std::set<const Elem *, CompareElemIdsByLevel> & connected_elements);
 
 // Take a set of elements and insert all elements' ancestors and

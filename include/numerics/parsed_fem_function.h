@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -62,13 +62,27 @@ public:
   explicit
   ParsedFEMFunction (const System & sys,
                      const std::string & expression,
-                     const std::vector<std::string> * additional_vars=libmesh_nullptr,
-                     const std::vector<Output> * initial_vals=libmesh_nullptr);
+                     const std::vector<std::string> * additional_vars=nullptr,
+                     const std::vector<Output> * initial_vals=nullptr);
 
   /**
-   * Destructor.
+   * This class contains a const reference so it can't be copy or move-assigned.
    */
-  virtual ~ParsedFEMFunction () {}
+  ParsedFEMFunction & operator= (const ParsedFEMFunction &) = delete;
+  ParsedFEMFunction & operator= (ParsedFEMFunction &&) = delete;
+
+  /**
+   * The remaining 5 special functions can be safely defaulted.
+   *
+   * \note The underlying FunctionParserBase class has a copy
+   * constructor, so this class should be default-constructible.  And,
+   * although FunctionParserBase's move constructor is deleted, _this_
+   * class should still be move-constructible because
+   * FunctionParserBase only appears in a vector.
+   */
+  ParsedFEMFunction (const ParsedFEMFunction &) = default;
+  ParsedFEMFunction (ParsedFEMFunction &&) = default;
+  virtual ~ParsedFEMFunction () = default;
 
   /**
    * Re-parse with new expression.
@@ -449,7 +463,7 @@ ParsedFEMFunction<Output>::get_inline_value(const std::string & inline_var_name)
       libmesh_assert_not_equal_to(assignment_i, std::string::npos);
 
       libmesh_assert_equal_to(subexpression[assignment_i+1], '=');
-      for (unsigned int i = varname_i+1; i != assignment_i; ++i)
+      for (std::size_t i = varname_i+1; i != assignment_i; ++i)
         libmesh_assert_equal_to(subexpression[i], ' ');
 
       std::size_t end_assignment_i =
@@ -526,7 +540,7 @@ ParsedFEMFunction<Output>::set_inline_value (const std::string & inline_var_name
       libmesh_assert_not_equal_to(assignment_i, std::string::npos);
 
       libmesh_assert_equal_to(subexpression[assignment_i+1], '=');
-      for (unsigned int i = varname_i+1; i != assignment_i; ++i)
+      for (std::size_t i = varname_i+1; i != assignment_i; ++i)
         libmesh_assert_equal_to(subexpression[i], ' ');
 
       std::size_t end_assignment_i =
@@ -790,7 +804,7 @@ ParsedFEMFunction<Output>::eval (FunctionParserBase<Output> & parser,
                                  unsigned int libmesh_dbg_var(component_idx)) const
 {
 #ifndef NDEBUG
-  Output result = parser.Eval(&_spacetime[0]);
+  Output result = parser.Eval(_spacetime.data());
   int error_code = parser.EvalError();
   if (error_code)
     {
@@ -832,7 +846,7 @@ ParsedFEMFunction<Output>::eval (FunctionParserBase<Output> & parser,
 
   return result;
 #else
-  return parser.Eval(&_spacetime[0]);
+  return parser.Eval(_spacetime.data());
 #endif
 }
 #else // LIBMESH_HAVE_FPARSER

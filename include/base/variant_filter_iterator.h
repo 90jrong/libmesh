@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -375,18 +375,18 @@ public:
    * Default Constructor.
    */
   variant_filter_iterator () :
-    data(libmesh_nullptr),
-    end(libmesh_nullptr),
-    pred(libmesh_nullptr) {}
+    data(nullptr),
+    end(nullptr),
+    pred(nullptr) {}
 
   /**
    * Copy Constructor.
    * Copy the internal data instead of sharing it.
    */
   variant_filter_iterator (const Iterator & rhs) :
-    data (rhs.data != libmesh_nullptr ? rhs.data->clone() : libmesh_nullptr),
-    end  (rhs.end  != libmesh_nullptr ? rhs.end->clone()  : libmesh_nullptr),
-    pred (rhs.pred != libmesh_nullptr ? rhs.pred->clone() : libmesh_nullptr) {}
+    data (rhs.data != nullptr ? rhs.data->clone() : nullptr),
+    end  (rhs.end  != nullptr ? rhs.end->clone()  : nullptr),
+    pred (rhs.pred != nullptr ? rhs.pred->clone() : nullptr) {}
 
 
 
@@ -403,9 +403,9 @@ public:
    */
   template <class OtherType, class OtherReferenceType, class OtherPointerType>
   variant_filter_iterator (const variant_filter_iterator<Predicate, OtherType, OtherReferenceType, OtherPointerType> & rhs)
-    : data (rhs.data != libmesh_nullptr ? rhs.data->const_clone() : libmesh_nullptr),
-      end  (rhs.end  != libmesh_nullptr ? rhs.end->const_clone()  : libmesh_nullptr),
-      pred (rhs.pred != libmesh_nullptr ? rhs.pred->const_clone() : libmesh_nullptr)
+    : data (rhs.data != nullptr ? rhs.data->const_clone() : nullptr),
+      end  (rhs.end  != nullptr ? rhs.end->const_clone()  : nullptr),
+      pred (rhs.pred != nullptr ? rhs.pred->const_clone() : nullptr)
   {
     // libMesh::out << "Called templated copy constructor for variant_filter_iterator" << std::endl;
   }
@@ -420,9 +420,9 @@ public:
    */
   virtual ~variant_filter_iterator()
   {
-    delete data; data = libmesh_nullptr;
-    delete end;  end  = libmesh_nullptr;
-    delete pred; pred = libmesh_nullptr;
+    delete data; data = nullptr;
+    delete end;  end  = nullptr;
+    delete pred; pred = nullptr;
   }
 
   /**

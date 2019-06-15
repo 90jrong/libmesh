@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2012 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@ QComposite<QSubCell>::QComposite(unsigned int d,
   if (_dim == 1)
     QSubCell::init(EDGE2);
 
-  libmesh_assert (_lagrange_fe.get() != libmesh_nullptr);
+  libmesh_assert (_lagrange_fe.get() != nullptr);
 
   _lagrange_fe->attach_quadrature_rule (&_q_subcell);
 }
@@ -89,7 +89,7 @@ void QComposite<QSubCell>::init (const Elem & elem,
   // mapping.
   const Elem * reference_elem = elem.reference_elem();
 
-  libmesh_assert (reference_elem != libmesh_nullptr);
+  libmesh_assert (reference_elem != nullptr);
 
   _elem_cutter(*reference_elem, vertex_distance_func);
   //_elem_cutter(elem, vertex_distance_func);

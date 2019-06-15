@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 #include "libmesh/message_tag.h"
 #include "libmesh/request.h"
 #include "libmesh/status.h"
+#include "libmesh/post_wait_dereference_shared_ptr.h"
 
 // libMesh Includes
 #include "libmesh/libmesh_common.h"
@@ -52,6 +53,9 @@ namespace libMesh
 namespace Parallel
 {
 
+template <typename T>
+class Packing;
+
 #ifdef LIBMESH_HAVE_MPI
 
 //-------------------------------------------------------------------
@@ -59,6 +63,11 @@ namespace Parallel
  * Communicator object for talking with subsets of processors
  */
 typedef MPI_Comm communicator;
+
+/**
+ * Info object used by some MPI-3 methods
+ */
+typedef MPI_Info info;
 
 /**
  * Processor id meaning "Accept from any source"
@@ -72,6 +81,8 @@ const unsigned int any_source =
 // unique types for function overloading to work
 // properly.
 typedef int communicator; // Must match petsc-nompi definition
+
+typedef int info;
 
 const unsigned int any_source=0;
 
@@ -120,9 +131,16 @@ public:
   ~Communicator ();
 
   /*
-   * Create a new communicator between some subset of \p this
+   * Create a new communicator between some subset of \p this,
+   * based on specified "color"
    */
   void split(int color, int key, Communicator & target) const;
+
+  /*
+   * Create a new communicator between some subset of \p this,
+   * based on specified split "type" (e.g. MPI_COMM_TYPE_SHARED)
+   */
+  void split_by_type(int split_type, int key, info i, Communicator & target) const;
 
   /*
    * Create a new duplicate of \p this communicator
@@ -139,13 +157,22 @@ public:
   const communicator & get() const { return _communicator; }
 
   /**
-   * Get a tag that is unique to this Communicator.
+   * Get a tag that is unique to this Communicator.  A requested tag
+   * value may be provided.  If no request is made then an automatic
+   * unique tag value will be generated; such usage of
+   * get_unique_tag() must be done on every processor in a consistent
+   * order.
    *
    * \note If people are also using magic numbers or copying
-   * communicators around then we can't guarantee the tag is unique to
-   * this MPI_Comm.
+   * raw communicators around then we can't guarantee the tag is
+   * unique to this MPI_Comm.
+   *
+   * \note Leaving \p tagvalue unspecified is recommended in most
+   * cases.  Manually selecting tag values is dangerous, as tag values may be
+   * freed and reselected earlier than expected in asynchronous
+   * communication algorithms.
    */
-  MessageTag get_unique_tag(int tagvalue) const;
+  MessageTag get_unique_tag(int tagvalue = MessageTag::invalid_tag) const;
 
   /**
    * Reference an already-acquired tag, so that we know it will
@@ -166,9 +193,9 @@ public:
 
   Communicator & operator= (const communicator & comm);
 
-  unsigned int rank() const { return _rank; }
+  processor_id_type rank() const { return _rank; }
 
-  unsigned int size() const { return _size; }
+  processor_id_type size() const { return _size; }
 
   /**
    * Whether to use default or synchronous sends?
@@ -184,13 +211,18 @@ private:
   void assign(const communicator & comm);
 
   communicator  _communicator;
-  unsigned int  _rank, _size;
+  processor_id_type _rank, _size;
   SendMode _send_mode;
 
-  // mutable used_tag_values - not thread-safe, but then Parallel::
-  // isn't thread-safe in general.
+  // mutable used_tag_values and tag_queue - not thread-safe, but then
+  // Parallel:: isn't thread-safe in general.
   mutable std::map<int, unsigned int> used_tag_values;
-  bool          _I_duped_it;
+  mutable int _next_tag;
+
+  int _max_tag;
+
+  // Keep track of duplicate/split operations so we know when to free
+  bool _I_duped_it;
 
   // Communication operations:
 public:
@@ -211,6 +243,11 @@ public:
   void barrier () const;
 
   /**
+   * Start a barrier that doesn't block
+   */
+  void nonblocking_barrier (Request & req) const;
+
+  /**
    * Verify that a local variable has the same value on all processors.
    * Containers must have the same value in every entry.
    */
@@ -219,7 +256,7 @@ public:
 
   /**
    * Verify that a local pointer points to the same value on all
-   * processors where it is not NULL.
+   * processors where it is not nullptr.
    * Containers must have the same value in every entry.
    */
   template <typename T>
@@ -410,6 +447,36 @@ public:
                 const MessageTag & tag=any_tag) const;
 
   /**
+   * Nonblocking-receive from one processor with user-defined type.
+   *
+   * Checks to see if a message can be received from the
+   * src_processor_id .  If so, it starts a non-blocking
+   * receive using the passed in request and returns true
+   *
+   * Otherwise - if there is no message to receive it returns false
+   *
+   * Note: The buf does NOT need to properly sized before this call
+   * this will resize the buffer automatically
+   *
+   * If \p T is a container, container-of-containers, etc., then
+   * \p type should be the DataType of the underlying fixed-size
+   * entries in the container(s).
+   *
+   * @param src_processor_id The pid to receive from or "any".
+   * will be set to the actual src being receieved from
+   * @param buf THe buffer to receive into
+   * @param type The intrinsic datatype to receive
+   * @param req The request to use
+   * @param tag The tag to use
+   */
+  template <typename T, typename A>
+  bool possibly_receive (unsigned int & src_processor_id,
+                         std::vector<T,A> & buf,
+                         const DataType & type,
+                         Request & req,
+                         const MessageTag & tag) const;
+
+  /**
    * Blocking-send range-of-pointers to one processor.  This
    * function does not send the raw pointers, but rather constructs
    * new objects at the other end whose contents match the objects
@@ -466,6 +533,24 @@ public:
                                       Request & req,
                                       const MessageTag & tag=no_tag) const;
 
+
+  /**
+   * Similar to the above Nonblocking send_packed_range with a few important differences:
+   *
+   * 1. The total size of the packed buffer MUST be less than std::numeric_limits<int>::max()
+   * 2. Only _one_ message is generated
+   * 3. On the receiving end the message should be tested for using Communicator::packed_range_probe()
+   * 4. The message must be received by Communicator::nonblocking_receive_packed_range()
+   */
+  template <typename Context, typename Iter>
+  void nonblocking_send_packed_range (const unsigned int dest_processor_id,
+                                      const Context * context,
+                                      Iter range_begin,
+                                      const Iter range_end,
+                                      Request & req,
+                                      std::shared_ptr<std::vector<typename Parallel::Packing<typename std::iterator_traits<Iter>::value_type>::buffer_type>> & buffer,
+                                      const MessageTag & tag=no_tag) const;
+
   /**
    * Blocking-receive range-of-pointers from one processor.  This
    * function does not receive raw pointers, but rather constructs new
@@ -519,6 +604,29 @@ public:
                                          Request & req,
                                          Status & stat,
                                          const MessageTag & tag=any_tag) const;
+
+  /**
+   * Non-Blocking-receive range-of-pointers from one processor.
+   *
+   * This is meant to receive messages from nonblocking_send_packed_range
+   *
+   * Similar in design to the above receive_packed_range.  However,
+   * this version requires a Request and a Status.
+   *
+   * The Status must be a positively tested Status for a message of this
+   * type (i.e. a message _does_ exist).  It should most likely be generated by
+   * Communicator::packed_range_probe.
+   */
+  template <typename Context, typename OutputIter, typename T>
+  void nonblocking_receive_packed_range (const unsigned int src_processor_id,
+                                         Context * context,
+                                         OutputIter out,
+                                         const T * output_type,
+                                         Request & req,
+                                         Status & stat,
+                                         std::shared_ptr<std::vector<typename Parallel::Packing<T>::buffer_type>> & buffer,
+                                         const MessageTag & tag=any_tag
+                                         ) const;
 
   /**
    * Send data \p send to one processor while simultaneously receiving

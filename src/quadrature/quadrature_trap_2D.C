@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -19,20 +19,18 @@
 
 // Local includes
 #include "libmesh/quadrature_trap.h"
+#include "libmesh/string_to_enum.h"
 
 namespace libMesh
 {
 
-
-
-void QTrap::init_2D(const ElemType type_in,
-                    unsigned int)
+void QTrap::init_2D(const ElemType, unsigned int)
 {
 #if LIBMESH_DIM > 1
 
   //-----------------------------------------------------------------------
   // 2D quadrature rules
-  switch (type_in)
+  switch (_type)
     {
 
 
@@ -86,7 +84,7 @@ void QTrap::init_2D(const ElemType type_in,
       //---------------------------------------------
       // Unsupported type
     default:
-      libmesh_error_msg("Element type not supported!:" << type_in);
+      libmesh_error_msg("Element type not supported!:" << Utility::enum_to_string(_type));
     }
 #endif
 }

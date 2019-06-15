@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,11 @@
 #include "libmesh/libmesh_common.h"
 
 #ifdef LIBMESH_HAVE_MPI
+
+/**
+ * Macro to use arguments only when MPI is in use
+ */
+#define libmesh_mpi_var(var) var
 
 /**
  * Macros to test MPI return values
@@ -70,6 +75,14 @@
     }                                           \
   while (0)
 #endif
+
+#else // LIBMESH_HAVE_MPI
+
+#define libmesh_mpi_var(var)
+
+#define libmesh_call_mpi(mpi_call)              \
+  do {}                                         \
+  while (0)
 
 #endif // LIBMESH_HAVE_MPI
 

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -239,6 +239,8 @@ LinearConvergenceReason AztecLinearSolver<T>::get_converged_reason() const
       return CONVERGED_RTOL_NORMAL;
     case AZ_maxits :
       return DIVERGED_ITS;
+    default :
+      break;
     }
   return DIVERGED_NULL;
 }

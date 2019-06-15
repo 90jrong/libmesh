@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -879,7 +879,7 @@ private:
 
   /**
    * Helper method for finding consistent maps of interior to boundary
-   * dof_object ids.  Either node_id_map or side_id_map can be NULL,
+   * dof_object ids.  Either node_id_map or side_id_map can be nullptr,
    * in which case it will not be filled.
    */
   void _find_id_maps (const std::set<boundary_id_type> & requested_boundary_ids,
@@ -902,30 +902,12 @@ private:
                 boundary_id_type> _boundary_node_id;
 
   /**
-   * Typedef for iterators into the _boundary_node_id container.
-   */
-  typedef std::multimap<const Node *, boundary_id_type>::const_iterator boundary_node_iter;
-
-  /**
-   * Some older compilers don't support erasing from a map with
-   * const_iterators, so we need to use a non-const iterator in those
-   * situations.
-   */
-  typedef std::multimap<const Node *, boundary_id_type>::iterator boundary_node_erase_iter;
-
-  /**
    * Data structure that maps edges of elements
    * to boundary ids. This is only relevant in 3D.
    */
   std::multimap<const Elem *,
                 std::pair<unsigned short int, boundary_id_type>>
   _boundary_edge_id;
-
-  /**
-   * Typedef for iterators into the _boundary_edge_id container.
-   */
-  typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_edge_iter;
 
   /**
    * Data structure that maps faces of shell elements
@@ -936,13 +918,6 @@ private:
   _boundary_shellface_id;
 
   /**
-   * Typedef for iterators into the _boundary_shellface_id container.
-   */
-  typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_shellface_iter;
-
-
-  /**
    * Data structure that maps sides of elements
    * to boundary ids.
    */
@@ -950,19 +925,6 @@ private:
                 std::pair<unsigned short int, boundary_id_type>>
   _boundary_side_id;
 
-  /**
-   * Typedef for iterators into the _boundary_side_id container.
-   */
-  typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type>>::const_iterator boundary_side_iter;
-
-  /**
-   * Some older compilers don't support erasing from a map with
-   * const_iterators, so we need to use a non-const iterator in those
-   * situations.
-   */
-  typedef std::multimap<const Elem *,
-                        std::pair<unsigned short int, boundary_id_type>>::iterator erase_iter;
   /**
    * A collection of user-specified boundary ids for sides, edges, nodes,
    * and shell faces.

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -38,6 +38,7 @@
 #include "libmesh/partitioner.h"
 #include "libmesh/remote_elem.h"
 #include "libmesh/sync_refinement_flags.h"
+#include "libmesh/int_range.h"
 
 #ifdef DEBUG
 // Some extra validation for DistributedMesh
@@ -51,37 +52,37 @@
 
 
 // Anonymous namespace for helper functions
-namespace {
-
-using namespace libMesh;
-
-struct SyncCoarsenInactive
-{
-  bool operator() (const Elem * elem) const {
-    // If we're not an ancestor, there's no chance our coarsening
-    // settings need to be changed.
-    if (!elem->ancestor())
-      return false;
-
-    // If we don't have any remote children, we already know enough to
-    // determine the correct refinement flag ourselves.
-    //
-    // If we know we have a child that isn't being coarsened, that
-    // also forces a specific flag.
-    //
-    // Either way there's nothing we need to communicate.
-    bool found_remote_child = false;
-    for (auto & child : elem->child_ref_range())
-      {
-        if (child.refinement_flag() != Elem::COARSEN)
-          return false;
-        if (&child == remote_elem)
-          found_remote_child = true;
-      }
-    return found_remote_child;
-  }
-};
-}
+// namespace {
+//
+// using namespace libMesh;
+//
+// struct SyncCoarsenInactive
+// {
+//   bool operator() (const Elem * elem) const {
+//     // If we're not an ancestor, there's no chance our coarsening
+//     // settings need to be changed.
+//     if (!elem->ancestor())
+//       return false;
+//
+//     // If we don't have any remote children, we already know enough to
+//     // determine the correct refinement flag ourselves.
+//     //
+//     // If we know we have a child that isn't being coarsened, that
+//     // also forces a specific flag.
+//     //
+//     // Either way there's nothing we need to communicate.
+//     bool found_remote_child = false;
+//     for (auto & child : elem->child_ref_range())
+//       {
+//         if (child.refinement_flag() != Elem::COARSEN)
+//           return false;
+//         if (&child == remote_elem)
+//           found_remote_child = true;
+//       }
+//     return found_remote_child;
+//   }
+// };
+// }
 
 
 
@@ -108,7 +109,7 @@ MeshRefinement::MeshRefinement (MeshBase & m) :
   _underrefined_boundary_limit(0),
   _enforce_mismatch_limit_prior_to_refinement(false)
 #ifdef LIBMESH_ENABLE_PERIODIC
-  , _periodic_boundaries(libmesh_nullptr)
+  , _periodic_boundaries(nullptr)
 #endif
 {
 }
@@ -210,28 +211,7 @@ Node * MeshRefinement::add_node(Elem & parent,
 Elem * MeshRefinement::add_elem (Elem * elem)
 {
   libmesh_assert(elem);
-
-
-  //   // If the unused_elements has any iterators from
-  //   // old elements, take the first one
-  //   if (!_unused_elements.empty())
-  //     {
-  //       std::vector<Elem *>::iterator it = _unused_elements.front();
-
-  //       *it = elem;
-
-  //       _unused_elements.pop_front();
-  //     }
-
-  //   // Otherwise, use the conventional add method
-  //   else
-  //     {
-  //       _mesh.add_elem (elem);
-  //     }
-
-  // The _unused_elements optimization has been turned off.
   _mesh.add_elem (elem);
-
   return elem;
 }
 
@@ -247,12 +227,12 @@ void MeshRefinement::create_parent_error_vector(const ErrorVector & error_per_ce
 
   // Make sure the input error vector is valid
 #ifdef DEBUG
-  for (std::size_t i=0; i != error_per_cell.size(); ++i)
+  for (const auto & val : error_per_cell)
     {
-      libmesh_assert_greater_equal (error_per_cell[i], 0);
+      libmesh_assert_greater_equal (val, 0);
       // isnan() isn't standard C++ yet
 #ifdef isnan
-      libmesh_assert(!isnan(error_per_cell[i]));
+      libmesh_assert(!isnan(val));
 #endif
     }
 
@@ -329,7 +309,7 @@ void MeshRefinement::create_parent_error_vector(const ErrorVector & error_per_ce
   parent_error_min = std::numeric_limits<double>::max();
   parent_error_max = 0.;
 
-  for (std::size_t i = 0; i != error_per_parent.size(); ++i)
+  for (auto i : index_range(error_per_parent))
     {
       // If this element isn't a coarsenable parent with error, we
       // have nothing to do.  Just flag it as -1 and move on
@@ -392,8 +372,8 @@ bool MeshRefinement::test_level_one (bool libmesh_dbg_var(libmesh_assert_pass))
   bool failure = false;
 
 #ifndef NDEBUG
-  Elem * failed_elem = libmesh_nullptr;
-  Elem * failed_neighbor = libmesh_nullptr;
+  Elem * failed_elem = nullptr;
+  Elem * failed_neighbor = nullptr;
 #endif // !NDEBUG
 
   for (auto & elem : _mesh.active_local_element_ptr_range())
@@ -453,7 +433,7 @@ bool MeshRefinement::test_unflagged (bool libmesh_dbg_var(libmesh_assert_pass))
   bool found_flag = false;
 
 #ifndef NDEBUG
-  Elem * failed_elem = libmesh_nullptr;
+  Elem * failed_elem = nullptr;
 #endif
 
   // Search for local flags
@@ -897,7 +877,7 @@ bool MeshRefinement::make_coarsening_compatible()
                       const Elem * neighbor =
                         topological_neighbor(elem, point_locator.get(), n);
 
-                      if (neighbor != libmesh_nullptr &&      // I have a
+                      if (neighbor != nullptr &&      // I have a
                           neighbor != remote_elem) // neighbor here
                         {
                           if (neighbor->active()) // and it is active
@@ -933,7 +913,7 @@ bool MeshRefinement::make_coarsening_compatible()
                       const Elem * neighbor =
                         topological_neighbor(elem, point_locator.get(), n);
 
-                      if (neighbor != libmesh_nullptr &&      // I have a
+                      if (neighbor != nullptr &&      // I have a
                           neighbor != remote_elem) // neighbor here
                         {
                           if (neighbor->active()) // and it is active
@@ -1120,7 +1100,7 @@ bool MeshRefinement::make_coarsening_compatible()
       parallel_object_only();
 
       Parallel::MessageTag
-        uncoarsenable_tag = this->comm().get_unique_tag(2718);
+        uncoarsenable_tag = this->comm().get_unique_tag();
       std::vector<Parallel::Request> uncoarsenable_push_requests(n_proc-1);
 
       for (processor_id_type p = 0; p != n_proc; ++p)
@@ -1229,7 +1209,7 @@ bool MeshRefinement::make_refinement_compatible()
                       Elem * neighbor =
                         topological_neighbor(elem, point_locator.get(), side);
 
-                      if (neighbor != libmesh_nullptr        && // I have a
+                      if (neighbor != nullptr        && // I have a
                           neighbor != remote_elem && // neighbor here
                           neighbor->active()) // and it is active
                         {
@@ -1287,7 +1267,7 @@ bool MeshRefinement::make_refinement_compatible()
                       Elem * neighbor =
                         topological_neighbor(elem, point_locator.get(), side);
 
-                      if (neighbor != libmesh_nullptr &&      // I have a
+                      if (neighbor != nullptr &&      // I have a
                           neighbor != remote_elem) // neighbor here
                         {
                           if (neighbor->active()) // and it is active
@@ -1481,6 +1461,8 @@ bool MeshRefinement::_coarsen_elements ()
 
 bool MeshRefinement::_refine_elements ()
 {
+  libmesh_assert(_mesh.is_prepared() || _mesh.is_replicated());
+
   // This function must be run on all processors at once
   parallel_object_only();
 
@@ -1566,9 +1548,8 @@ bool MeshRefinement::_refine_elements ()
   // Now iterate over the local copies and refine each one.
   // This may resize the mesh's internal container and invalidate
   // any existing iterators.
-
-  for (std::size_t e = 0; e != local_copy_of_elements.size(); ++e)
-    local_copy_of_elements[e]->refine(*this);
+  for (auto & elem : local_copy_of_elements)
+    elem->refine(*this);
 
   // The mesh changed if there were elements h refined
   bool mesh_changed = !local_copy_of_elements.empty();
@@ -1752,7 +1733,7 @@ void MeshRefinement::uniformly_coarsen (unsigned int n)
               parents_to_coarsen[elem->processor_id()].push_back(elem->id());
 
           Parallel::MessageTag
-            coarsen_tag = this->comm().get_unique_tag(271);
+            coarsen_tag = this->comm().get_unique_tag();
           std::vector<Parallel::Request> coarsen_push_requests(n_proc-1);
 
           for (processor_id_type p = 0; p != n_proc; ++p)

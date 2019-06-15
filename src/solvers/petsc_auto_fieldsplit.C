@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -39,10 +39,10 @@ void indices_to_fieldsplit (const Parallel::Communicator & comm,
 {
   const PetscInt * idx = PETSC_NULL;
   if (!indices.empty())
-    idx = reinterpret_cast<const PetscInt *>(&indices[0]);
+    idx = reinterpret_cast<const PetscInt *>(indices.data());
 
   IS is;
-  int ierr = ISCreateLibMesh(comm.get(), indices.size(),
+  int ierr = ISCreateLibMesh(comm.get(), cast_int<PetscInt>(indices.size()),
                              idx, PETSC_COPY_VALUES, &is);
   CHKERRABORT(comm.get(), ierr);
 

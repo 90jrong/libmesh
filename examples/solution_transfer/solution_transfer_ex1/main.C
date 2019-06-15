@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -54,7 +54,7 @@ void initialize(EquationSystems & es,
 {
   ExplicitSystem & system = es.get_system<ExplicitSystem>(system_name);
   es.parameters.set<Real> ("time") = system.time = 0;
-  system.project_solution(initial_value, libmesh_nullptr, es.parameters);
+  system.project_solution(initial_value, nullptr, es.parameters);
 }
 
 int main(int argc, char * argv[])

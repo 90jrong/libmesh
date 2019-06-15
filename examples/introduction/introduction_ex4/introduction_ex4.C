@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -427,11 +427,23 @@ void assemble_poisson(EquationSystems & es,
       // contribute to.
       dof_map.dof_indices (elem, dof_indices);
 
+      // Cache the number of degrees of freedom on this element, for
+      // use as a loop bound later.  We use cast_int to explicitly
+      // convert from size() (which may be 64-bit) to unsigned int
+      // (which may be 32-bit but which is definitely enough to count
+      // *local* degrees of freedom.
+      const unsigned int n_dofs =
+        cast_int<unsigned int>(dof_indices.size());
+
       // Compute the element-specific data for the current
       // element.  This involves computing the location of the
       // quadrature points (q_point) and the shape functions
       // (phi, dphi) for the current element.
       fe->reinit (elem);
+
+      // With one variable, we should have the same number of degrees
+      // of freedom as shape functions.
+      libmesh_assert_equal_to (n_dofs, phi.size());
 
       // Zero the element matrix and right-hand side before
       // summing them.  We use the resize member here because
@@ -439,10 +451,9 @@ void assemble_poisson(EquationSystems & es,
       // the last element.  Note that this will be the case if the
       // element type is different (i.e. the last element was a
       // triangle, now we are on a quadrilateral).
-      Ke.resize (dof_indices.size(),
-                 dof_indices.size());
+      Ke.resize (n_dofs, n_dofs);
 
-      Fe.resize (dof_indices.size());
+      Fe.resize (n_dofs);
 
       // Stop logging the shape function initialization.
       // If you forget to stop logging an event the PerfLog
@@ -461,8 +472,8 @@ void assemble_poisson(EquationSystems & es,
       perf_log.push ("Ke");
 
       for (unsigned int qp=0; qp<qrule.n_points(); qp++)
-        for (std::size_t i=0; i<phi.size(); i++)
-          for (std::size_t j=0; j<phi.size(); j++)
+        for (unsigned int i=0; i != n_dofs; i++)
+          for (unsigned int j=0; j != n_dofs; j++)
             Ke(i,j) += JxW[qp]*(dphi[i][qp]*dphi[j][qp]);
 
 
@@ -531,7 +542,7 @@ void assemble_poisson(EquationSystems & es,
             }
 
           // Add the RHS contribution
-          for (std::size_t i=0; i<phi.size(); i++)
+          for (unsigned int i=0; i != n_dofs; i++)
             Fe(i) += JxW[qp]*fxy*phi[i][qp];
         }
 
@@ -550,14 +561,10 @@ void assemble_poisson(EquationSystems & es,
       // and NumericVector::add_vector() members do this for us.
       // Start logging the insertion of the local (element)
       // matrix and vector into the global matrix and vector
-      perf_log.push ("matrix insertion");
+      LOG_SCOPE_WITH("matrix insertion", "", perf_log);
 
       system.matrix->add_matrix (Ke, dof_indices);
       system.rhs->add_vector    (Fe, dof_indices);
-
-      // Start logging the insertion of the local (element)
-      // matrix and vector into the global matrix and vector
-      perf_log.pop ("matrix insertion");
     }
 
   // That's it.  We don't need to do anything else to the

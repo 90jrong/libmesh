@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -48,6 +48,15 @@ public:
     this->_initialized = true;
     this->_is_time_dependent = false;
   }
+
+  /**
+   * The 5 special functions can be defaulted for this class.
+   */
+  ConstFunction (ConstFunction &&) = default;
+  ConstFunction (const ConstFunction &) = default;
+  ConstFunction & operator= (const ConstFunction &) = default;
+  ConstFunction & operator= (ConstFunction &&) = default;
+  virtual ~ConstFunction () = default;
 
   virtual Output operator() (const Point &,
                              const Real = 0) override

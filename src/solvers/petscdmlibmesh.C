@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,7 @@
 #define __FUNCT__ "DMlibMeshSetSystem"
 PetscErrorCode DMlibMeshSetSystem(DM dm, libMesh::NonlinearImplicitSystem & sys)
 {
-  PetscErrorCode (*f)(DM,libMesh::NonlinearImplicitSystem &) = libmesh_nullptr;
+  PetscErrorCode (*f)(DM,libMesh::NonlinearImplicitSystem &) = nullptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -52,7 +52,7 @@ PetscErrorCode DMlibMeshSetSystem(DM dm, libMesh::NonlinearImplicitSystem & sys)
 #define __FUNCT__ "DMlibMeshGetSystem"
 PetscErrorCode DMlibMeshGetSystem(DM dm, libMesh::NonlinearImplicitSystem *& sys)
 {
-  PetscErrorCode (*f)(DM,libMesh::NonlinearImplicitSystem *&) = libmesh_nullptr;
+  PetscErrorCode (*f)(DM,libMesh::NonlinearImplicitSystem *&) = nullptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;

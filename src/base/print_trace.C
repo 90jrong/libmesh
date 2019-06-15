@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -255,7 +255,7 @@ std::string demangle(const char * name)
   // Actually do the demangling
   char * demangled_name = abi::__cxa_demangle(name, 0, 0, &status);
 
-  // If demangling returns non-NULL, save the result in a string.
+  // If demangling returns non-nullptr, save the result in a string.
   if (demangled_name)
     ret = demangled_name;
 

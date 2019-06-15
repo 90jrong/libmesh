@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -26,9 +26,13 @@ namespace libMesh
 {
 
 
+// Edge2 class static member initializations
+const int Edge2::num_nodes;
+const int Edge2::num_children;
+
 #ifdef LIBMESH_ENABLE_AMR
 
-const float Edge2::_embedding_matrix[2][2][2] =
+const float Edge2::_embedding_matrix[Edge2::num_children][Edge2::num_nodes][Edge2::num_nodes] =
   {
     // embedding matrix for child 0
     {
@@ -65,7 +69,7 @@ bool Edge2::is_face(const unsigned int) const
 bool Edge2::is_node_on_side(const unsigned int n,
                             const unsigned int s) const
 {
-  libmesh_assert_less (s, 2);
+  libmesh_assert_less (s, Edge2::num_nodes);
   return (s == n);
 }
 

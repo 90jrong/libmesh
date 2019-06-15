@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 #include "libmesh/namebased_io.h"
 #include "libmesh/numeric_vector.h"
 #include "libmesh/enum_norm_type.h"
+#include "libmesh/int_range.h"
 
 using namespace libMesh;
 
@@ -79,7 +80,7 @@ int main(int argc, char ** argv)
     libMesh::out << "No systems found in fine or coarse solution!"
                  << std::endl;
 
-  for (std::size_t i = 0; i != sysnames.size(); ++i)
+  for (auto i : index_range(sysnames))
     {
       const std::string sysname = sysnames[i];
       const System & coarse_sys = coarse_es.get_system(sysname);
@@ -134,7 +135,7 @@ int main(int argc, char ** argv)
     {
       libMesh::out << "Writing diff solution " << argv[5] << std::endl;
 
-      for (std::size_t i = 0; i != sysnames.size(); ++i)
+      for (auto i : index_range(sysnames))
         {
           const std::string sysname = sysnames[i];
           const System & coarse_sys = coarse_es.get_system(sysname);

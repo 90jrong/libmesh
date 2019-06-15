@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -153,8 +153,7 @@ private:
   std::vector<Real> _time_steps;
 
   // mapping from system names to variable names+descriptions
-  typedef std::map <std::string, SystemVars> system_vars_map_t;
-  system_vars_map_t _system_vars_map;
+  std::map <std::string, SystemVars> _system_vars_map;
 
   // Reference to the EquationSystems we were constructed with
   const EquationSystems & _equation_systems;

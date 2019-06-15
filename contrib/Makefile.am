@@ -49,16 +49,6 @@ if LIBMESH_ENABLE_GZSTREAMS
 endif
 
 if LIBMESH_ENABLE_NETCDF
-# NetCDF version 3, build minimal subset
-if LIBMESH_ENABLE_NETCDF_V3
-  SUBDIRS    += netcdf/v3
-  opt_libs   += netcdf/v3/libopt.la
-  dbg_libs   += netcdf/v3/libdbg.la
-  devel_libs += netcdf/v3/libdevel.la
-  prof_libs  += netcdf/v3/libprof.la
-  oprof_libs += netcdf/v3/liboprof.la
-endif
-
 # NetCDF version 4, use their autotools package
 if LIBMESH_ENABLE_NETCDF_V4
   SUBDIRS    += netcdf/v4
@@ -226,7 +216,7 @@ if LIBMESH_ENABLE_NANOFLANN
 endif
 
 if LIBMESH_ENABLE_METAPHYSICL
-  SUBDIRS += metaphysicl/0.2.0
+  SUBDIRS += metaphysicl
   # header-only library for the parts we use - no library dependencies
 endif
 

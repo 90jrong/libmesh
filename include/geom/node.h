@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -105,7 +105,7 @@ public:
 #endif
 
   /**
-   * \returns A \p Node copied from \p p with id == \id and wrapped in a smart pointer.
+   * \returns A \p Node copied from \p p with id == \p id and wrapped in a smart pointer.
    */
   static std::unique_ptr<Node> build (const Point & p,
                                       const dof_id_type id);

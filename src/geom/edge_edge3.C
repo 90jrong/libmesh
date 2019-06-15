@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,10 @@
 
 namespace libMesh
 {
+
+// Edge3 class static member initializations
+const int Edge3::num_nodes;
+const int Edge3::num_children;
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -71,7 +75,7 @@ bool Edge3::is_node_on_side(const unsigned int n,
                             const unsigned int s) const
 {
   libmesh_assert_less (s, 2);
-  libmesh_assert_less (n, 3);
+  libmesh_assert_less (n, Edge3::num_nodes);
   return (s == n);
 }
 

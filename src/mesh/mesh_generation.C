@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,7 @@
 #include "libmesh/vector_value.h"
 #include "libmesh/function_base.h"
 #include "libmesh/enum_order.h"
+#include "libmesh/int_range.h"
 
 namespace libMesh
 {
@@ -145,7 +146,7 @@ class GaussLobattoRedistributionFunction : public FunctionBase<Real>
 {
 public:
   /**
-   * Constructor class base class ctor with NULL master.
+   * Constructor.
    */
   GaussLobattoRedistributionFunction(unsigned int nx,
                                      Real xmin,
@@ -156,7 +157,7 @@ public:
                                      unsigned int nz=0,
                                      Real zmin=0,
                                      Real zmax=0) :
-    FunctionBase<Real>(libmesh_nullptr)
+    FunctionBase<Real>(nullptr)
   {
     _nelem.resize(3);
     _nelem[0] = nx;
@@ -179,10 +180,19 @@ public:
       if (_nelem[dir] != 0)
         {
           _cosines[dir].resize(_nelem[dir]+1);
-          for (std::size_t i=0; i<_cosines[dir].size(); ++i)
-            _cosines[dir][i] = std::cos(libMesh::pi * i / _nelem[dir]);
+          for (auto i : index_range(_cosines[dir]))
+            _cosines[dir][i] = std::cos(libMesh::pi * Real(i) / _nelem[dir]);
         }
   }
+
+  /**
+   * The 5 special functions can be defaulted for this class.
+   */
+  GaussLobattoRedistributionFunction (GaussLobattoRedistributionFunction &&) = default;
+  GaussLobattoRedistributionFunction (const GaussLobattoRedistributionFunction &) = default;
+  GaussLobattoRedistributionFunction & operator= (const GaussLobattoRedistributionFunction &) = default;
+  GaussLobattoRedistributionFunction & operator= (GaussLobattoRedistributionFunction &&) = default;
+  virtual ~GaussLobattoRedistributionFunction () = default;
 
   /**
    * We must provide a way to clone ourselves to satisfy the pure
@@ -211,13 +221,15 @@ public:
           Real float_index = (p(dir) - _mins[dir]) * _nelem[dir] / _widths[dir];
 
           // std::modf separates the fractional and integer parts of the index.
-          Real integer_part = 0;
-          Real fractional_part = std::modf(float_index, &integer_part);
+          Real integer_part_f = 0;
+          const Real fractional_part = std::modf(float_index, &integer_part_f);
+
+          const int integer_part = int(integer_part_f);
 
           // Vertex node?
           if (std::abs(fractional_part) < TOLERANCE || std::abs(fractional_part - 1.0) < TOLERANCE)
             {
-              int index = round(float_index);
+              int index = int(round(float_index));
 
               // Move node to the Gauss-Lobatto position.
               output(dir) = _mins[dir] + _widths[dir] * 0.5 * (1.0 - _cosines[dir][index]);
@@ -1394,7 +1406,9 @@ void MeshTools::Generation::build_cube(UnstructuredMesh & mesh,
               }
 
             // Add the new elements
-            for (std::size_t i=0; i<new_elements.size(); ++i)
+            for (dof_id_type i=0,
+                 n_new = cast_int<dof_id_type>(new_elements.size());
+                 i != n_new; ++i)
               {
                 new_elements[i]->set_id(i);
                 mesh.add_elem(new_elements[i]);
@@ -1542,7 +1556,8 @@ void MeshTools::Generation::build_sphere (UnstructuredMesh & mesh,
   // mesh_dimension, since the original intent of this function was to
   // allow the geometric entity (line, circle, ball, sphere)
   // constructed to be determined by the mesh's dimension.
-  unsigned int orig_mesh_dimension = mesh.mesh_dimension();
+  unsigned char orig_mesh_dimension =
+    cast_int<unsigned char>(mesh.mesh_dimension());
   mesh.clear();
   mesh.set_mesh_dimension(orig_mesh_dimension);
 
@@ -1902,7 +1917,7 @@ void MeshTools::Generation::build_sphere (UnstructuredMesh & mesh,
 
       for (const auto & elem : mesh.active_element_ptr_range())
         for (auto s : elem->side_index_range())
-          if (elem->neighbor_ptr(s) == libmesh_nullptr || (mesh.mesh_dimension() == 2 && !flat))
+          if (elem->neighbor_ptr(s) == nullptr || (mesh.mesh_dimension() == 2 && !flat))
             {
               std::unique_ptr<Elem> side(elem->build_side_ptr(s));
 
@@ -1942,7 +1957,7 @@ void MeshTools::Generation::build_sphere (UnstructuredMesh & mesh,
       // And pop to the boundary again...
       for (const auto & elem : mesh.active_element_ptr_range())
         for (auto s : elem->side_index_range())
-          if (elem->neighbor_ptr(s) == libmesh_nullptr)
+          if (elem->neighbor_ptr(s) == nullptr)
             {
               std::unique_ptr<Elem> side(elem->build_side_ptr(s));
 
@@ -2355,7 +2370,7 @@ void MeshTools::Generation::build_delaunay_square(UnstructuredMesh & mesh,
   t.triangulation_type() = TriangleInterface::PSLG;
   t.elem_type()          = type;
 
-  if (holes != libmesh_nullptr)
+  if (holes != nullptr)
     t.attach_hole_list(holes);
 
   // Triangulate!
@@ -2366,7 +2381,7 @@ void MeshTools::Generation::build_delaunay_square(UnstructuredMesh & mesh,
   // hole boundary elements get the same ID, 4.
   for (auto & elem : mesh.element_ptr_range())
     for (auto s : elem->side_index_range())
-      if (elem->neighbor_ptr(s) == libmesh_nullptr)
+      if (elem->neighbor_ptr(s) == nullptr)
         {
           std::unique_ptr<const Elem> side (elem->build_side_ptr(s));
 

@@ -64,15 +64,7 @@ libmesh_SOURCES =  \
         src/fe/fe_interface.C \
         src/fe/fe_interface_inf_fe.C \
         src/fe/fe_l2_hierarchic.C \
-        src/fe/fe_l2_hierarchic_shape_0D.C \
-        src/fe/fe_l2_hierarchic_shape_1D.C \
-        src/fe/fe_l2_hierarchic_shape_2D.C \
-        src/fe/fe_l2_hierarchic_shape_3D.C \
         src/fe/fe_l2_lagrange.C \
-        src/fe/fe_l2_lagrange_shape_0D.C \
-        src/fe/fe_l2_lagrange_shape_1D.C \
-        src/fe/fe_l2_lagrange_shape_2D.C \
-        src/fe/fe_l2_lagrange_shape_3D.C \
         src/fe/fe_lagrange.C \
         src/fe/fe_lagrange_shape_0D.C \
         src/fe/fe_lagrange_shape_1D.C \
@@ -120,6 +112,7 @@ libmesh_SOURCES =  \
         src/fe/inf_fe_map.C \
         src/fe/inf_fe_map_eval.C \
         src/fe/inf_fe_static.C \
+        src/geom/bounding_box.C \
         src/geom/cell.C \
         src/geom/cell_hex.C \
         src/geom/cell_hex20.C \
@@ -180,7 +173,6 @@ libmesh_SOURCES =  \
         src/mesh/abaqus_io.C \
         src/mesh/boundary_info.C \
         src/mesh/boundary_mesh.C \
-        src/mesh/bounding_box.C \
         src/mesh/checkpoint_io.C \
         src/mesh/distributed_mesh.C \
         src/mesh/ensight_io.C \
@@ -229,7 +221,6 @@ libmesh_SOURCES =  \
         src/mesh/unv_io.C \
         src/mesh/vtk_io.C \
         src/mesh/xdr_io.C \
-        src/numerics/analytic_function.C \
         src/numerics/coupling_matrix.C \
         src/numerics/dense_matrix.C \
         src/numerics/dense_matrix_base.C \
@@ -242,7 +233,6 @@ libmesh_SOURCES =  \
         src/numerics/eigen_preconditioner.C \
         src/numerics/eigen_sparse_matrix.C \
         src/numerics/eigen_sparse_vector.C \
-        src/numerics/function_base.C \
         src/numerics/laspack_matrix.C \
         src/numerics/laspack_vector.C \
         src/numerics/numeric_vector.C \
@@ -313,6 +303,10 @@ libmesh_SOURCES =  \
         src/quadrature/quadrature_monomial_1D.C \
         src/quadrature/quadrature_monomial_2D.C \
         src/quadrature/quadrature_monomial_3D.C \
+        src/quadrature/quadrature_nodal.C \
+        src/quadrature/quadrature_nodal_1D.C \
+        src/quadrature/quadrature_nodal_2D.C \
+        src/quadrature/quadrature_nodal_3D.C \
         src/quadrature/quadrature_simpson.C \
         src/quadrature/quadrature_simpson_1D.C \
         src/quadrature/quadrature_simpson_2D.C \
@@ -370,6 +364,7 @@ libmesh_SOURCES =  \
         src/solvers/optimization_solver.C \
         src/solvers/petsc_auto_fieldsplit.C \
         src/solvers/petsc_diff_solver.C \
+        src/solvers/petsc_dm_wrapper.C \
         src/solvers/petsc_linear_solver.C \
         src/solvers/petsc_nonlinear_solver.C \
         src/solvers/petscdmlibmesh.C \

@@ -36,6 +36,8 @@ public:
   CPPUNIT_TEST( testBarrier );
   CPPUNIT_TEST( testMin );
   CPPUNIT_TEST( testMax );
+  CPPUNIT_TEST( testMinloc );
+  CPPUNIT_TEST( testMaxloc );
   CPPUNIT_TEST( testInfinityMin );
   CPPUNIT_TEST( testInfinityMax );
   CPPUNIT_TEST( testIsendRecv );
@@ -181,13 +183,13 @@ public:
   {
     // Test Scalar scatter
     {
-      std::vector<unsigned int> src;
-      unsigned int dest;
+      std::vector<processor_id_type> src;
+      processor_id_type dest;
 
       if (TestCommWorld->rank() == 0)
         {
           src.resize(TestCommWorld->size());
-          for (std::size_t i=0; i<src.size(); i++)
+          for (processor_id_type i=0; i<src.size(); i++)
             src[i] = i;
         }
 
@@ -294,6 +296,33 @@ public:
 
     CPPUNIT_ASSERT_EQUAL (cast_int<processor_id_type>(max+1),
                           cast_int<processor_id_type>(TestCommWorld->size()));
+  }
+
+
+
+  void testMinloc ()
+  {
+    int min = (TestCommWorld->rank() + 1) % TestCommWorld->size();
+    unsigned int minid = 0;
+
+    TestCommWorld->minloc(min, minid);
+
+    CPPUNIT_ASSERT_EQUAL (min, static_cast<int>(0));
+    CPPUNIT_ASSERT_EQUAL (minid, static_cast<unsigned int>(TestCommWorld->size()-1));
+  }
+
+
+
+  void testMaxloc ()
+  {
+    int max = TestCommWorld->rank();
+    unsigned int maxid = 0;
+
+    TestCommWorld->maxloc(max, maxid);
+
+    CPPUNIT_ASSERT_EQUAL (max+1,
+                          cast_int<int>(TestCommWorld->size()));
+    CPPUNIT_ASSERT_EQUAL (maxid, static_cast<unsigned int>(TestCommWorld->size()-1));
   }
 
 
@@ -592,9 +621,27 @@ public:
     unsigned int rank = TestCommWorld->rank();
     unsigned int color = rank % 2;
     TestCommWorld->split(color, rank, subcomm);
+
+    CPPUNIT_ASSERT(subcomm.size() >= 1);
+    CPPUNIT_ASSERT(subcomm.size() >= TestCommWorld->size() / 2);
+    CPPUNIT_ASSERT(subcomm.size() <= TestCommWorld->size() / 2 + 1);
   }
 
 
+  void testSplitByType ()
+  {
+    Parallel::Communicator subcomm;
+    unsigned int rank = TestCommWorld->rank();
+    Parallel::info i;
+    int type = 0;
+#ifdef LIBMESH_HAVE_MPI
+    type = MPI_COMM_TYPE_SHARED;
+#endif
+    TestCommWorld->split_by_type(type, rank, i, subcomm);
+
+    CPPUNIT_ASSERT(subcomm.size() >= 1);
+    CPPUNIT_ASSERT(subcomm.size() <= TestCommWorld->size());
+  }
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION( ParallelTest );

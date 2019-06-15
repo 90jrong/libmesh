@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -134,6 +134,50 @@ std::unique_ptr<Elem> Prism::side_ptr (const unsigned int i)
     face->set_node(n) = this->node_ptr(Prism6::side_nodes_map[i][n]);
 
   return face;
+}
+
+
+
+void Prism::side_ptr (std::unique_ptr<Elem> & side,
+                      const unsigned int i)
+{
+  libmesh_assert_less (i, this->n_sides());
+
+  switch (i)
+    {
+      // the base face
+    case 0: // the triangular face at z=0
+    case 4: // the triangular face at z=1
+      {
+        if (!side.get() || side->type() != TRI3)
+          {
+            side = this->side_ptr(i);
+            return;
+          }
+        break;
+      }
+
+    case 1: // the quad face at y=0
+    case 2: // the other quad face
+    case 3: // the quad face at x=0
+      {
+        if (!side.get() || side->type() != QUAD4)
+          {
+            side = this->side_ptr(i);
+            return;
+          }
+        break;
+      }
+
+    default:
+      libmesh_error_msg("Invalid side i = " << i);
+    }
+
+  side->subdomain_id() = this->subdomain_id();
+
+  // Set the nodes
+  for (auto n : side->node_index_range())
+    side->set_node(n) = this->node_ptr(Prism6::side_nodes_map[i][n]);
 }
 
 

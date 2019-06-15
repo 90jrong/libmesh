@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -173,8 +173,8 @@ void MEDITIO::write_ascii (const std::string & fname,
   out_stream << '\n' << "# end of file\n";
 
   // optionally write the data
-  if ((solution_names != libmesh_nullptr) &&
-      (vec != libmesh_nullptr))
+  if ((solution_names != nullptr) &&
+      (vec != nullptr))
     {
       // Open the ".bb" file stream
       std::size_t idx = fname.find_last_of(".");

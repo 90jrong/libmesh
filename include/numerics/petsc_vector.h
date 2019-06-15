@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -61,7 +61,7 @@ template <typename T> class SparseMatrix;
  * \brief NumericVector interface to PETSc Vec.
  */
 template <typename T>
-class PetscVector libmesh_final : public NumericVector<T>
+class PetscVector final : public NumericVector<T>
 {
 public:
 
@@ -111,10 +111,21 @@ public:
               const Parallel::Communicator & comm_in);
 
   /**
-   * Destructor, deallocates memory. Made virtual to allow
-   * for derived classes to behave properly.
+   * Copy assignment operator.
+   * Calls VecCopy after performing various checks.
+   * \returns A reference to *this as the derived type.
    */
-  ~PetscVector ();
+  PetscVector<T> & operator= (const PetscVector<T> & v);
+
+  /**
+   * This class manages a C-style struct (Vec) manually, so we
+   * don't want to allow any automatic copy/move functions to be
+   * generated, and we can't default the destructor.
+   */
+  PetscVector (PetscVector &&) = delete;
+  PetscVector (const PetscVector &) = delete;
+  PetscVector & operator= (PetscVector &&) = delete;
+  virtual ~PetscVector ();
 
   virtual void close () override;
 
@@ -149,13 +160,6 @@ public:
   virtual NumericVector<T> & operator= (const NumericVector<T> & v) override;
 
   virtual NumericVector<T> & operator= (const std::vector<T> & v) override;
-
-  /**
-   * Sets (*this)(i) = v(i) for each entry of the vector.
-   *
-   * \returns A reference to *this as the derived type.
-   */
-  PetscVector<T> & operator= (const PetscVector<T> & v);
 
   virtual Real min () const override;
 
@@ -270,7 +274,7 @@ public:
 
   virtual void scale (const T factor) override;
 
-  virtual NumericVector<T> & operator /= (NumericVector<T> & v) override;
+  virtual NumericVector<T> & operator /= (const NumericVector<T> & v) override;
 
   virtual void abs() override;
 
@@ -452,8 +456,8 @@ PetscVector<T>::PetscVector (const Parallel::Communicator & comm_in, const Paral
   _array_is_present(false),
   _first(0),
   _last(0),
-  _local_form(libmesh_nullptr),
-  _values(libmesh_nullptr),
+  _local_form(nullptr),
+  _values(nullptr),
   _global_to_local_map(),
   _destroy_vec_on_exit(true),
   _values_manually_retrieved(false),
@@ -471,8 +475,8 @@ PetscVector<T>::PetscVector (const Parallel::Communicator & comm_in,
                              const ParallelType ptype) :
   NumericVector<T>(comm_in, ptype),
   _array_is_present(false),
-  _local_form(libmesh_nullptr),
-  _values(libmesh_nullptr),
+  _local_form(nullptr),
+  _values(nullptr),
   _global_to_local_map(),
   _destroy_vec_on_exit(true),
   _values_manually_retrieved(false),
@@ -491,8 +495,8 @@ PetscVector<T>::PetscVector (const Parallel::Communicator & comm_in,
                              const ParallelType ptype) :
   NumericVector<T>(comm_in, ptype),
   _array_is_present(false),
-  _local_form(libmesh_nullptr),
-  _values(libmesh_nullptr),
+  _local_form(nullptr),
+  _values(nullptr),
   _global_to_local_map(),
   _destroy_vec_on_exit(true),
   _values_manually_retrieved(false),
@@ -512,8 +516,8 @@ PetscVector<T>::PetscVector (const Parallel::Communicator & comm_in,
                              const ParallelType ptype) :
   NumericVector<T>(comm_in, ptype),
   _array_is_present(false),
-  _local_form(libmesh_nullptr),
-  _values(libmesh_nullptr),
+  _local_form(nullptr),
+  _values(nullptr),
   _global_to_local_map(),
   _destroy_vec_on_exit(true),
   _values_manually_retrieved(false),
@@ -532,8 +536,8 @@ PetscVector<T>::PetscVector (Vec v,
                              const Parallel::Communicator & comm_in) :
   NumericVector<T>(comm_in, AUTOMATIC),
   _array_is_present(false),
-  _local_form(libmesh_nullptr),
-  _values(libmesh_nullptr),
+  _local_form(nullptr),
+  _values(nullptr),
   _global_to_local_map(),
   _destroy_vec_on_exit(false),
   _values_manually_retrieved(false),
@@ -729,7 +733,7 @@ void PetscVector<T>::init (const numeric_index_type n,
   libmesh_assert(sizeof(PetscInt) == sizeof(numeric_index_type));
 
   PetscInt * petsc_ghost = ghost.empty() ? PETSC_NULL :
-    const_cast<PetscInt *>(reinterpret_cast<const PetscInt *>(&ghost[0]));
+    const_cast<PetscInt *>(reinterpret_cast<const PetscInt *>(ghost.data()));
 
   // Clear initialized vectors
   if (this->initialized())

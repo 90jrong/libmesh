@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -156,7 +156,7 @@ bool MeshRefinement::limit_level_mismatch_at_edge (const unsigned int max_mismat
           if (childnode1 < childnode0)
             std::swap(childnode0, childnode1);
 
-          for (const Elem * p = elem; p != libmesh_nullptr; p = p->parent())
+          for (const Elem * p = elem; p != nullptr; p = p->parent())
             {
               std::unique_ptr<const Elem> pedge = p->build_edge_ptr(n);
               dof_id_type node0 = pedge->node_id(0);
@@ -276,33 +276,26 @@ bool MeshRefinement::limit_overrefined_boundary(const signed char max_mismatch)
                                 ((elem->p_refinement_flag() == Elem::REFINE) ? 1 : 0));
 
       // get all relevant interior elements
-      std::set<const Elem *> neighbor_set;
+      std::set<Elem *> neighbor_set;
       elem->find_interior_neighbors(neighbor_set);
 
-      std::set<const Elem *>::iterator n_it = neighbor_set.begin();
-      for (; n_it != neighbor_set.end(); ++n_it)
-        {
-          // FIXME - non-const versions of the Elem set methods
-          // would be nice
-          Elem * neighbor = const_cast<Elem *>(*n_it);
+      for (auto & neighbor : neighbor_set)
+        if (max_mismatch >= 0)
+          {
+            if ((elem_level > neighbor->level() + max_mismatch) &&
+                (neighbor->refinement_flag() != Elem::REFINE))
+              {
+                neighbor->set_refinement_flag(Elem::REFINE);
+                flags_changed = true;
+              }
 
-          if (max_mismatch >= 0)
-            {
-              if ((elem_level > neighbor->level() + max_mismatch) &&
-                  (neighbor->refinement_flag() != Elem::REFINE))
-                {
-                  neighbor->set_refinement_flag(Elem::REFINE);
-                  flags_changed = true;
-                }
-
-              if ((elem_p_level > neighbor->p_level() + max_mismatch) &&
-                  (neighbor->p_refinement_flag() != Elem::REFINE))
-                {
-                  neighbor->set_p_refinement_flag(Elem::REFINE);
-                  flags_changed = true;
-                }
-            }
-        } // loop over interior neighbors
+            if ((elem_p_level > neighbor->p_level() + max_mismatch) &&
+                (neighbor->p_refinement_flag() != Elem::REFINE))
+              {
+                neighbor->set_p_refinement_flag(Elem::REFINE);
+                flags_changed = true;
+              }
+          }
     }
 
   // If flags changed on any processor then they changed globally
@@ -398,7 +391,7 @@ bool MeshRefinement::eliminate_unrefined_patches ()
       for (auto neighbor : elem->neighbor_ptr_range())
         {
           // Quit if the element is not a local boundary
-          if (neighbor != libmesh_nullptr && neighbor != remote_elem)
+          if (neighbor != nullptr && neighbor != remote_elem)
             {
               h_flag_me = true;
               p_flag_me = true;
@@ -442,7 +435,7 @@ bool MeshRefinement::eliminate_unrefined_patches ()
       for (auto neighbor : elem->neighbor_ptr_range())
         {
           // Quit if the element is on a local boundary
-          if (neighbor == libmesh_nullptr || neighbor == remote_elem)
+          if (neighbor == nullptr || neighbor == remote_elem)
             {
               h_flag_me = false;
               p_flag_me = false;
@@ -573,11 +566,8 @@ bool MeshRefinement::enforce_mismatch_limit_prior_to_refinement(Elem * elem,
         libmesh_error_msg("Unrecognized NeighborType: " << nt);
 
       // Loop over the neighbors of element e
-      std::set<const Elem *>::iterator n_it = neighbor_set.begin();
-      for (; n_it != neighbor_set.end(); ++n_it)
+      for (const auto & neighbor : neighbor_set)
         {
-          const Elem * neighbor = *n_it;
-
           if ((elem->level() + 1 - max_mismatch) > neighbor->level())
             {
               elem->set_refinement_flag(Elem::DO_NOTHING);

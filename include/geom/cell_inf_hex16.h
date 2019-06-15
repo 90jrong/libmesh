@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -67,7 +67,7 @@ namespace libMesh
  * \date 2002
  * \brief A 3D infinite hexahedral element with 16 nodes.
  */
-class InfHex16 libmesh_final : public InfHex
+class InfHex16 final : public InfHex
 {
 public:
 
@@ -75,7 +75,7 @@ public:
    * Constructor.  By default this element has no parent.
    */
   explicit
-  InfHex16 (Elem * p=libmesh_nullptr) :
+  InfHex16 (Elem * p=nullptr) :
     InfHex(InfHex16::n_nodes(), p, _nodelinks_data)
   {}
 
@@ -88,7 +88,7 @@ public:
   /**
    * \returns 16.  The \p InfHex16 has 16 nodes.
    */
-  virtual unsigned int n_nodes() const override { return 16; }
+  virtual unsigned int n_nodes() const override { return num_nodes; }
 
   /**
    * \returns \p INFHEX16.
@@ -122,6 +122,8 @@ public:
   virtual bool is_node_on_side(const unsigned int n,
                                const unsigned int s) const override;
 
+  virtual std::vector<unsigned int> nodes_on_side(const unsigned int s) const override;
+
   /**
    * \returns \p true if the specified (local) node number is on the
    * specified edge.
@@ -147,7 +149,14 @@ public:
    * \note The \p std::unique_ptr<Elem> takes care of freeing memory.
    */
   virtual std::unique_ptr<Elem> build_side_ptr (const unsigned int i,
-                                                bool proxy) override;
+                                                bool proxy=true) override;
+
+  /**
+   * Rebuilds a \p QUAD8 built coincident with face 0, or an \p
+   * INFQUAD6 built coincident with faces 1 to 4.
+   */
+  virtual void build_side_ptr (std::unique_ptr<Elem> & elem,
+                               const unsigned int i) override;
 
   /**
    * \returns An \p EDGE3 built coincident with edges 0 to 3, or \p
@@ -188,26 +197,33 @@ public:
   second_order_child_vertex (const unsigned int n) const override;
 
   /**
+   * Geometric constants for InfHex16.
+   */
+  static const int num_nodes = 16;
+  static const int num_sides = 5;
+  static const int num_edges = 8;
+  static const int num_children = 4;
+  static const int nodes_per_side = 8;
+  static const int nodes_per_edge = 3;
+
+  /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ side to
    * element node numbers.
    */
-  static const unsigned int side_nodes_map[5][8];
+  static const unsigned int side_nodes_map[num_sides][nodes_per_side];
 
   /**
    * This maps the \f$ j^{th} \f$ node of the \f$ i^{th} \f$ edge to
    * element node numbers.
    */
-  static const unsigned int edge_nodes_map[8][3];
-
-
+  static const unsigned int edge_nodes_map[num_edges][nodes_per_edge];
 
 protected:
-
 
   /**
    * Data for links to nodes.
    */
-  Node * _nodelinks_data[16];
+  Node * _nodelinks_data[num_nodes];
 
 
 #ifdef LIBMESH_ENABLE_AMR
@@ -224,7 +240,7 @@ protected:
    * Matrix that computes new nodal locations/solution values
    * from current nodes/solution.
    */
-  static const float _embedding_matrix[4][16][16];
+  static const float _embedding_matrix[num_children][num_nodes][num_nodes];
 
   LIBMESH_ENABLE_TOPOLOGY_CACHES;
 

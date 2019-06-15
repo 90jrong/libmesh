@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -118,10 +118,10 @@ void MeshTools::Subdivision::all_subdivision(MeshBase & mesh)
             {
               mesh.get_boundary_info().boundary_ids(elem, side, ids);
 
-              for (std::size_t id=0; id<ids.size(); ++id)
+              for (const auto & id : ids)
                 {
                   // add the boundary id to the list of new boundary ids
-                  new_boundary_ids.push_back(ids[id]);
+                  new_boundary_ids.push_back(id);
                   new_boundary_elements.push_back(tri);
                   new_boundary_sides.push_back(side);
                 }
@@ -147,7 +147,7 @@ void MeshTools::Subdivision::all_subdivision(MeshBase & mesh)
       libmesh_assert_equal_to(new_boundary_sides.size(), new_boundary_ids.size());
 
       // Add the new boundary info to the mesh.
-      for (std::size_t s = 0; s < new_boundary_elements.size(); ++s)
+      for (auto s : index_range(new_boundary_elements))
         mesh.get_boundary_info().add_side(new_boundary_elements[s],
                                           new_boundary_sides[s],
                                           new_boundary_ids[s]);
@@ -177,7 +177,7 @@ void MeshTools::Subdivision::prepare_subdivision_mesh(MeshBase & mesh, bool ghos
 
   mesh.prepare_for_use();
 
-  std::vector<std::vector<const Elem *>> nodes_to_elem_map;
+  std::unordered_map<dof_id_type, std::vector<const Elem *>> nodes_to_elem_map;
   MeshTools::build_nodes_to_elem_map(mesh, nodes_to_elem_map);
 
   // compute the node valences
@@ -210,7 +210,7 @@ void MeshTools::Subdivision::tag_boundary_ghosts(MeshBase & mesh)
       Tri3Subdivision * sd_elem = static_cast<Tri3Subdivision *>(elem);
       for (auto i : elem->side_index_range())
         {
-          if (elem->neighbor_ptr(i) == libmesh_nullptr)
+          if (elem->neighbor_ptr(i) == nullptr)
             {
               sd_elem->set_ghost(true);
               // set all other neighbors to ghosts as well
@@ -253,8 +253,8 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
         {
           libmesh_assert_not_equal_to(elem->neighbor_ptr(i), elem);
 
-          if (elem->neighbor_ptr(i) == libmesh_nullptr &&
-              elem->neighbor_ptr(next[i]) == libmesh_nullptr)
+          if (elem->neighbor_ptr(i) == nullptr &&
+              elem->neighbor_ptr(next[i]) == nullptr)
             {
               Elem * nelem = elem;
               unsigned int k = i;
@@ -269,18 +269,16 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
                   // happen that two mirrored ghost vertices coincide,
                   // which would then lead to a zero size ghost
                   // element below.
-                  Node * node = libmesh_nullptr;
-                  for (std::size_t j = 0; j < ghost_nodes.size(); ++j)
-                    {
-                      if ((*ghost_nodes[j] - point).norm() < tol * (elem->point(k) - point).norm())
-                        {
-                          node = ghost_nodes[j];
-                          break;
-                        }
-                    }
+                  Node * node = nullptr;
+                  for (auto & ghost_node : ghost_nodes)
+                    if ((*ghost_node - point).norm() < tol * (elem->point(k) - point).norm())
+                      {
+                        node = ghost_node;
+                        break;
+                      }
 
                   // add the new vertex only if no other is nearby
-                  if (node == libmesh_nullptr)
+                  if (node == nullptr)
                     {
                       node = mesh.add_point(point);
                       ghost_nodes.push_back(node);
@@ -298,7 +296,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
                   newelem->set_neighbor(0, nelem);
                   newelem->set_ghost(true);
                   if (l>0)
-                    newelem->set_neighbor(2, libmesh_nullptr);
+                    newelem->set_neighbor(2, nullptr);
                   nelem->set_neighbor(k, newelem);
 
                   mesh.add_elem(newelem);
@@ -331,7 +329,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
       for (auto i : elem->side_index_range())
         {
           libmesh_assert_not_equal_to(elem->neighbor_ptr(i), elem);
-          if (elem->neighbor_ptr(i) == libmesh_nullptr)
+          if (elem->neighbor_ptr(i) == nullptr)
             {
               // this is the vertex to be mirrored
               Point point = elem->point(i) + elem->point(next[i]) - elem->point(prev[i]);
@@ -341,18 +339,16 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
               // because for some triangulations, it can happen that
               // two mirrored ghost vertices coincide, which would
               // then lead to a zero size ghost element below.
-              Node * node = libmesh_nullptr;
-              for (std::size_t j = 0; j < ghost_nodes.size(); ++j)
-                {
-                  if ((*ghost_nodes[j] - point).norm() < tol * (elem->point(i) - point).norm())
-                    {
-                      node = ghost_nodes[j];
-                      break;
-                    }
-                }
+              Node * node = nullptr;
+              for (auto & ghost_node : ghost_nodes)
+                if ((*ghost_node - point).norm() < tol * (elem->point(i) - point).norm())
+                  {
+                    node = ghost_node;
+                    break;
+                  }
 
               // add the new vertex only if no other is nearby
-              if (node == libmesh_nullptr)
+              if (node == nullptr)
                 {
                   node = mesh.add_point(point);
                   ghost_nodes.push_back(node);
@@ -379,29 +375,26 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
 
   // add the missing ghost elements (connecting new ghost nodes)
   std::vector<Tri3Subdivision *> missing_ghost_elems;
-  std::vector<Tri3Subdivision *>::iterator       ghost_el     = ghost_elems.begin();
-  const std::vector<Tri3Subdivision *>::iterator end_ghost_el = ghost_elems.end();
-  for (; ghost_el != end_ghost_el; ++ghost_el)
+  for (auto & elem : ghost_elems)
     {
-      Tri3Subdivision * elem = *ghost_el;
       libmesh_assert(elem->is_ghost());
 
       for (auto i : elem->side_index_range())
         {
-          if (elem->neighbor_ptr(i) == libmesh_nullptr &&
-              elem->neighbor_ptr(prev[i]) != libmesh_nullptr)
+          if (elem->neighbor_ptr(i) == nullptr &&
+              elem->neighbor_ptr(prev[i]) != nullptr)
             {
               // go around counter-clockwise
               Tri3Subdivision * nb1 = static_cast<Tri3Subdivision *>(elem->neighbor_ptr(prev[i]));
               Tri3Subdivision * nb2 = nb1;
               unsigned int j = i;
               unsigned int n_nb = 0;
-              while (nb1 != libmesh_nullptr && nb1->id() != elem->id())
+              while (nb1 != nullptr && nb1->id() != elem->id())
                 {
                   j = nb1->local_node_number(elem->node_id(i));
                   nb2 = nb1;
                   nb1 = static_cast<Tri3Subdivision *>(nb1->neighbor_ptr(prev[j]));
-                  libmesh_assert(nb1 == libmesh_nullptr || nb1->id() != nb2->id());
+                  libmesh_assert(nb1 == nullptr || nb1->id() != nb2->id());
                   n_nb++;
                 }
 
@@ -425,18 +418,16 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
                   // Check if the proposed vertex doesn't coincide with one of the existing vertices.
                   // This is necessary because for some triangulations, it can happen that two mirrored
                   // ghost vertices coincide, which would then lead to a zero size ghost element below.
-                  Node * node = libmesh_nullptr;
-                  for (std::size_t k = 0; k < ghost_nodes.size(); ++k)
-                    {
-                      if ((*ghost_nodes[k] - point).norm() < tol * (nb2->point(j) - point).norm())
-                        {
-                          node = ghost_nodes[k];
-                          break;
-                        }
-                    }
+                  Node * node = nullptr;
+                  for (auto & ghost_node : ghost_nodes)
+                    if ((*ghost_node - point).norm() < tol * (nb2->point(j) - point).norm())
+                      {
+                        node = ghost_node;
+                        break;
+                      }
 
                   // add the new vertex only if no other is nearby
-                  if (node == libmesh_nullptr)
+                  if (node == nullptr)
                     {
                       node = mesh.add_point(point);
                       ghost_nodes.push_back(node);
@@ -448,7 +439,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
                   newelem->set_node(1) = nb2->node_ptr(prev[j]);
                   newelem->set_node(2) = node;
                   newelem->set_neighbor(0, nb2);
-                  newelem->set_neighbor(1, libmesh_nullptr);
+                  newelem->set_neighbor(1, nullptr);
                   newelem->set_ghost(true);
                   nb2->set_neighbor(prev[j], newelem);
 
@@ -467,7 +458,7 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
               newelem->set_node(2) = nb2->node_ptr(prev[j]);
               newelem->set_neighbor(0, elem);
               newelem->set_neighbor(1, nb2);
-              newelem->set_neighbor(2, libmesh_nullptr);
+              newelem->set_neighbor(2, nullptr);
               newelem->set_ghost(true);
 
               elem->set_neighbor(i, newelem);
@@ -480,10 +471,8 @@ void MeshTools::Subdivision::add_boundary_ghosts(MeshBase & mesh)
     } // end ghost element loop
 
   // add the missing ghost elements to the mesh
-  std::vector<Tri3Subdivision *>::iterator       missing_el     = missing_ghost_elems.begin();
-  const std::vector<Tri3Subdivision *>::iterator end_missing_el = missing_ghost_elems.end();
-  for (; missing_el != end_missing_el; ++missing_el)
-    mesh.add_elem(*missing_el);
+  for (auto & elem : missing_ghost_elems)
+    mesh.add_elem(elem);
 }
 
 } // namespace libMesh

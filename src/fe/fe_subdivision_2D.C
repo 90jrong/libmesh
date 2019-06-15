@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -680,7 +680,7 @@ void FESubdivision::reinit(const Elem * elem,
   this->determine_calculations();
 
   // no custom quadrature support
-  libmesh_assert(pts == libmesh_nullptr);
+  libmesh_assert(pts == nullptr);
   libmesh_assert(qrule);
   qrule->init(elem->type());
 

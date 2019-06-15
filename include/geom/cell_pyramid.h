@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -50,7 +50,7 @@ public:
   {
     // Make sure the interior parent isn't undefined
     if (LIBMESH_DIM > 3)
-      this->set_interior_parent(libmesh_nullptr);
+      this->set_interior_parent(nullptr);
   }
 
   Pyramid (Pyramid &&) = delete;
@@ -134,11 +134,14 @@ public:
                                        unsigned int side_node) const override;
 
   /**
-   * \returns A primitive triangle or quad for
-   * face i.
+   * \returns A primitive triangle or quad for face i.
    */
   virtual std::unique_ptr<Elem> side_ptr (const unsigned int i) override;
 
+  /**
+   * Rebuilds a primitive triangle or quad for face i.
+   */
+  virtual void side_ptr (std::unique_ptr<Elem> & side, const unsigned int i) override;
 
 protected:
 

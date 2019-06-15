@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -266,34 +266,34 @@ public:
    * This function is specialized from ExodusII_IO_Helper to write only the
    * nodal coordinates stored on the local piece of the Mesh.
    */
-  virtual void write_nodal_coordinates(const MeshBase & mesh, bool use_discontinuous=false);
+  virtual void write_nodal_coordinates(const MeshBase & mesh, bool use_discontinuous=false) override;
 
   /**
    * This function is specialized to write the connectivity.
    */
-  virtual void write_elements(const MeshBase & mesh, bool use_discontinuous=false);
+  virtual void write_elements(const MeshBase & mesh, bool use_discontinuous=false) override;
 
   /**
    * Writes the sidesets for this processor.
    */
-  virtual void write_sidesets(const MeshBase & mesh);
+  virtual void write_sidesets(const MeshBase & mesh) override;
 
   /**
    * Writes the nodesets for this processor.
    */
-  virtual void write_nodesets(const MeshBase & mesh);
+  virtual void write_nodesets(const MeshBase & mesh) override;
 
   /**
    * This function is specialized from ExodusII_IO_Helper to create the
    * nodal coordinates stored on the local piece of the Mesh.
    */
-  virtual void create(std::string filename);
+  virtual void create(std::string filename) override;
 
   /**
    * Specialization of the initialize function from ExodusII_IO_Helper that
    * also writes global initial data to file.
    */
-  virtual void initialize(std::string title, const MeshBase & mesh, bool use_discontinuous=false);
+  virtual void initialize(std::string title, const MeshBase & mesh, bool use_discontinuous=false) override;
 
   /**
    * Takes a parallel solution vector containing the node-major
@@ -321,6 +321,23 @@ public:
   void write_nodal_solution(const std::vector<Number> & values,
                             const std::vector<std::string> & names,
                             int timestep);
+
+  /**
+   * Override the Exodus Helper's implementation of this function so
+   * that it works correctly in parallel.
+   */
+  virtual
+  void initialize_element_variables(std::vector<std::string> names,
+                                    const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains) override;
+  /**
+   * Writes the vector of elemental variable values, one variable and
+   * one subdomain at a time.
+   */
+  void write_element_values(const MeshBase & mesh,
+                            const NumericVector<Number> & parallel_soln,
+                            const std::vector<std::string> & names,
+                            int timestep,
+                            const std::vector<std::set<subdomain_id_type>> & vars_active_subdomains);
 
   /**
    * Given base_filename, foo.e, constructs the Nemesis filename
@@ -408,7 +425,7 @@ public:
   /**
    * Map of subdomains to element numbers.
    */
-  std::map<subdomain_id_type, std::vector<unsigned int>> subdomain_map;
+  std::map<subdomain_id_type, std::vector<dof_id_type>> subdomain_map;
 
   /**
    * This is the block connectivity, i.e. for each subdomain (block) there

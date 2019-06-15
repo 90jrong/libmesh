@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -185,7 +185,7 @@ int main(int argc, char ** argv)
   libmesh_example_requires(dim <= LIBMESH_DIM, "3D support");
 
   // Create a mesh distributed across the default MPI communicator.
-  Mesh mesh(init.comm(), dim);
+  Mesh mesh(init.comm(), cast_int<unsigned char>(dim));
 
   EquationSystems systems(mesh);
 

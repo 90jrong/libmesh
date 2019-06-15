@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -134,7 +134,7 @@ public:
     _last(er._last),
     _first(er._first),
     _grainsize(er._grainsize),
-    _objs(NULL),
+    _objs(nullptr),
     _should_release(false)
   {
     // specifically, do *not* copy the vector
@@ -165,7 +165,7 @@ public:
     _last(0), // Initialize these in a moment
     _first(0),
     _grainsize(er._grainsize),
-    _objs(NULL),
+    _objs(nullptr),
     _should_release(false)
   {
     // specifically, do *not* copy the vector
@@ -185,7 +185,7 @@ public:
     _last(r._last),
     _first(r._first),
     _grainsize(r._grainsize),
-    _objs(NULL),
+    _objs(nullptr),
     _should_release(false)
   {
     const_iterator

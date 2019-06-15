@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -285,6 +285,7 @@ void init_quadrature_type_to_enum ()
       quadrature_type_to_enum["QGRID"      ]=QGRID;
       quadrature_type_to_enum["QCLOUGH"    ]=QCLOUGH;
       quadrature_type_to_enum["QGAUSS_LOBATTO"    ]=QGAUSS_LOBATTO;
+      quadrature_type_to_enum["QNODAL"]=QNODAL;
     }
 }
 

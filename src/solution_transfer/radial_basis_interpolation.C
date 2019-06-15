@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,9 @@
 #include "libmesh/eigen_core_support.h"
 
 #ifdef LIBMESH_HAVE_EIGEN
-#include <Eigen/Dense>
+# include "libmesh/ignore_warnings.h"
+# include <Eigen/Dense>
+# include "libmesh/restore_warnings.h"
 #endif
 
 

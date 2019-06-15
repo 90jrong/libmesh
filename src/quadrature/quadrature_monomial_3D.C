@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -25,11 +25,10 @@ namespace libMesh
 {
 
 
-void QMonomial::init_3D(const ElemType type_in,
-                        unsigned int p)
+void QMonomial::init_3D(const ElemType, unsigned int)
 {
 
-  switch (type_in)
+  switch (_type)
     {
       //---------------------------------------------
       // Hex quadrature rules
@@ -37,7 +36,7 @@ void QMonomial::init_3D(const ElemType type_in,
     case HEX20:
     case HEX27:
       {
-        switch(_order + 2*p)
+        switch(get_order())
           {
 
             // The CONSTANT/FIRST rule is the 1-point Gauss "product" rule...we fall
@@ -80,22 +79,22 @@ void QMonomial::init_3D(const ElemType type_in,
               // the n=3 case.  The analytical values given here were computed by me [JWP] in Maple.
 
               // Convenient intermediate values.
-              const Real sqrt19 = std::sqrt(19.L);
-              const Real tp     = std::sqrt(71440 + 6802*sqrt19);
+              const Real sqrt19 = Real(std::sqrt(19.L));
+              const Real tp     = Real(std::sqrt(71440 + 6802*sqrt19));
 
               // Point data for permutations.
-              const Real eta    =  0.00000000000000000000000000000000e+00L;
+              const Real eta    =  0;
 
-              const Real lambda =  std::sqrt(1919.L/3285.L - 148.L*sqrt19/3285.L + 4.L*tp/3285.L);
+              const Real lambda =  Real(std::sqrt(1919.L/3285.L - 148.L*sqrt19/3285.L + 4.L*tp/3285.L));
               // 8.8030440669930978047737818209860e-01L;
 
-              const Real xi     = -std::sqrt(1121.L/3285.L +  74.L*sqrt19/3285.L - 2.L*tp/3285.L);
+              const Real xi     = Real(-std::sqrt(1121.L/3285.L +  74.L*sqrt19/3285.L - 2.L*tp/3285.L));
               // -4.9584817142571115281421242364290e-01L;
 
-              const Real mu     =  std::sqrt(1121.L/3285.L +  74.L*sqrt19/3285.L + 2.L*tp/3285.L);
+              const Real mu     =  Real(std::sqrt(1121.L/3285.L +  74.L*sqrt19/3285.L + 2.L*tp/3285.L));
               // 7.9562142216409541542982482567580e-01L;
 
-              const Real gamma  =  std::sqrt(1919.L/3285.L - 148.L*sqrt19/3285.L - 4.L*tp/3285.L);
+              const Real gamma  =  Real(std::sqrt(1919.L/3285.L - 148.L*sqrt19/3285.L - 4.L*tp/3285.L));
               // 2.5293711744842581347389255929324e-02L;
 
               // Weights: the centroid weight is given analytically.  Weight B (resp C) goes
@@ -188,9 +187,9 @@ void QMonomial::init_3D(const ElemType type_in,
                   // rules are allowed.
                   const Real data[3][4] =
                     {
-                      {0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L, -1.27536231884057971014492753623188e+00L},
-                      {5.85540043769119907612630781744060e-01L, 0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L,  8.71111111111111111111111111111111e-01L},
-                      {6.94470135991704766602025803883310e-01L, 9.37161638568208038511047377665396e-01L, 4.15659267604065126239606672567031e-01L,  1.68695652173913043478260869565217e-01L}
+                      {Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L), Real(-1.27536231884057971014492753623188e+00L)},
+                      {Real(5.85540043769119907612630781744060e-01L), Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L),  Real(8.71111111111111111111111111111111e-01L)},
+                      {Real(6.94470135991704766602025803883310e-01L), Real(9.37161638568208038511047377665396e-01L), Real(4.15659267604065126239606672567031e-01L),  Real(1.68695652173913043478260869565217e-01L)}
                     };
 
                   const unsigned int rule_id[3] = {
@@ -220,9 +219,9 @@ void QMonomial::init_3D(const ElemType type_in,
               // (which integrates tri-7th order polynomials) would
               // have 4^3=64 points.
               const Real
-                r  = std::sqrt(6.L/7.L),
-                s  = std::sqrt((960.L - 3.L*std::sqrt(28798.L)) / 2726.L),
-                t  = std::sqrt((960.L + 3.L*std::sqrt(28798.L)) / 2726.L),
+                r  = Real(std::sqrt(6.L/7.L)),
+                s  = Real(std::sqrt((960.L - 3.L*std::sqrt(28798.L)) / 2726.L)),
+                t  = Real(std::sqrt((960.L + 3.L*std::sqrt(28798.L)) / 2726.L)),
                 B1 = Real(8624)/29160,
                 B2 = Real(2744)/29160,
                 B3 = 8*(774*t*t - 230)/(9720*(t*t-s*s)),
@@ -283,11 +282,11 @@ void QMonomial::init_3D(const ElemType type_in,
               // would have 5^3=125 points.
               const Real data[5][4] =
                 {
-                  {0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L, 4.51903714875199690490763818699555e-01L},
-                  {7.82460796435951590652813975429717e-01L, 0.00000000000000000000000000000000e+00L, 0.00000000000000000000000000000000e+00L, 2.99379177352338919703385618576171e-01L},
-                  {4.88094669706366480526729301468686e-01L, 4.88094669706366480526729301468686e-01L, 4.88094669706366480526729301468686e-01L, 3.00876159371240019939698689791164e-01L},
-                  {8.62218927661481188856422891110042e-01L, 8.62218927661481188856422891110042e-01L, 8.62218927661481188856422891110042e-01L, 4.94843255877038125738173175714853e-02L},
-                  {2.81113909408341856058098281846420e-01L, 9.44196578292008195318687494773744e-01L, 6.97574833707236996779391729948984e-01L, 1.22872389222467338799199767122592e-01L}
+                  {Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L), Real(4.51903714875199690490763818699555e-01L)},
+                  {Real(7.82460796435951590652813975429717e-01L), Real(0.00000000000000000000000000000000e+00L), Real(0.00000000000000000000000000000000e+00L), Real(2.99379177352338919703385618576171e-01L)},
+                  {Real(4.88094669706366480526729301468686e-01L), Real(4.88094669706366480526729301468686e-01L), Real(4.88094669706366480526729301468686e-01L), Real(3.00876159371240019939698689791164e-01L)},
+                  {Real(8.62218927661481188856422891110042e-01L), Real(8.62218927661481188856422891110042e-01L), Real(8.62218927661481188856422891110042e-01L), Real(4.94843255877038125738173175714853e-02L)},
+                  {Real(2.81113909408341856058098281846420e-01L), Real(9.44196578292008195318687494773744e-01L), Real(6.97574833707236996779391729948984e-01L), Real(1.22872389222467338799199767122592e-01L)}
                 };
 
               const unsigned int rule_id[5] = {
@@ -323,7 +322,7 @@ void QMonomial::init_3D(const ElemType type_in,
     default:
       {
         QGauss gauss_rule(3, _order);
-        gauss_rule.init(type_in, p);
+        gauss_rule.init(_type, _p_level);
 
         // Swap points and weights with the about-to-be destroyed rule.
         _points.swap (gauss_rule.get_points() );
@@ -331,7 +330,7 @@ void QMonomial::init_3D(const ElemType type_in,
 
         return;
       }
-    } // end switch (type_in)
+    } // end switch (_type)
 }
 
 } // namespace libMesh

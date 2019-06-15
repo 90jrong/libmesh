@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -121,11 +121,11 @@ bool FEMPhysics::eulerian_residual (bool request_jacobian,
       DenseSubMatrix<Number> & Kuu = *context.elem_subjacobians[var][var];
 
       DenseSubMatrix<Number> * Kux = n_x_dofs ?
-        context.elem_subjacobians[var][_mesh_x_var] : libmesh_nullptr;
+        context.elem_subjacobians[var][_mesh_x_var] : nullptr;
       DenseSubMatrix<Number> * Kuy = n_y_dofs ?
-        context.elem_subjacobians[var][_mesh_y_var] : libmesh_nullptr;
+        context.elem_subjacobians[var][_mesh_y_var] : nullptr;
       DenseSubMatrix<Number> * Kuz = n_z_dofs ?
-        context.elem_subjacobians[var][_mesh_z_var] : libmesh_nullptr;
+        context.elem_subjacobians[var][_mesh_z_var] : nullptr;
 
       std::vector<Real> delta_x(n_x_dofs, 0.);
       std::vector<Real> delta_y(n_y_dofs, 0.);
@@ -210,7 +210,7 @@ bool FEMPhysics::mass_residual (bool request_jacobian,
       if (!this->is_time_evolving(var))
         continue;
 
-      FEBase * elem_fe = libmesh_nullptr;
+      FEBase * elem_fe = nullptr;
       context.get_element_fe( var, elem_fe );
 
       const std::vector<Real> & JxW = elem_fe->get_JxW();

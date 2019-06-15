@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,7 @@
 #include "libmesh/parallel_only.h"
 #include "libmesh/post_wait_copy_buffer.h"
 #include "libmesh/post_wait_delete_buffer.h"
+#include "libmesh/post_wait_dereference_tag.h"
 #include "libmesh/post_wait_free_buffer.h"
 #include "libmesh/post_wait_unpack_buffer.h"
 #include "libmesh/post_wait_work.h"

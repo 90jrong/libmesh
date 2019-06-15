@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -34,16 +34,24 @@ template <typename T> class LinearSolver;
 template <typename T> class SparseMatrix;
 
 /**
- * This class provides a specific system class.  It aims
- * at implicit systems, offering nothing more than just
- * the essentials needed to solve a system.
+ * \brief Manages consistently variables, degrees of freedom, coefficient
+ * vectors, and matrices for implicit systems.
+ *
+ * Implicit systems are characterized by the need to solve the (non-)linear
+ * system Ax=b. This class provides, in addition to the ExplicitSystem class,
+ * storage for sparse matrices. Hence this System provides means to manage a
+ * right hand side vector and a sparse matrix. In addition, further matrices
+ * can be managed using the ImplicitSystem::add_matrix method.
+ *
+ * This class provieds *no* means to solve the implicit system. This
+ * functionality is provided, e.g., by the LinearImplicitSystem or the
+ * NonlinearImplicitSystem class.
  *
  * \note Additional vectors/matrices can be added via parent class
  * interfaces.
  *
  * \author Benjamin S. Kirk
  * \date 2004
- * \brief Used for solving implicit systems of equations.
  */
 class ImplicitSystem : public ExplicitSystem
 {
@@ -167,6 +175,14 @@ public:
    * Can be overridden in derived classes.
    */
   virtual void assemble_residual_derivatives (const ParameterVector & parameters) override;
+
+  /**
+   * For explicit systems, just assemble and solve the system A*x=b.
+   * Should be overridden in derrived systems to provide a solver for the
+   * system.
+   */
+  virtual void solve () override
+  { libmesh_not_implemented(); }
 
   /**
    * Assembles & solves the linear system(s) (dR/du)*u_p = -dR/dp, for
@@ -312,14 +328,14 @@ public:
 
   /**
    * \returns A const pointer to this system's additional matrix
-   * named \p mat_name, or \p NULL if no matrix by that name
+   * named \p mat_name, or \p nullptr if no matrix by that name
    * exists.
    */
   const SparseMatrix<Number> * request_matrix (const std::string & mat_name) const;
 
   /**
    * \returns A writable pointer to this system's additional matrix
-   * named \p mat_name, or \p NULL if no matrix by that name
+   * named \p mat_name, or \p nullptr if no matrix by that name
    * exists.
    */
   SparseMatrix<Number> * request_matrix (const std::string & mat_name);

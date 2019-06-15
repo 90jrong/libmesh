@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2013 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -229,8 +229,8 @@ void ElemCutter::cut_2D (const Elem & elem,
 
   std::cout << "Inside cut face element!\n";
 
-  libmesh_assert (_inside_mesh_2D.get()  != libmesh_nullptr);
-  libmesh_assert (_outside_mesh_2D.get() != libmesh_nullptr);
+  libmesh_assert (_inside_mesh_2D.get()  != nullptr);
+  libmesh_assert (_outside_mesh_2D.get() != nullptr);
 
   _inside_mesh_2D->clear();
   _outside_mesh_2D->clear();
@@ -283,11 +283,11 @@ void ElemCutter::cut_2D (const Elem & elem,
   _inside_elem.clear();
   _outside_elem.clear();
 
-  for (const auto & elem : _inside_mesh_2D->element_ptr_range())
-    _inside_elem.push_back (elem);
+  for (const auto & el : _inside_mesh_2D->element_ptr_range())
+    _inside_elem.push_back (el);
 
-  for (const auto & elem : _outside_mesh_2D->element_ptr_range())
-    _outside_elem.push_back (elem);
+  for (const auto & el : _outside_mesh_2D->element_ptr_range())
+    _outside_elem.push_back (el);
 
 #endif
 }
@@ -309,8 +309,8 @@ void ElemCutter::cut_3D (const Elem & elem,
 
   std::cout << "Inside cut cell element!\n";
 
-  libmesh_assert (_inside_mesh_3D.get()  != libmesh_nullptr);
-  libmesh_assert (_outside_mesh_3D.get() != libmesh_nullptr);
+  libmesh_assert (_inside_mesh_3D.get()  != nullptr);
+  libmesh_assert (_outside_mesh_3D.get() != nullptr);
 
   _inside_mesh_3D->clear();
   _outside_mesh_3D->clear();
@@ -364,13 +364,13 @@ void ElemCutter::cut_3D (const Elem & elem,
   _inside_elem.clear();
   _outside_elem.clear();
 
-  for (const auto & elem : _inside_mesh_3D->element_ptr_range())
-    if (elem->volume() > std::numeric_limits<Real>::epsilon())
-      _inside_elem.push_back (elem);
+  for (const auto & el : _inside_mesh_3D->element_ptr_range())
+    if (el->volume() > std::numeric_limits<Real>::epsilon())
+      _inside_elem.push_back (el);
 
-  for (const auto & elem : _outside_mesh_3D->element_ptr_range())
-    if (elem->volume() > std::numeric_limits<Real>::epsilon())
-      _outside_elem.push_back (elem);
+  for (const auto & el : _outside_mesh_3D->element_ptr_range())
+    if (el->volume() > std::numeric_limits<Real>::epsilon())
+      _outside_elem.push_back (el);
 
 #endif
 }

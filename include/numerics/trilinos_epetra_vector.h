@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@ template <typename T> class SparseMatrix;
  * \date 2008
  */
 template <typename T>
-class EpetraVector libmesh_final : public NumericVector<T>
+class EpetraVector final : public NumericVector<T>
 {
 public:
 
@@ -109,10 +109,15 @@ public:
                const Parallel::Communicator & comm);
 
   /**
-   * Destructor, deallocates memory. Made virtual to allow
-   * for derived classes to behave properly.
+   * This class manages the lifetime of an Epetra_Vector manually, so
+   * we don't want to allow any automatic copy/move functions to be
+   * generated, and we can't default the destructor.
    */
-  ~EpetraVector ();
+  EpetraVector (EpetraVector &&) = delete;
+  EpetraVector (const EpetraVector &) = delete;
+  EpetraVector & operator= (const EpetraVector &) = delete;
+  EpetraVector & operator= (EpetraVector &&) = delete;
+  virtual ~EpetraVector ();
 
   virtual void close () override;
 
@@ -146,13 +151,6 @@ public:
 
   virtual NumericVector<T> & operator= (const NumericVector<T> & v) override;
 
-  /**
-   * Sets (*this)(i) = v(i) for each entry of the vector.
-   *
-   * \returns A reference to *this as the derived type.
-   */
-  EpetraVector<T> & operator= (const EpetraVector<T> & v);
-
   virtual NumericVector<T> & operator= (const std::vector<T> & v) override;
 
   virtual Real min () const override;
@@ -181,7 +179,7 @@ public:
 
   virtual NumericVector<T> & operator -= (const NumericVector<T> & v) override;
 
-  virtual NumericVector<T> & operator /= (NumericVector<T> & v) override;
+  virtual NumericVector<T> & operator /= (const NumericVector<T> & v) override;
 
   virtual void reciprocal() override;
 
@@ -411,12 +409,12 @@ EpetraVector<T>::EpetraVector (const Parallel::Communicator & comm,
   _destroy_vec_on_exit(true),
   myFirstID_(0),
   myNumIDs_(0),
-  myCoefs_(libmesh_nullptr),
-  nonlocalIDs_(libmesh_nullptr),
-  nonlocalElementSize_(libmesh_nullptr),
+  myCoefs_(nullptr),
+  nonlocalIDs_(nullptr),
+  nonlocalElementSize_(nullptr),
   numNonlocalIDs_(0),
   allocatedNonlocalLength_(0),
-  nonlocalCoefs_(libmesh_nullptr),
+  nonlocalCoefs_(nullptr),
   last_edit(0),
   ignoreNonLocalEntries_(false)
 {
@@ -434,12 +432,12 @@ EpetraVector<T>::EpetraVector (const Parallel::Communicator & comm,
   _destroy_vec_on_exit(true),
   myFirstID_(0),
   myNumIDs_(0),
-  myCoefs_(libmesh_nullptr),
-  nonlocalIDs_(libmesh_nullptr),
-  nonlocalElementSize_(libmesh_nullptr),
+  myCoefs_(nullptr),
+  nonlocalIDs_(nullptr),
+  nonlocalElementSize_(nullptr),
   numNonlocalIDs_(0),
   allocatedNonlocalLength_(0),
-  nonlocalCoefs_(libmesh_nullptr),
+  nonlocalCoefs_(nullptr),
   last_edit(0),
   ignoreNonLocalEntries_(false)
 
@@ -459,12 +457,12 @@ EpetraVector<T>::EpetraVector (const Parallel::Communicator & comm,
   _destroy_vec_on_exit(true),
   myFirstID_(0),
   myNumIDs_(0),
-  myCoefs_(libmesh_nullptr),
-  nonlocalIDs_(libmesh_nullptr),
-  nonlocalElementSize_(libmesh_nullptr),
+  myCoefs_(nullptr),
+  nonlocalIDs_(nullptr),
+  nonlocalElementSize_(nullptr),
   numNonlocalIDs_(0),
   allocatedNonlocalLength_(0),
-  nonlocalCoefs_(libmesh_nullptr),
+  nonlocalCoefs_(nullptr),
   last_edit(0),
   ignoreNonLocalEntries_(false)
 {
@@ -482,12 +480,12 @@ EpetraVector<T>::EpetraVector(Epetra_Vector & v,
   _destroy_vec_on_exit(false),
   myFirstID_(0),
   myNumIDs_(0),
-  myCoefs_(libmesh_nullptr),
-  nonlocalIDs_(libmesh_nullptr),
-  nonlocalElementSize_(libmesh_nullptr),
+  myCoefs_(nullptr),
+  nonlocalIDs_(nullptr),
+  nonlocalElementSize_(nullptr),
   numNonlocalIDs_(0),
   allocatedNonlocalLength_(0),
-  nonlocalCoefs_(libmesh_nullptr),
+  nonlocalCoefs_(nullptr),
   last_edit(0),
   ignoreNonLocalEntries_(false)
 {
@@ -525,12 +523,12 @@ EpetraVector<T>::EpetraVector (const Parallel::Communicator & comm,
   _destroy_vec_on_exit(true),
   myFirstID_(0),
   myNumIDs_(0),
-  myCoefs_(libmesh_nullptr),
-  nonlocalIDs_(libmesh_nullptr),
-  nonlocalElementSize_(libmesh_nullptr),
+  myCoefs_(nullptr),
+  nonlocalIDs_(nullptr),
+  nonlocalElementSize_(nullptr),
   numNonlocalIDs_(0),
   allocatedNonlocalLength_(0),
-  nonlocalCoefs_(libmesh_nullptr),
+  nonlocalCoefs_(nullptr),
   last_edit(0),
   ignoreNonLocalEntries_(false)
 {
@@ -673,7 +671,7 @@ void EpetraVector<T>::clear ()
       if (this->_destroy_vec_on_exit)
         {
           delete _vec;
-          _vec = libmesh_nullptr;
+          _vec = nullptr;
         }
 
       // But we currently always own our own _map
@@ -825,6 +823,14 @@ void EpetraVector<T>::swap (NumericVector<T> & other)
   std::swap(nonlocalCoefs_, v.nonlocalCoefs_);
   std::swap(last_edit, v.last_edit);
   std::swap(ignoreNonLocalEntries_, v.ignoreNonLocalEntries_);
+}
+
+
+// Trilinos only got serious about const in version 10.4
+inline
+int * numeric_trilinos_cast(const numeric_index_type * p)
+{
+  return reinterpret_cast<int *>(const_cast<numeric_index_type *>(p));
 }
 
 } // namespace libMesh

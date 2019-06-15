@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -186,7 +186,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
           if (var > 0)
             {
               // We can't mix L_inf and L_2 norms
-              bool is_valid_norm_type =
+              bool is_valid_norm_combo =
                 ((error_estimator.error_norm.type(var) == L2 ||
                   error_estimator.error_norm.type(var) == H1_SEMINORM ||
                   error_estimator.error_norm.type(var) == H1_X_SEMINORM ||
@@ -205,7 +205,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
                  (error_estimator.error_norm.type(var-1) == L_INF ||
                   error_estimator.error_norm.type(var-1) == W1_INF_SEMINORM ||
                   error_estimator.error_norm.type(var-1) == W2_INF_SEMINORM));
-              libmesh_assert (is_valid_norm_type);
+              libmesh_assert (is_valid_norm_combo);
             }
 #endif // DEBUG
 
@@ -235,7 +235,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
           // getting them unless the requested norm is actually going
           // to use them.
 
-          const std::vector<std::vector<Real>> * phi = libmesh_nullptr;
+          const std::vector<std::vector<Real>> * phi = nullptr;
           // If we're using phi to assert the correct dof_indices
           // vector size later, then we'll need to get_phi whether we
           // plan to use it or not.
@@ -245,7 +245,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 #endif
             phi = &(fe->get_phi());
 
-          const std::vector<std::vector<RealGradient>> * dphi = libmesh_nullptr;
+          const std::vector<std::vector<RealGradient>> * dphi = nullptr;
           if (error_estimator.error_norm.type(var) == H1_SEMINORM ||
               error_estimator.error_norm.type(var) == H1_X_SEMINORM ||
               error_estimator.error_norm.type(var) == H1_Y_SEMINORM ||
@@ -254,7 +254,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
             dphi = &(fe->get_dphi());
 
 #ifdef LIBMESH_ENABLE_SECOND_DERIVATIVES
-          const std::vector<std::vector<RealTensor>> * d2phi = libmesh_nullptr;
+          const std::vector<std::vector<RealTensor>> * d2phi = nullptr;
           if (error_estimator.error_norm.type(var) == H2_SEMINORM ||
               error_estimator.error_norm.type(var) == W2_INF_SEMINORM)
             d2phi = &(fe->get_d2phi());
@@ -329,14 +329,8 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
           //------------------------------------------------------
           // Loop over each element in the patch and compute their
           // contribution to the patch gradient projection.
-          Patch::const_iterator        patch_it  = patch.begin();
-          const Patch::const_iterator  patch_end = patch.end();
-
-          for (; patch_it != patch_end; ++patch_it)
+          for (const auto & e_p : patch)
             {
-              // The pth element in the patch
-              const Elem * e_p = *patch_it;
-
               // Reinitialize the finite element data for this element
               fe->reinit (e_p);
 
@@ -356,6 +350,8 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
                   // Construct the shape function values for the patch projection
                   std::vector<Real> psi(specpoly(dim, element_order, q_point[qp], matsize));
 
+                  const unsigned int psi_size = cast_int<unsigned int>(psi.size());
+
                   // Patch matrix contribution
                   for (unsigned int i=0; i<Kp.m(); i++)
                     for (unsigned int j=0; j<Kp.n(); j++)
@@ -372,7 +368,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
                         u_h += (*phi)[i][qp]*system.current_solution (dof_indices[i]);
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         F(i) = JxW[qp]*u_h*psi[i];
 
                     }
@@ -390,7 +386,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         {
                           Fx(i) += JxW[qp]*grad_u_h(0)*psi[i];
 #if LIBMESH_DIM > 1
@@ -414,7 +410,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         {
                           Fx(i) += JxW[qp]*grad_u_h(0)*psi[i];
                         }
@@ -432,7 +428,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         {
                           Fy(i) += JxW[qp]*grad_u_h(1)*psi[i];
                         }
@@ -450,7 +446,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         {
                           Fz(i) += JxW[qp]*grad_u_h(2)*psi[i];
                         }
@@ -470,7 +466,7 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
 
 
                       // Patch RHS contributions
-                      for (std::size_t i=0; i<psi.size(); i++)
+                      for (unsigned int i=0; i != psi_size; i++)
                         {
                           Fx(i)  += JxW[qp]*hess_u_h(0,0)*psi[i];
 #if LIBMESH_DIM > 1
@@ -591,12 +587,8 @@ void WeightedPatchRecoveryErrorEstimator::EstimateError::operator()(const ConstE
               // We'll need an index into the error vector for this element
               const dof_id_type e_p_id = e_p->id();
 
-              // Get a pointer to the element, we need it to initialize
-              // the FEMContext
-              Elem * e_p_cast = const_cast<Elem *>(*patch_re_it);
-
               // Initialize the FEMContext
-              femcontext.pre_fe_reinit(system, e_p_cast);
+              femcontext.pre_fe_reinit(system, e_p);
 
               // We will update the new_error_per_cell vector with element_error if the
               // error_per_cell[e_p_id] entry is non-zero, otherwise update it

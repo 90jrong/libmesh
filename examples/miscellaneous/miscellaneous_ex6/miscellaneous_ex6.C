@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -277,10 +277,10 @@ void add_cube_convex_hull_to_mesh(MeshBase & mesh,
 
   for (auto & elem : cube_mesh.element_ptr_range())
     for (auto s : elem->side_index_range())
-      if (elem->neighbor(s) == libmesh_nullptr)
+      if (elem->neighbor_ptr(s) == nullptr)
         {
           // Add the node IDs of this side to the set
-          std::unique_ptr<Elem> side = elem->side(s);
+          std::unique_ptr<Elem> side = elem->side_ptr(s);
 
           for (auto n : side->node_index_range())
             node_id_map.insert(std::make_pair(side->node_id(n), /*dummy_value=*/0));
@@ -331,8 +331,6 @@ void add_cube_convex_hull_to_mesh(MeshBase & mesh,
       }
 #else
   // Avoid compiler warnings
-  libmesh_ignore(mesh);
-  libmesh_ignore(lower_limit);
-  libmesh_ignore(upper_limit);
+  libmesh_ignore(mesh, lower_limit, upper_limit);
 #endif // LIBMESH_HAVE_TETGEN
 }

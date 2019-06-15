@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@ ContinuationSystem::ContinuationSystem (EquationSystems & es,
                                         const std::string & name_in,
                                         const unsigned int number_in) :
   Parent(es, name_in, number_in),
-  continuation_parameter(libmesh_nullptr),
+  continuation_parameter(nullptr),
   quiet(true),
   continuation_parameter_tolerance(1.e-6),
   solution_tolerance(1.e-6),
@@ -49,7 +49,7 @@ ContinuationSystem::ContinuationSystem (EquationSystems & es,
   rhs_mode(Residual),
   linear_solver(LinearSolver<Number>::build(es.comm())),
   tangent_initialized(false),
-  newton_solver(libmesh_nullptr),
+  newton_solver(nullptr),
   dlambda_ds(0.707),
   ds(0.1),
   ds_current(0.1),

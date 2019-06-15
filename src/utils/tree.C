@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -61,7 +61,7 @@ Tree<N>::Tree (const MeshBase & m,
       // Now the tree contains the nodes.
       // However, we want element pointers, so here we
       // convert between the two.
-      std::vector<std::vector<const Elem *>> nodes_to_elem;
+      std::unordered_map<dof_id_type, std::vector<const Elem *>> nodes_to_elem;
 
       MeshTools::build_nodes_to_elem_map (mesh, nodes_to_elem);
       root.transform_nodes_to_elements (nodes_to_elem);

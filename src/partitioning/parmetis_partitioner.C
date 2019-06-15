@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -93,29 +93,36 @@ void ParmetisPartitioner::_do_partition (MeshBase & mesh,
 void ParmetisPartitioner::_do_repartition (MeshBase & mesh,
                                            const unsigned int n_sbdmns)
 {
-  libmesh_assert_greater (n_sbdmns, 0);
+  // This function must be run on all processors at once
+  libmesh_parallel_only(mesh.comm());
 
-  // Check for an easy return
+  // Check for easy returns
+  if (!mesh.n_elem())
+    return;
+
   if (n_sbdmns == 1)
     {
       this->single_partition(mesh);
       return;
     }
 
-  // This function must be run on all processors at once
-  libmesh_parallel_only(mesh.comm());
+  libmesh_assert_greater (n_sbdmns, 0);
 
   // What to do if the Parmetis library IS NOT present
 #ifndef LIBMESH_HAVE_PARMETIS
 
-  libmesh_here();
-  libMesh::err << "ERROR: The library has been built without" << std::endl
+  libmesh_do_once(
+  libMesh::out << "ERROR: The library has been built without" << std::endl
                << "Parmetis support.  Using a Metis"          << std::endl
-               << "partitioner instead!"                      << std::endl;
+               << "partitioner instead!"                      << std::endl;);
 
   MetisPartitioner mp;
 
-  mp.partition (mesh, n_sbdmns);
+  // Don't just call partition() here; that would end up calling
+  // post-element-partitioning work redundantly (and at the moment
+  // incorrectly)
+  mp.partition_range (mesh, mesh.active_elements_begin(),
+                      mesh.active_elements_end(), n_sbdmns);
 
   // What to do if the Parmetis library IS present
 #else
@@ -127,7 +134,11 @@ void ParmetisPartitioner::_do_repartition (MeshBase & mesh,
       mesh.allgather();
 
       MetisPartitioner mp;
-      mp.partition (mesh, n_sbdmns);
+      // Don't just call partition() here; that would end up calling
+      // post-element-partitioning work redundantly (and at the moment
+      // incorrectly)
+      mp.partition_range (mesh, mesh.active_elements_begin(),
+                          mesh.active_elements_end(), n_sbdmns);
       return;
     }
 
@@ -141,12 +152,12 @@ void ParmetisPartitioner::_do_repartition (MeshBase & mesh,
   // per partition.
   {
     bool all_have_enough_elements = true;
-    for (std::size_t pid=0; pid<_n_active_elem_on_proc.size(); pid++)
-      if (_n_active_elem_on_proc[pid] < MIN_ELEM_PER_PROC)
+    for (const auto & nelem : _n_active_elem_on_proc)
+      if (nelem < MIN_ELEM_PER_PROC)
         all_have_enough_elements = false;
 
     // Parmetis will not work unless each processor has some
-    // elements. Specifically, it will abort when passed a NULL
+    // elements. Specifically, it will abort when passed a nullptr
     // partition array on *any* of the processors.
     if (!all_have_enough_elements)
       {
@@ -170,28 +181,26 @@ void ParmetisPartitioner::_do_repartition (MeshBase & mesh,
   // Call the ParMETIS adaptive repartitioning method.  This respects the
   // original partitioning when computing the new partitioning so as to
   // minimize the required data redistribution.
-  Parmetis::ParMETIS_V3_AdaptiveRepart(_pmetis->vtxdist.empty() ? libmesh_nullptr : &_pmetis->vtxdist[0],
-                                       _pmetis->xadj.empty()    ? libmesh_nullptr : &_pmetis->xadj[0],
-                                       _pmetis->adjncy.empty()  ? libmesh_nullptr : &_pmetis->adjncy[0],
-                                       _pmetis->vwgt.empty()    ? libmesh_nullptr : &_pmetis->vwgt[0],
-                                       vsize.empty()            ? libmesh_nullptr : &vsize[0],
-                                       libmesh_nullptr,
+  Parmetis::ParMETIS_V3_AdaptiveRepart(_pmetis->vtxdist.empty() ? nullptr : _pmetis->vtxdist.data(),
+                                       _pmetis->xadj.empty()    ? nullptr : _pmetis->xadj.data(),
+                                       _pmetis->adjncy.empty()  ? nullptr : _pmetis->adjncy.data(),
+                                       _pmetis->vwgt.empty()    ? nullptr : _pmetis->vwgt.data(),
+                                       vsize.empty()            ? nullptr : vsize.data(),
+                                       nullptr,
                                        &_pmetis->wgtflag,
                                        &_pmetis->numflag,
                                        &_pmetis->ncon,
                                        &_pmetis->nparts,
-                                       _pmetis->tpwgts.empty()  ? libmesh_nullptr : &_pmetis->tpwgts[0],
-                                       _pmetis->ubvec.empty()   ? libmesh_nullptr : &_pmetis->ubvec[0],
+                                       _pmetis->tpwgts.empty()  ? nullptr : _pmetis->tpwgts.data(),
+                                       _pmetis->ubvec.empty()   ? nullptr : _pmetis->ubvec.data(),
                                        &itr,
-                                       &_pmetis->options[0],
+                                       _pmetis->options.data(),
                                        &_pmetis->edgecut,
-                                       _pmetis->part.empty()    ? libmesh_nullptr : &_pmetis->part[0],
+                                       _pmetis->part.empty()    ? nullptr : reinterpret_cast<Parmetis::idx_t *>(_pmetis->part.data()),
                                        &mpi_comm);
 
   // Assign the returned processor ids
-  static_assert(sizeof(dof_id_type) == sizeof(Parmetis::idx_t),
-                "libMesh and Parmetis integer sizes must match!");
-  this->assign_partitioning (mesh, reinterpret_cast<std::vector<dof_id_type> &> (_pmetis->part));
+  this->assign_partitioning (mesh, _pmetis->part);
 
 #endif // #ifndef LIBMESH_HAVE_PARMETIS ... else ...
 
@@ -361,10 +370,11 @@ void ParmetisPartitioner::initialize (const MeshBase & mesh,
         libmesh_assert_less (global_index, subdomain_bounds.back());
 
         const unsigned int subdomain_id =
-          std::distance(subdomain_bounds.begin(),
-                        std::lower_bound(subdomain_bounds.begin(),
-                                         subdomain_bounds.end(),
-                                         global_index));
+          cast_int<unsigned int>
+          (std::distance(subdomain_bounds.begin(),
+                         std::lower_bound(subdomain_bounds.begin(),
+                                          subdomain_bounds.end(),
+                                          global_index)));
         libmesh_assert_less (subdomain_id, static_cast<unsigned int>(_pmetis->nparts));
         libmesh_assert_less (local_index, _pmetis->part.size());
 
@@ -389,7 +399,7 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
   dof_id_type graph_size=0;
 
   for (auto & row: _dual_graph)
-   graph_size += row.size();
+   graph_size += cast_int<dof_id_type>(row.size());
 
   // Reserve space in the adjacency array
   _pmetis->xadj.clear();
@@ -399,14 +409,14 @@ void ParmetisPartitioner::build_graph (const MeshBase & mesh)
 
   for (auto & graph_row : _dual_graph)
     {
-      _pmetis->xadj.push_back(_pmetis->adjncy.size());
+      _pmetis->xadj.push_back(cast_int<int>(_pmetis->adjncy.size()));
       _pmetis->adjncy.insert(_pmetis->adjncy.end(),
                              graph_row.begin(),
                              graph_row.end());
     }
 
   // The end of the adjacency array for the last elem
-  _pmetis->xadj.push_back(_pmetis->adjncy.size());
+  _pmetis->xadj.push_back(cast_int<int>(_pmetis->adjncy.size()));
 
   libmesh_assert_equal_to (_pmetis->xadj.size(), n_active_local_elem+1);
   libmesh_assert_equal_to (_pmetis->adjncy.size(), graph_size);

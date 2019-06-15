@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -116,6 +116,11 @@ private:
   //
   // FIXME - we require C++11 now, so we can be smarter about this.
   std::pair<std::vector <PostWaitWork * >, unsigned int> * post_wait_work;
+
+  // waitany() takes a container of Requests, so it can't be a member
+  // function, but it needs access to each Request's _prior_request
+  // and _post_wait_work
+  friend std::size_t waitany (std::vector<Request> &);
 };
 
 /**

@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -67,7 +67,7 @@ extern "C"
       u.close();
 
       Vec petsc_res;
-      ierr = SNESGetFunction(snes, &petsc_res, libmesh_nullptr, libmesh_nullptr);
+      ierr = SNESGetFunction(snes, &petsc_res, nullptr, nullptr);
       CHKERRABORT(solver.comm().get(), ierr);
       PetscVector<Number> res(petsc_res, solver.comm());
       res.close();
@@ -226,6 +226,12 @@ void PetscDiffSolver::clear()
 
   int ierr = LibMeshSNESDestroy(&_snes);
   LIBMESH_CHKERR(ierr);
+
+#if !PETSC_VERSION_LESS_THAN(3,7,3)
+#if defined(LIBMESH_ENABLE_AMR) && defined(LIBMESH_HAVE_METAPHYSICL)
+  _dm_wrapper.clear();
+#endif
+#endif
 }
 
 
@@ -316,6 +322,9 @@ unsigned int PetscDiffSolver::solve()
                           __libmesh_petsc_diff_solver_jacobian, this);
   LIBMESH_CHKERR(ierr);
 
+  ierr = SNESSetFromOptions(_snes);
+  LIBMESH_CHKERR(ierr);
+
   ierr = SNESSolve (_snes, PETSC_NULL, x.vec());
   LIBMESH_CHKERR(ierr);
 
@@ -325,6 +334,15 @@ unsigned int PetscDiffSolver::solve()
 
   SNESConvergedReason reason;
   SNESGetConvergedReason(_snes, &reason);
+
+  PetscInt l_its, nl_its;
+  ierr = SNESGetLinearSolveIterations(_snes,&l_its);
+  LIBMESH_CHKERR(ierr);
+  this->_inner_iterations = l_its;
+
+  ierr = SNESGetIterationNumber(_snes,&nl_its);
+  LIBMESH_CHKERR(ierr);
+  this->_outer_iterations = nl_its;
 
   return convert_solve_result(reason);
 }
@@ -346,18 +364,33 @@ void PetscDiffSolver::setup_petsc_data()
       LIBMESH_CHKERR(ierr);
     }
 
-  ierr = SNESSetFromOptions(_snes);
-  LIBMESH_CHKERR(ierr);
+  bool use_petsc_dm = libMesh::on_command_line("--use_petsc_dm");
 
-  KSP my_ksp;
-  ierr = SNESGetKSP(_snes, &my_ksp);
-  LIBMESH_CHKERR(ierr);
+  // This needs to be called before SNESSetFromOptions
+#if !PETSC_VERSION_LESS_THAN(3,7,3)
+#if defined(LIBMESH_ENABLE_AMR) && defined(LIBMESH_HAVE_METAPHYSICL)
+  if (use_petsc_dm)
+    this->_dm_wrapper.init_and_attach_petscdm(_system, _snes);
+#endif
+#endif
 
-  PC my_pc;
-  ierr = KSPGetPC(my_ksp, &my_pc);
-  LIBMESH_CHKERR(ierr);
+  // If we're not using PETSc DM, let's keep around
+  // the old style for fieldsplit
+  if (!use_petsc_dm)
+    {
+      ierr = SNESSetFromOptions(_snes);
+      LIBMESH_CHKERR(ierr);
 
-  petsc_auto_fieldsplit(my_pc, _system);
+      KSP my_ksp;
+      ierr = SNESGetKSP(_snes, &my_ksp);
+      LIBMESH_CHKERR(ierr);
+
+      PC my_pc;
+      ierr = KSPGetPC(my_ksp, &my_pc);
+      LIBMESH_CHKERR(ierr);
+
+      petsc_auto_fieldsplit(my_pc, _system);
+    }
 }
 
 } // namespace libMesh

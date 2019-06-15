@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -341,7 +341,7 @@ public:
    * Const accessor for QoI derivative of a particular qoi and variable corresponding
    * to the index arguments.
    */
-  const DenseSubVector<Number> & get_qoi_derivatives( unsigned int qoi, unsigned int var ) const
+  const DenseSubVector<Number> & get_qoi_derivatives( std::size_t qoi, unsigned int var ) const
   {
     libmesh_assert_greater(_elem_qoi_subderivatives.size(), qoi);
     libmesh_assert_greater(_elem_qoi_subderivatives[qoi].size(), var);
@@ -353,7 +353,7 @@ public:
    * Non-const accessor for QoI derivative of a particular qoi and variable corresponding
    * to the index arguments.
    */
-  DenseSubVector<Number> & get_qoi_derivatives( unsigned int qoi, unsigned int var )
+  DenseSubVector<Number> & get_qoi_derivatives( std::size_t qoi, unsigned int var )
   {
     libmesh_assert_greater(_elem_qoi_subderivatives.size(), qoi);
     libmesh_assert_greater(_elem_qoi_subderivatives[qoi].size(), var);
@@ -391,6 +391,22 @@ public:
   {
     libmesh_assert_greater(_dof_indices_var.size(), var);
     return _dof_indices_var[var];
+  }
+
+  /**
+   * Total number of dof indices on the element
+   */
+  unsigned int n_dof_indices() const
+  { return cast_int<unsigned int>(_dof_indices.size()); }
+
+  /**
+   * Total number of dof indices of the particular variable
+   * corresponding to the index argument
+   */
+  unsigned int n_dof_indices( unsigned int var ) const
+  {
+    libmesh_assert_greater(_dof_indices_var.size(), var);
+    return cast_int<unsigned int>(_dof_indices_var[var].size());
   }
 
   /**
@@ -624,7 +640,7 @@ protected:
 private:
 
   /**
-   * Default NULL, can optionally be used to point to a timestep value
+   * Defaults to nullptr, can optionally be used to point to a timestep value
    * in the System-derived class responsible for creating this DiffContext.
    *
    * In DiffSystem's build_context() function, is assigned to point to
@@ -632,7 +648,7 @@ private:
    *
    * Accessible via public get_deltat()/set_deltat() methods of this class.
    *
-   * Always test for NULL before using!
+   * Always test for nullptr before using!
    */
   Real * _deltat;
 

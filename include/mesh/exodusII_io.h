@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -133,6 +133,14 @@ public:
                                unsigned int timestep=1);
 
   /**
+   * Copy global variables into scalar variables of a System object.
+   */
+  void copy_scalar_solution(System & system,
+                            std::vector<std::string> system_var_names,
+                            std::vector<std::string> exodus_var_names,
+                            unsigned int timestep=1);
+
+  /**
    * Given an elemental variable and a time step, returns a mapping from the
    * elements (top parent) unique IDs to the value of the elemental variable at
    * the corresponding time step index.
@@ -163,7 +171,7 @@ public:
    */
   void write_discontinuous_exodusII (const std::string & name,
                                      const EquationSystems & es,
-                                     const std::set<std::string> * system_names=libmesh_nullptr);
+                                     const std::set<std::string> * system_names=nullptr);
 
   /**
    * Writes a discontinuous solution at a specific timestep
@@ -177,12 +185,39 @@ public:
                                      const EquationSystems &es,
                                      const int timestep,
                                      const Real time,
-                                     const std::set<std::string> * system_names=libmesh_nullptr);
+                                     const std::set<std::string> * system_names=nullptr);
 
   /**
    * Write out element solution.
    */
   void write_element_data (const EquationSystems & es);
+
+  /**
+   * Similar to the function above, but instead of only handling
+   * (CONSTANT, MONOMIAL) data, writes out a general discontinuous
+   * solution field, e.g. (FIRST, L2_LAGRANGE) or (SECOND, MONOMIAL)
+   * as a number of elemental fields equal to the number of vertices in
+   * each element. For example, if you have a (FIRST, L2_LAGRANGE)
+   * variable "u" defined on HEX8 elements, calling this function
+   * would by default write 8 elemental fields named u_elem_node_0,
+   * u_elem_node_1, u_elem_node_2, etc.
+   *
+   * This may be useful if you have a viz tool which is capable of
+   * interpreting this element data as a discontinuous solution field.
+   * Note that (CONSTANT, MONOMIAL) data is still written as a single
+   * value per element, as it makes no sense to write n_vertices
+   * copies of the same value.
+   *
+   * The 'var_suffix' parameter, which defaults to "_elem_node_", is
+   * used to generate the elemental variable names, and is inserted
+   * between the base variable name and the node id which the variable
+   * applies to, e.g. "u_elem_node_0", "u_elem_node_1", etc.
+   */
+  void
+  write_element_data_from_discontinuous_nodal_data
+  (const EquationSystems & es,
+   const std::set<std::string> * system_names = nullptr,
+   const std::string & var_suffix = "_elem_node_");
 
   /**
    * Bring in base class functionality for name resolution and to
@@ -228,7 +263,7 @@ public:
                        const EquationSystems & es,
                        const int timestep,
                        const Real time,
-                       const std::set<std::string> * system_names=libmesh_nullptr);
+                       const std::set<std::string> * system_names=nullptr);
 
   /**
    * Sets the list of variable names to be included in the output.
@@ -297,6 +332,11 @@ public:
    * Return list of the nodal variable names
    */
   const std::vector<std::string> & get_nodal_var_names();
+
+  /**
+   * Return list of the global variable names
+   */
+  const std::vector<std::string> & get_global_var_names();
 
 #ifdef LIBMESH_HAVE_EXODUS_API
   /**

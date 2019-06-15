@@ -40,7 +40,9 @@
 #include "libmesh/exodusII_io.h"
 #include "libmesh/fem_context.h"
 #include "libmesh/elem.h"
+#include "libmesh/int_range.h"
 
+// rbOOmit includes
 #include "libmesh/rb_eim_construction.h"
 #include "libmesh/rb_eim_evaluation.h"
 
@@ -287,9 +289,10 @@ void RBEIMConstruction::load_rb_solution()
                       << " RB_solution vector constains " << get_rb_evaluation().RB_solution.size() << " entries." \
                       << " RB_solution in RBConstruction::load_rb_solution is too long!");
 
-  for (unsigned int i=0; i<get_rb_evaluation().RB_solution.size(); i++)
-    get_explicit_system().solution->add(get_rb_evaluation().RB_solution(i),
-                                        get_rb_evaluation().get_basis_function(i));
+  RBEvaluation & rbe = get_rb_evaluation();
+  for (auto i : IntRange<unsigned int>(0, rbe.RB_solution.size()))
+    get_explicit_system().solution->add(rbe.RB_solution(i),
+                                        rbe.get_basis_function(i));
 
   get_explicit_system().update();
 }
@@ -378,7 +381,7 @@ void RBEIMConstruction::enrich_RB_space()
                   optimal_var = var;
                   optimal_elem_id = elem->id();
 
-                  FEBase * elem_fe = libmesh_nullptr;
+                  FEBase * elem_fe = nullptr;
                   explicit_context.get_element_fe( var, elem_fe );
                   optimal_point = elem_fe->get_xyz()[qp];
                 }
@@ -483,7 +486,7 @@ void RBEIMConstruction::plot_parametrized_functions_in_training_set(const std::s
 
   libmesh_assert(_parametrized_functions_in_training_set_initialized);
 
-  for (std::size_t i=0; i<_parametrized_functions_in_training_set.size(); i++)
+  for (auto i : index_range(_parametrized_functions_in_training_set))
     {
 #ifdef LIBMESH_HAVE_EXODUS_API
       *get_explicit_system().solution = *_parametrized_functions_in_training_set[i];
@@ -615,7 +618,7 @@ Real RBEIMConstruction::truth_solve(int plot_solution)
           context.pre_fe_reinit(*this, elem);
           context.elem_fe_reinit();
 
-          FEBase * elem_fe = libmesh_nullptr;
+          FEBase * elem_fe = nullptr;
           context.get_element_fe( 0, elem_fe );
           unsigned int n_qpoints = context.get_element_qrule().n_points();
           const std::vector<Real> & JxW = elem_fe->get_JxW();
@@ -661,9 +664,10 @@ Real RBEIMConstruction::truth_solve(int plot_solution)
 
               // Loop over qp before var because parametrized functions often use
               // some caching based on qp.
-              for (std::size_t qp=0; qp<JxW_values[elem_id].size(); qp++)
+              for (auto qp : index_range(JxW_values[elem_id]))
                 {
-                  unsigned int n_var_dofs = phi_values[elem_id][qp].size();
+                  const unsigned int n_var_dofs =
+                    cast_int<unsigned int>(phi_values[elem_id][qp].size());
 
                   Number eval_result = parametrized_fn_vals[elem_id][qp][var];
                   for (unsigned int i=0; i != n_var_dofs; i++)
@@ -710,7 +714,7 @@ void RBEIMConstruction::init_context_with_sys(FEMContext & c, System & sys)
   // for compute_best_fit
   for (unsigned int var=0; var<sys.n_vars(); var++)
     {
-      FEBase * elem_fe = libmesh_nullptr;
+      FEBase * elem_fe = nullptr;
       c.get_element_fe( var, elem_fe );
       elem_fe->get_JxW();
       elem_fe->get_phi();
@@ -806,7 +810,7 @@ void RBEIMConstruction::set_explicit_sys_subvector(NumericVector<Number> & dest,
   localized_source->init(this->n_dofs(), false, SERIAL);
   source.localize(*localized_source);
 
-  for (std::size_t i=0; i<_dof_map_between_systems[var].size(); i++)
+  for (auto i : IntRange<dof_id_type>(0, _dof_map_between_systems[var].size()))
     {
       dof_id_type implicit_sys_dof_index = i;
       dof_id_type explicit_sys_dof_index = _dof_map_between_systems[var][i];
@@ -826,7 +830,7 @@ void RBEIMConstruction::get_explicit_sys_subvector(NumericVector<Number> & dest,
 {
   LOG_SCOPE("get_explicit_sys_subvector()", "RBEIMConstruction");
 
-  for (std::size_t i=0; i<_dof_map_between_systems[var].size(); i++)
+  for (auto i : IntRange<dof_id_type>(0, _dof_map_between_systems[var].size()))
     {
       dof_id_type implicit_sys_dof_index = i;
       dof_id_type explicit_sys_dof_index = _dof_map_between_systems[var][i];
@@ -860,7 +864,7 @@ void RBEIMConstruction::init_dof_map_between_systems()
     {
       this->get_dof_map().dof_indices (elem, implicit_sys_dof_indices);
 
-      const unsigned int n_dofs = implicit_sys_dof_indices.size();
+      const std::size_t n_dofs = implicit_sys_dof_indices.size();
 
       for (unsigned int var=0; var<n_vars; var++)
         {
@@ -868,7 +872,7 @@ void RBEIMConstruction::init_dof_map_between_systems()
 
           libmesh_assert(explicit_sys_dof_indices.size() == n_dofs);
 
-          for (unsigned int i=0; i<n_dofs; i++)
+          for (std::size_t i=0; i<n_dofs; i++)
             {
               dof_id_type implicit_sys_dof_index = implicit_sys_dof_indices[i];
               dof_id_type explicit_sys_dof_index = explicit_sys_dof_indices[i];

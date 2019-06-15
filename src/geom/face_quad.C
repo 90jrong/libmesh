@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -93,6 +93,14 @@ std::unique_ptr<Elem> Quad::side_ptr (const unsigned int i)
     edge->set_node(n) = this->node_ptr(Quad4::side_nodes_map[i][n]);
 
   return edge;
+}
+
+
+
+void Quad::side_ptr (std::unique_ptr<Elem> & side,
+                     const unsigned int i)
+{
+  this->simple_side_ptr<Quad,Quad4>(side, i, EDGE2);
 }
 
 
@@ -262,7 +270,7 @@ Real Quad::quality (const ElemQuality q) const
           return 0.;
 
         // Compute and return the shape metric. These only use the
-        // digonal entries of the T_k.
+        // diagonal entries of the T_k.
         Real den = 0.;
         if (q == SHAPE)
           {

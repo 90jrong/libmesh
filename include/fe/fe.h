@@ -1,5 +1,5 @@
 // The libMesh Finite Element Library.
-// Copyright (C) 2002-2018 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
+// Copyright (C) 2002-2019 Benjamin S. Kirk, John W. Peterson, Roy H. Stogner
 
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -297,6 +297,8 @@ public:
    * how close is "good enough."  The map inversion iteration
    * computes the sequence \f$ \{ p_n \} \f$, and the iteration is
    * terminated when \f$ \|p - p_n\| < \mbox{\texttt{tolerance}} \f$
+   * The parameter secure (always assumed false in non-debug mode)
+   * switches on integrity-checks on the mapped points.
    */
   static Point inverse_map (const Elem * elem,
                             const Point & p,
@@ -312,6 +314,8 @@ public:
    * close is "good enough."  The map inversion iteration computes the
    * sequence \f$ \{ p_n \} \f$, and the iteration is terminated when
    * \f$ \|p - p_n\| < \mbox{\texttt{tolerance}} \f$
+   * The parameter secure (always assumed false in non-debug mode)
+   * switches on integrity-checks on the mapped points.
    */
   static void inverse_map (const Elem * elem,
                            const std::vector<Point> & physical_points,
@@ -330,8 +334,8 @@ public:
    * argument \p pts.
    */
   virtual void reinit (const Elem * elem,
-                       const std::vector<Point> * const pts = libmesh_nullptr,
-                       const std::vector<Real> * const weights = libmesh_nullptr) override;
+                       const std::vector<Point> * const pts = nullptr,
+                       const std::vector<Real> * const weights = nullptr) override;
 
   /**
    * Reinitializes all the physical element-dependent data based on
@@ -345,8 +349,8 @@ public:
   virtual void reinit (const Elem * elem,
                        const unsigned int side,
                        const Real tolerance = TOLERANCE,
-                       const std::vector<Point> * const pts = libmesh_nullptr,
-                       const std::vector<Real> * const weights = libmesh_nullptr) override;
+                       const std::vector<Point> * const pts = nullptr,
+                       const std::vector<Real> * const weights = nullptr) override;
 
   /**
    * Reinitializes all the physical element-dependent data based on
@@ -360,8 +364,8 @@ public:
   virtual void edge_reinit (const Elem * elem,
                             const unsigned int edge,
                             const Real tolerance = TOLERANCE,
-                            const std::vector<Point> * const pts = libmesh_nullptr,
-                            const std::vector<Real> * const weights = libmesh_nullptr) override;
+                            const std::vector<Point> * const pts = nullptr,
+                            const std::vector<Real> * const weights = nullptr) override;
 
   /**
    * Computes the reference space quadrature points on the side of
@@ -591,8 +595,8 @@ public:
    * argument \p pts.
    */
   virtual void reinit (const Elem * elem,
-                       const std::vector<Point> * const pts = libmesh_nullptr,
-                       const std::vector<Real> * const weights = libmesh_nullptr) override;
+                       const std::vector<Point> * const pts = nullptr,
+                       const std::vector<Real> * const weights = nullptr) override;
 
   /**
    * This prevents some compilers being confused by partially
@@ -601,8 +605,8 @@ public:
   virtual void reinit (const Elem *,
                        const unsigned int,
                        const Real = TOLERANCE,
-                       const std::vector<Point> * const = libmesh_nullptr,
-                       const std::vector<Real> * const = libmesh_nullptr) override
+                       const std::vector<Point> * const = nullptr,
+                       const std::vector<Real> * const = nullptr) override
   { libmesh_not_implemented(); }
 
   /**
@@ -837,10 +841,11 @@ public:
   /**
    * Explicitly call base class method.  This prevents some
    * compilers being confused by partially overriding this virtual function.
+   * \note: pts need to be in reference space coordinates, not physical ones.
    */
   virtual void reinit (const Elem * elem,
-                       const std::vector<Point> * const pts = libmesh_nullptr,
-                       const std::vector<Real> * const weights = libmesh_nullptr) override
+                       const std::vector<Point> * const pts = nullptr,
+                       const std::vector<Real> * const weights = nullptr) override
   { FE<Dim,XYZ>::reinit (elem, pts, weights); }
 
   /**
@@ -850,8 +855,8 @@ public:
   virtual void reinit (const Elem * elem,
                        const unsigned int side,
                        const Real tolerance = TOLERANCE,
-                       const std::vector<Point> * const pts = libmesh_nullptr,
-                       const std::vector<Real> * const weights = libmesh_nullptr) override;
+                       const std::vector<Point> * const pts = nullptr,
+                       const std::vector<Real> * const weights = nullptr) override;
 
 
 protected:
