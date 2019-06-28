@@ -168,11 +168,6 @@ public:
   virtual void unset_close_to_point_tol();
 
   /**
-   * Get a const reference to this PointLocator's mesh.
-   */
-  const MeshBase & get_mesh() const;
-
-  /**
    * Boolean flag to indicate whether to print out extra info.
    */
   bool _verbose;
